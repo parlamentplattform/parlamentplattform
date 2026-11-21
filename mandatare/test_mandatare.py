@@ -451,3 +451,42 @@ def test_offenes_mandat_kann_ueber_die_berichtigung_nicht_beendet_werden(client)
                  "beendet": timezone.localdate().isoformat()})
     mandat.refresh_from_db()
     assert mandat.beendet is None
+
+
+# ── GP-191: Seitenteilung der öffentlichen Liste ────────────────────────────────────────────
+
+
+def test_liste_mit_400_mandaten_blaettert_ohne_javascript_und_nennt_die_gesamtzahl(client):
+    """GP-191 (SU-09): 400 offene und 5 beendete Mandate — jede Seite bleibt unter 150 KiB, nennt die Gesamtzahl
+    und verweist mit einem gewöhnlichen Link auf die nächste; über alle Seiten steht jedes Mandat genau einmal."""
+    import re
+
+    from mitglieder.models import Mitglied
+
+    heute = timezone.localdate()
+    leute = Mitglied.objects.bulk_create(
+        Mitglied(username=f'gp191m{i}', email=f'gp191m{i}@example.org', beitritt=heute) for i in range(405)
+    )
+    Mandat.objects.bulk_create(
+        Mandat(
+            mitglied=m, bezeichnung='Gemeinderat', ebene='gemeinde', gebiet=f'Ort {i:03d}',
+            beendet=heute - timedelta(days=i) if i >= 400 else None,
+        )
+        for i, m in enumerate(leute)
+    )
+    gesehen, seiten, url = [], 0, reverse('mandatare:liste')
+    while url:
+        antwort = client.get(url)
+        assert antwort.status_code == 200
+        html = antwort.content.decode()
+        assert len(antwort.content) < 150 * 1024, (url, len(antwort.content))
+        assert '405 Mandate' in html, url
+        gesehen += re.findall(r'href="/mandatare/(\d+)/"', html)
+        weiter = re.search(r'<a href="(\?seite=\d+)" rel="next"', html)
+        url = reverse('mandatare:liste') + weiter.group(1) if weiter else None
+        seiten += 1
+        assert seiten < 50
+    assert seiten > 1
+    assert sorted(set(gesehen), key=int) == sorted((str(m.pk) for m in Mandat.objects.all()), key=int)
+    erste = client.get(reverse('mandatare:liste')).content.decode()
+    assert re.search(r'href="\?seite=\d+#beendet"', erste)

@@ -31,6 +31,7 @@ from functools import wraps
 
 from django import forms
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Prefetch, Q
 from django.http import Http404, HttpResponse, JsonResponse
@@ -108,6 +109,8 @@ BEGRUENDUNG_MAX = 4000
 RECHENSCHAFT_AUSZUG = 5
 #: Berichte auf der öffentlichen Detailseite — der Rest steht vollständig unter `berichte`.
 BERICHTE_AUSZUG = 12
+#: Mandate je Seite der öffentlichen Liste `/mandatare/` (GP-191) — Registerwert folgt.
+MANDATE_SEITE = 50
 #: Ein zweiter, gleichlautender Report desselben Mandats binnen dieser Sekunden ist eine
 #: Doppelabsendung (Doppelklick, Zurück + neu senden), kein neuer Report.
 DOPPELABSENDUNG_SEKUNDEN = 120
@@ -474,11 +477,30 @@ def _ausstaende_fuer(mandate, heute: date | None = None) -> dict[int, dict]:
 
 
 def liste(request):
-    mandate = list(
-        _mandat_queryset()
-        .filter(beendet__isnull=True)
-        .annotate(rechenschaft_anzahl=Count("rechenschaft"))
-    )
+    """Alle Mandate, seitenweise (GP-191): erst die offenen als Karten in der Ordnung des Modells (Ebene, Gebiet,
+    Antritt), dann die beendeten als Zeilen, zuletzt beendet zuerst. Eine Folge, eine Seitenzählung — so steht
+    jedes Mandat auf genau einer Seite, und die Gesamtzahl gilt für beide Teile."""
+    offen = Mandat.objects.filter(beendet__isnull=True)
+    beendet = Mandat.objects.filter(beendet__isnull=False)
+    n_offen, n_beendet = offen.count(), beendet.count()
+    seite = Paginator(range(n_offen + n_beendet), MANDATE_SEITE).get_page(request.GET.get("seite"))
+    anfang, ende = max(0, seite.start_index() - 1), seite.end_index()  # 0-basiert, Ende ausschließlich
+    mandate = []
+    if anfang < n_offen:
+        mandate = list(
+            _mandat_queryset()
+            .filter(beendet__isnull=True)
+            .order_by(*Mandat._meta.ordering, "pk")
+            .annotate(rechenschaft_anzahl=Count("rechenschaft"))[anfang:min(ende, n_offen)]
+        )
+    # Beendete Mandate bleiben verlinkt — ihre Seite trägt Register und Ausstände weiter (GP-114)
+    ehemalige = []
+    if ende > n_offen:
+        ehemalige = list(
+            beendet.select_related("mitglied").defer("foto").order_by("-beendet", "-pk")[
+                max(0, anfang - n_offen):ende - n_offen
+            ]
+        )
     ausstaende = _ausstaende_fuer(mandate)
     fuer_karten = []
     for m in mandate:
@@ -493,16 +515,18 @@ def liste(request):
     kandidaturen = (
         Antrag.objects.filter(art=Antragsart.MANDAT, phase__in=LAUFEND).order_by("phase_beginn")[:6]
     )
-    # Beendete Mandate bleiben verlinkt — ihre Seite trägt Register und Ausstände weiter (GP-114)
-    ehemalige = list(
-        Mandat.objects.filter(beendet__isnull=False).select_related("mitglied").defer("foto").order_by("-beendet", "-pk")
-    )
     return render(
         request,
         "mandatare/liste.html",
         {
             "karten": fuer_karten,
             "ehemalige": ehemalige,
+            "n_offen": n_offen,
+            "n_beendet": n_beendet,
+            "gesamt": n_offen + n_beendet,
+            # die Seite, auf der die beendeten Mandate beginnen — Ziel des Hinweises auf den anderen Seiten
+            "beendet_ab_seite": n_offen // MANDATE_SEITE + 1,
+            "seite": seite,
             "kandidaturen": kandidaturen,
         },
     )

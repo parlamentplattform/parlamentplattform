@@ -187,6 +187,15 @@ GEPRUEFT_TESTBAR = frozenset({
     'quellenkontext-textzeichen', 'rechtsfolgen-eingabezeichen', 'region-nebenwohnsitz-zaehlt', 'suche-treffer-hoechstzahl',
     'uebersicht-abstimmungen', 'vertrauensfrage-abstimmung-tage', 'vertrauensfrage-unterstuetzung-tage',
     'weicherfilter-profile-hoechstzahl',
+    # Folgewelle 0.115.0, geprüft in der Schlusspflege: Seitengrößen und Anzeigegrenzen (Parlament,
+    # Umsetzungsregister, Mandatarliste, Übersicht, Mitgliederliste der Verwaltung), der Warnanteil des
+    # Bestandsnachweises, die Zeilen je Abruf des Ähnlichkeitsvergleichs (nur Speicher, nie das Ergebnis), die
+    # Überfälligkeit des Prüfstands im Audit-Log und die beiden Drosseln je Konto (Rats-KI, Beanstandungen).
+    # Keine davon liest ein laufendes Verfahren.
+    'aehnlichkeit-seite-zeilen', 'audit-pruefstand-ueberfaellig-takte', 'beanstandung-je-stunde',
+    'faktenbasis-bestandsnachweis-warnanteil', 'gremien-ki-je-stunde', 'mandatare-liste-seite',
+    'parlament-gruppe-hoechstzahl', 'uebersicht-laufende-je-seite', 'umsetzung-seite-hoechstzahl',
+    'verwaltung-liste-seitengroesse',
 })
 
 

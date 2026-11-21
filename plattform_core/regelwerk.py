@@ -1077,4 +1077,13 @@ REGELN: tuple[Regel, ...] = (
             "Prüfsummenwerkzeug in wenigen Minuten nachzurechnen.")
         ),
     ),
+    Regel(
+        modul="parlamentlisten.py",
+        titel=_("Reihung und Umfang der Listen im Parlament"),
+        zweck=_("Legt fest, in welcher Reihenfolge und wie viele Anträge die Listen im Parlament zeigen: die Gruppen des WeicherFilters ohne gestellte Regler, „Wichtige Abstimmungen“, „Meine Region“, die Anträge eines Lebensbereichs und die Titelsuche. Keine Liste reiht nach Beliebtheit; keine schneidet still ab, jede gekürzte Liste nennt ihre Gesamtzahl."),
+        wirkung=Wirkung.REIHT, satzung="§ 5 Abs 10 · § 2 Abs 6", fassung=1, seit="2026-11-21",
+        grund=_("Erste verzeichnete Fassung. „Wichtige Abstimmungen“ reihte nach dem Phasenbeginn statt nach dem Fristende und schnitt ohne Gesamtzahl ab; „Meine Region“ und die Suche hatten keine offengelegte Regel; bei tausenden Verfahren wuchs das Parlament ohne Grenze (Gründerentscheidung D-B1a vom 29.9.2026: Obergrenze je Gruppe mit weiteren Seiten)."),
+        nachrechenbar=_("Neutrale Ordnung: zuerst die Phase (Abstimmung, Beratung, Unterstützung), dann das Fristende aufsteigend, bei Gleichstand die kleinere Antragsnummer. So reihen die Gruppen des WeicherFilters ohne Regler (steht der Schalter „Favoriten zuerst“, stehen Anträge aus abonnierten Lebensbereichen innerhalb der Gruppe vorn), „Meine Region“ je Zeile, die Anträge eines Lebensbereichs samt Unterbereichen und die laufenden Treffer der Titelsuche. Jede Gruppe des WeicherFilters zeigt höchstens 60 Anträge, die übrigen stehen seitenweise zu je 60 unter „Alle zeigen“. „Abgeschlossen“ zeigt die zuletzt entschiedenen zuerst (Beginn der letzten Phase absteigend, dann Antragsnummer absteigend), in der Übersicht so viele, wie der Registerwert „kacheln-abgeschlossen“ sagt. „Wichtige Abstimmungen“: die vom Integritätsrat hervorgehobenen laufenden Anträge nach Fristende aufsteigend, so viele, wie der Registerwert „kacheln-hervorgehoben“ sagt; der Feldkopf nennt die Gesamtzahl. „Gemerkt“: die eigenen gemerkten Anträge, laufende in neutraler Ordnung, danach die übrigen, zuletzt entschiedene zuerst. Die Anträge eines Lebensbereichs stehen seitenweise zu je 60. Die Suche zeigt Lebensbereiche nach ihrer Tiefe im Baum, dann nach Name, und Anträge mit dem Suchwort im Titel, laufende in neutraler Ordnung, danach die übrigen, zuletzt entschiedene zuerst; beide Listen höchstens so viele, wie das Parameterregister für Suchtreffer vorsieht."),
+        luecke=_("Die Höchstzahl 60 je Gruppe steht noch im Programm, nicht im Parameterregister."),
+    ),
 )

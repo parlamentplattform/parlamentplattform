@@ -15,7 +15,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import OperationalError, transaction
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -44,6 +44,7 @@ from verfahren.hinweise import (
     kachel_feld,
     mitwirkungssperre,
     sicherer_pfad,
+    unerreichbare_schwellen,
     weiter_mit_hinweis,
     weiter_ohne_hinweis,
 )
@@ -88,6 +89,10 @@ from verfahren.teilnahme import (
 )
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
+
+#: Beanstandungen je Konto und Kalenderstunde (GP-084) — Registerwert folgt („beanstandung-je-stunde“);
+#: bis dahin gilt diese Vorgabe. Großzügig gewählt: Sie trifft das Fluten, nicht das Mitreden.
+BEANSTANDUNGEN_JE_STUNDE = 10
 
 def nebenwohnsitz_zaehlt() -> bool:
     """Stellgröße `region-nebenwohnsitz-zaehlt` (§ 14 Abs 3): Nur der Wert 1 schaltet ein, alles
@@ -289,6 +294,8 @@ def einbringen(request):
             "gegenueberstellung_token": vergleichsangebot, "gegenueberstellung": vergleich,
             "vorschau_wartezeit": max(0, zahl("aehnlichkeit-vorschau-wartezeit-ms", 800)),
             "mindestzeichen": max(1, zahl("aehnlichkeit-vorschau-mindestzeichen", 40)),
+            # Z-5 (E-05): Hinweis vor dem Absenden, wo die Schwelle im Ortskreis nicht erreichbar ist
+            "schwelle_hinweise": unerreichbare_schwellen(request.user, ordnung, request.POST.get("art") or "sache"),
         })
 
     if request.method == "POST":
@@ -538,23 +545,28 @@ def unterstuetzen(request, pk):
     )
 
 
-def _chat_antwort(request, antrag, anker: str = "", fehler=None, entwurf=None):
+def _chat_antwort(request, antrag, anker: str = "", fehler=None, entwurf=None, erfolg=None):
     """Nach jeder Chat-Handlung: mit htmx nur die Zone tauschen, sonst zurück auf den Anker.
 
     Ein Fehler (Befund B2) geht nie über Django-messages: Die Zone trägt `chat.fehler` (Text,
     optional Link) und `chat.entwurf` (text, ist_kritik, bezug_absatz, antwort_auf), das Formular
     zeigt den eingegebenen Text mit der Meldung darüber. Ohne JavaScript steht dafür die ganze
-    Antragsseite mit Fehler und Entwurf — kein Redirect, der den Text verlöre."""
+    Antragsseite mit Fehler und Entwurf — kein Redirect, der den Text verlöre. Eine Bestätigung
+    (`erfolg`) steht mit htmx ebenso in der Zone, ohne JavaScript als Meldung auf der Antragsseite,
+    auf die der Redirect führt — nie auf einer fremden, späteren Seite (GP-071)."""
     from verfahren.views import _antwort_vorgabe, _chat_lage, antrag_detail
 
     if request.headers.get("HX-Request"):
         lage = _chat_lage(antrag, request.user)
         lage["fehler"] = fehler
+        lage["erfolg"] = erfolg
         lage["entwurf"] = entwurf
         lage["antwort_vorgabe"] = _antwort_vorgabe(antrag, (entwurf or {}).get("antwort_auf"))
         return render(request, "verfahren/_chat.html", {"antrag": antrag, "chat": lage})
     if fehler:
         return antrag_detail(request, antrag.pk, chat_fehler=fehler, chat_entwurf=entwurf)
+    if erfolg:
+        messages.success(request, erfolg)
     ziel = reverse("verfahren:antrag", kwargs={"pk": antrag.pk})
     return redirect(f"{ziel}#{anker}" if anker else ziel)
 
@@ -569,6 +581,7 @@ def kommentieren(request, pk):
     """Einen Beitrag in den Chat schreiben (FB-G1) — als eigener Faden oder als Antwort."""
     from verfahren.chat import BeitragZuLang, ChatGesperrt, beitrag_schreiben, kritik_mindestzeichen
     from verfahren.hinweise import HINWEISE, kachel_sperre
+    from verfahren.views import ganze_zahl
 
     antrag = get_object_or_404(Antrag, pk=pk)
     # Der Entwurf begleitet jeden Fehler zurück ins Formular — nichts Eingegebenes geht verloren
@@ -593,7 +606,7 @@ def kommentieren(request, pk):
     if roh:
         antwort_auf = Kommentar.objects.filter(
             pk=roh, antrag=antrag, archiviert_am__isnull=True
-        ).first() if roh.isdigit() else None
+        ).first() if ganze_zahl(roh) is not None else None  # GP-109
         if antwort_auf is None:
             entwurf["antwort_auf"] = ""
             return _chat_antwort(
@@ -608,7 +621,7 @@ def kommentieren(request, pk):
     try:
         beitrag = beitrag_schreiben(
             antrag, request.user, form.cleaned_data["text"], antwort_auf,
-            ist_kritik=entwurf["ist_kritik"], bezug_absatz=int(absatz) if absatz.isdigit() else None,
+            ist_kritik=entwurf["ist_kritik"], bezug_absatz=ganze_zahl(absatz),
         )
     except ChatGesperrt as fehler:
         return _chat_antwort(request, antrag, fehler=_chat_fehler(str(fehler)), entwurf=entwurf)
@@ -650,30 +663,28 @@ def beitrag_bearbeiten(request, pk, beitrag_pk):
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     if not beitrag.darf_bearbeiten(request.user):
         minuten = Kommentar.bearbeitungsfenster_minuten()  # die geltende Zahl, nicht fest „fünf“
-        messages.error(request, ngettext(
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(ngettext(
             "Ändern ist nur in der ersten Minute möglich.",
             "Ändern ist nur in den ersten %(n)s Minuten möglich.",
             minuten,
-        ) % {"n": minuten})
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        ) % {"n": minuten}))
     text = (request.POST.get("text") or "").strip()
     if not text:
-        messages.error(request, _("Bitte einen Text eingeben."))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(_("Bitte einen Text eingeben.")))
     from verfahren.chat import chat_zeichen_hoechstzahl
 
     hoechst = chat_zeichen_hoechstzahl()
     if len(text) > hoechst:
         # Abweisen statt still kürzen (GP-083)
-        messages.error(request, _zu_lang_text(hoechst))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(_zu_lang_text(hoechst)))
     if beitrag.ist_kritik:
         # Beim Ändern gilt dieselbe Mindestlänge wie beim Schreiben (GP-015, § 5 Abs 13)
         from verfahren.chat import kritik_mindestzeichen
 
         if len(text) < kritik_mindestzeichen():
-            messages.error(request, _kritik_zu_kurz_text(kritik_mindestzeichen()))
-            return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+            return _chat_antwort(
+                request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(_kritik_zu_kurz_text(kritik_mindestzeichen()))
+            )
     beitrag.text = text
     beitrag.bearbeitet_am = timezone.now()
     with transaction.atomic():
@@ -696,8 +707,10 @@ def beitrag_entfernen(request, pk, beitrag_pk):
     Gelöscht wird nichts — Antworten darunter verlören sonst ihren Bezug (Grundregel 7)."""
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     if beitrag.mitglied_id != request.user.pk or beitrag.archiviert_am:
-        messages.error(request, _("Nur eigene Beiträge im laufenden Chat lassen sich zurückziehen."))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        return _chat_antwort(
+            request, antrag, f"k-{beitrag.pk}",
+            fehler=_chat_fehler(_("Nur eigene Beiträge im laufenden Chat lassen sich zurückziehen.")),
+        )
     if not beitrag.geloescht:
         beitrag.geloescht = True
         with transaction.atomic():
@@ -726,9 +739,18 @@ def reagieren(request, pk, beitrag_pk):
     from verfahren.models import Reaktionsart
 
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
-    sperre = _mitwirkung_gesperrt(request)
-    if sperre:
-        return sperre
+    code = mitwirkungssperre(request.user)
+    if code and request.headers.get("HX-Request"):
+        # Kein stummer Klick: Der Grund steht in der Zone, wie beim Schreiben (GP-071)
+        from verfahren.hinweise import HINWEISE, kachel_sperre
+
+        sperre = kachel_sperre(code)
+        return _chat_antwort(
+            request, antrag, f"k-{beitrag.pk}",
+            fehler=_chat_fehler(HINWEISE[code]["text"], sperre["link"], sperre["link_text"]),
+        )
+    if code:
+        return _mitwirkung_gesperrt(request)
     # § 5 Abs 13: Reagieren geht „bis zum Fristende“. Erst fortschreiben — ist die Frist um, wertet das
     # die Runde aus und räumt ihre Beiträge ins Archiv; die Reaktion trifft dann ins Leere statt in
     # eine schon entschiedene Rechnung (Bestandsaufnahme A8). Hat das die Phase gewechselt, zeichnet
@@ -769,8 +791,7 @@ def melden(request, pk, beitrag_pk):
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     grund = request.POST.get("grund", "")
     if grund not in Meldung.Grund.values:
-        messages.error(request, _("Bitte einen Grund wählen."))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(_("Bitte einen Grund wählen.")))
     meldung, neu = Meldung.objects.get_or_create(
         kommentar=beitrag,
         mitglied=request.user,
@@ -780,8 +801,7 @@ def melden(request, pk, beitrag_pk):
         AuditEintrag.anhaengen(
             {"typ": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
         )
-    messages.success(request, _("Danke — die Meldung liegt der Verwaltung vor."))
-    return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    return _chat_antwort(request, antrag, f"k-{beitrag.pk}", erfolg=_("Danke — die Meldung liegt der Verwaltung vor."))
 
 
 @login_required
@@ -858,9 +878,13 @@ def abstimmen(request, pk):
         gegenstand_fuer(antrag), stichtag, uebergang=uebergangsregel_fuer(antrag)
     ):
         # Ungeprüfte und ruhende Konten sind nie stimmberechtigt — der Kachel-Hinweis nennt den Grund
+        # — und die Antragsseite dieselbe Sperrseite wie beim Unterstützen; die Seite zur Anwartschaft
+        # nur, wenn wirklich die Anwartschaft fehlt (GP-070)
         code = mitwirkungssperre(request.user) or "nicht_stimmberechtigt"
         return _abbruch(
-            request, feld, code, lambda: render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
+            request, feld, code,
+            lambda: _mitwirkung_gesperrt(request)
+            or render(request, "verfahren/nicht_stimmberechtigt.html", status=403),
         )
     if request.user.adresswechsel_offen:
         # F-51: Solange die Anmeldeadresse in Änderung ist, gehört das Konto vielleicht nicht
@@ -980,6 +1004,10 @@ def beanstanden(request, pk):
     from verfahren.views import _lesbarer_lauf
 
     antrag = get_object_or_404(Antrag, pk=pk)
+    if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE):
+        # Über Menschen rechnet keine Maschine (FB-F4): Bei Personenwahlen gibt es keine Einschätzung,
+        # also nichts zu beanstanden — kein unsichtbarer Datensatz, keine falsche Rückmeldung (GP-084).
+        raise Http404
     sperre = _mitwirkung_gesperrt(request)
     if sperre:
         return sperre
@@ -1001,6 +1029,18 @@ def beanstanden(request, pk):
         except (ValueError, KILauf.DoesNotExist):
             messages.error(request, _("Der gewählte Lauf gehört nicht zu dieser öffentlichen Einschätzung."))
             return _zurueck_zum_antrag(request, antrag)
+    # Drossel je Konto und Stunde, wie beim Bedeutungsvergleich: Jeder Vermerk bleibt dauerhaft
+    # öffentlich stehen — ein einzelnes Konto soll die Zone nicht füllen können (GP-084).
+    from mitglieder.botschutz import drossel_zuviel
+
+    grenze = max(0, zahl("beanstandung-je-stunde", BEANSTANDUNGEN_JE_STUNDE))
+    if drossel_zuviel(None, "beanstandung", grenze, kennung=f"konto:{request.user.pk}"):
+        messages.error(request, ngettext(
+            "Höchstens eine Beanstandung je Stunde — bitte später noch einmal.",
+            "Höchstens %(n)s Beanstandungen je Stunde — bitte später noch einmal.",
+            grenze,
+        ) % {"n": grenze})
+        return _zurueck_zum_antrag(request, antrag)
     with transaction.atomic():
         beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
         AuditEintrag.anhaengen(
@@ -1241,7 +1281,8 @@ def kandidatur_zustimmen(request, pk, bewerbung_pk):
     if not request.user.ist_stimmberechtigt(
         Gegenstand.PERSONENWAHL, stichtag, uebergang=uebergangsregel_fuer(antrag)
     ):
-        return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
+        # Gesperrte Konten erfahren den wahren Grund, nicht den zur Anwartschaft (GP-070)
+        return _mitwirkung_gesperrt(request) or render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
     if request.user.adresswechsel_offen:
         messages.error(
             request,
@@ -1369,7 +1410,8 @@ def favorisieren(request, pk):
     if neu:
         messages.success(
             request,
-            _("Als Favorit gemerkt — Sie finden das Thema jetzt in Ihrem Bereich auf der Startseite."),
+            # GP-052: der Ort, den es gibt — „★ Gemerkt“ im WeicherFilter führt zu allen gemerkten Anträgen
+            _("Gemerkt — Sie finden den Antrag im Parlament unter „★ Gemerkt“."),
         )
     else:
         messages.info(request, _("Favorit entfernt."))

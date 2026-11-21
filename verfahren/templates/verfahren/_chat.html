@@ -23,6 +23,8 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
     <p class="meta">
       {% if a.frist %}{% blocktranslate with frist=a.frist|date:"d.m.Y H:i" %}Beratung bis {{ frist }}{% endblocktranslate %} · {% endif %}
       <a href="{% url 'parameter:regeln' %}#regel-vorschlagschat">{% blocktranslate with r=a.reihung %}Reihung: Engagement, Regel {{ r }}{% endblocktranslate %}</a>
+      {# GP-077: Die Anzeige lässt sich chronologisch schalten — ein Link, ohne JavaScript; die Auswertung bleibt dieselbe #}
+      · {% if chat.zeitfolge %}<a href="{% url 'verfahren:antrag' antrag.pk %}#chat-faden">{% translate "Nach Engagement zeigen" %}</a>{% else %}<a href="{% url 'verfahren:antrag' antrag.pk %}?reihung=zeit#chat-faden">{% translate "Chronologisch zeigen" %}</a>{% endif %}
     </p>
   </div>
   <article class="karte vorschlag gepinnt">
@@ -47,7 +49,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
   über den Link oben (?ab=<pk>) — ohne JavaScript eine Seite, mit htmx wird das ältere Fenster davor
   eingehängt; im Abstimmungs-Chat die vordersten der Reihung, weitere über den Link unten.{% endcomment %}
   <div class="faden">
-    {% if chat.faden_ab %}<p class="faden-mehr zurueck"><a href="{% url 'verfahren:antrag' antrag.pk %}#chat-faden">{% if chat.faden_richtung == "weiter" %}{% translate "Zum Anfang der Reihung" %}{% else %}{% translate "Zu den neuesten Beiträgen" %}{% endif %}</a></p>{% endif %}
+    {% if chat.faden_ab %}<p class="faden-mehr zurueck"><a href="{% url 'verfahren:antrag' antrag.pk %}{% if chat.zeitfolge %}?reihung=zeit{% endif %}#chat-faden">{% if chat.faden_richtung == "weiter" %}{% translate "Zum Anfang der Reihung" %}{% else %}{% translate "Zu den neuesten Beiträgen" %}{% endif %}</a></p>{% endif %}
     <div class="faden-fenster">
     {% if chat.faden_mehr and chat.faden_richtung == "aelter" %}{% include "verfahren/_chat_mehr.html" %}{% endif %}
     {% for b in chat.faden %}
@@ -67,9 +69,12 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
 
   {# Fehler einer Chat-Handlung (Befund B2): nie als Flash — hier, über dem Formular, das den Entwurf behält #}
   {% if chat.fehler %}<p class="chat-fehler" role="alert">{{ chat.fehler.text }}{% if chat.fehler.link %} <a href="{{ chat.fehler.link }}">{{ chat.fehler.link_text }} ›</a>{% endif %}</p>{% endif %}
+  {% if chat.erfolg %}<p class="chat-erfolg" role="status">{{ chat.erfolg }}</p>{% endif %}
 
   {% if chat.offen %}
-    {% if user.is_authenticated %}
+    {% if chat.sperre and not chat.entwurf %}{# ein schon geschriebener Entwurf bleibt samt Fehler im Formular stehen #}
+    {% include "verfahren/_sperre_satz.html" with sperre=chat.sperre %}
+    {% elif user.is_authenticated %}
     <form method="post" action="{% url 'verfahren:kommentieren' antrag.pk %}" class="chatzeile" id="chat-eingabe"
       hx-post="{% url 'verfahren:kommentieren' antrag.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML"
       @htmx:after-request="gesendet($event)">
@@ -103,7 +108,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
       </div>
     </form>
     {% else %}
-    <p class="hilfe chat-hinweis">{% translate "Mitlesen ist offen — zum Mitreden bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>
+    {% if request.gemeindekonto %}<p class="hilfe chat-hinweis">{% include "verfahren/_nur_partei.html" %}</p>{% else %}<p class="hilfe chat-hinweis">{% translate "Mitlesen ist offen — zum Mitreden bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>{% endif %}
     {% endif %}
   {% elif chat.ruht %}
     <p class="hilfe chat-hinweis">{% translate "Bis der Vorschlag vorliegt, wird hier nicht geschrieben." %}</p>

@@ -1,0 +1,13 @@
+{% load i18n phasen %}{% comment %}
+FB-C5 (D-C5, GP-075): Unter dem fokussierten Lebensbereich stehen die laufenden Verfahren des ganzen Astes —
+neutral gereiht (plattform_core.parlamentlisten), seitenweise ohne JavaScript.
+{% endcomment %}<div class="ast-liste" id="ast-laufend">
+  <p class="gruppe">{% blocktranslate count n=ast.seite.gesamt %}ein laufendes Verfahren{% plural %}{{ n }} laufende Verfahren{% endblocktranslate %}{% if ast.seite.gesamt > 1 %}<span class="gruppe-zahl"> · <a href="{% url 'parameter:regeln' %}#regel-parlamentlisten">{% translate "nach Phase und Frist" %}</a></span>{% endif %}</p>
+  {% for a in ast.zeilen %}<div class="zeile"><span><a class="ast-antrag" href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
+    <br><span class="meta">{{ a.phase|phase_name }}</span></span></div>{% endfor %}
+  {% if ast.seite.seiten > 1 %}<nav class="blaettern" aria-label="{% translate 'Seiten der Gruppe' %}">
+    {% if ast.seite.zurueck %}<a href="?fach={{ ast.slug }}&amp;ast_seite={{ ast.seite.zurueck }}#feld-favoriten">‹ {% translate "zurück" %}</a>{% endif %}
+    <span>{% blocktranslate with von=ast.seite.von bis=ast.seite.bis n=ast.seite.gesamt %}{{ von }}–{{ bis }} von {{ n }}{% endblocktranslate %}</span>
+    {% if ast.seite.weiter %}<a href="?fach={{ ast.slug }}&amp;ast_seite={{ ast.seite.weiter }}#feld-favoriten">{% translate "weiter" %} ›</a>{% endif %}
+  </nav>{% endif %}
+</div>

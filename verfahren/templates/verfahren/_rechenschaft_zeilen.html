@@ -1,0 +1,11 @@
+{% load i18n %}{% comment %}
+Einträge des Rechenschaftsregisters zu einem Beschluss der Plattform (GP-065): Mandatar mit Link auf
+das Mandat, Sitzungstag, Stimme — eine Abweichung wird benannt, nicht bewertet (§ 7 Abs 4 und 5).
+Erwartet `eintraege` (Rechenschaft mit mandat.mitglied).
+{% endcomment %}<ul class="rechenschaft-zeilen">
+  {% for r in eintraege %}
+  <li><a href="{% url 'mandatare:detail' r.mandat_id %}">{{ r.mandat.mitglied.anzeigename }}</a> ({{ r.mandat.bezeichnung }})
+    · {% translate "Sitzung" %} {{ r.sitzung_am|date:"d.m.Y" }}
+    · {% translate "Stimme:" %} <strong>{{ r.get_stimme_display }}</strong>{% if r.weicht_ab %} · <span class="weicht">{% translate "weicht ab" %}</span>{% endif %}</li>
+  {% endfor %}
+</ul>

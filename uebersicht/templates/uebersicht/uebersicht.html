@@ -37,6 +37,13 @@ Laufende Abstimmungen zeigen die Beteiligung — die Tendenz bleibt bis zum Fris
 Sachantrags sie ab erreichter Mindestbeteiligung freigibt (D-D2 b), steht sie da. Ergebnisse gibt es erst für
 entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte Bewerbung.
 {% endcomment %}
+{% if laufende_seite.has_other_pages %}
+<nav class="audit-blaettern" aria-label="{% translate 'Seiten' %}">
+  {% if laufende_seite.has_previous %}<a href="?seite={{ laufende_seite.previous_page_number }}">← {% translate "neuere" %}</a>{% endif %}
+  <span class="meta">{% blocktranslate count n=laufende_seite.paginator.count %}{{ n }} laufende Abstimmung{% plural %}{{ n }} laufende Abstimmungen{% endblocktranslate %} · {% blocktranslate with n=laufende_seite.number von=laufende_seite.paginator.num_pages %}Seite {{ n }} von {{ von }}{% endblocktranslate %}</span>
+  {% if laufende_seite.has_next %}<a href="?seite={{ laufende_seite.next_page_number }}">{% translate "ältere" %} →</a>{% endif %}
+</nav>
+{% endif %}
 {% for z in abstimmungen %}
   <div class="karte">
     <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">

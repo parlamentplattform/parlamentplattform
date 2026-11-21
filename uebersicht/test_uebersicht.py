@@ -251,3 +251,41 @@ def test_gp126_die_phasenaufstellung_summiert_auf_die_gesamtzahl(client, ordnung
     inhalt = antwort.content.decode()
     for wort in ('verfallen', 'zurückgezogen', 'zurückgewiesen'):
         assert wort in inhalt, wort
+
+
+def test_gp191_vierhundert_laufende_abstimmungen_blaettern_ohne_javascript(client, ordnung):  # noqa: F811
+    '''GP-191 (SU-09): Die Übersicht zeigte jede laufende Abstimmung auf einer Seite; die Antwort
+    wuchs mit dem Bestand. Bei 400 laufenden bleibt jede Seite unter 150 KiB, nennt die Gesamtzahl
+    und verweist mit einem gewöhnlichen Link auf die nächste Seite.'''
+    import re
+
+    from verfahren.models import Antrag
+
+    autor = mitglied_anlegen('autor')
+    vorlage = antrag_einbringen(autor, **ANTRAG, ordnung=ordnung)
+    Antrag.objects.filter(pk=vorlage.pk).update(phase='abstimmung', stimmberechtigte_anzahl=5)
+    vorlage.refresh_from_db()
+    kopien = []
+    for i in range(399):
+        kopie = Antrag.objects.get(pk=vorlage.pk)
+        kopie.pk = None
+        kopie.titel = f'Abstimmung {i:03d}'
+        kopien.append(kopie)
+    Antrag.objects.bulk_create(kopien)
+    assert Antrag.objects.filter(phase='abstimmung').count() == 400
+
+    adresse = reverse('uebersicht:index')
+    gesehen = set()
+    seiten = 0
+    while adresse:
+        antwort = client.get(adresse)
+        assert antwort.status_code == 200
+        assert len(antwort.content) < 150 * 1024, len(antwort.content)
+        inhalt = antwort.content.decode()
+        assert '400 laufende Abstimmungen' in inhalt
+        gesehen |= {z['antrag'].pk for z in antwort.context['abstimmungen']}
+        weiter = re.search(r'<a href="(\?seite=\d+)">ältere →</a>', inhalt)
+        adresse = reverse('uebersicht:index') + weiter.group(1) if weiter else None
+        seiten += 1
+        assert seiten < 20
+    assert seiten > 1 and len(gesehen) == 400

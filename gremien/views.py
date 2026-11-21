@@ -96,6 +96,44 @@ def _jahr_pruefen(jahr: int) -> None:
         raise Http404
 
 
+#: Wie oft ein Konto in den Räten je Stunde die Zukunftswerkstatt fragen darf — Einschätzung im
+#: Entwurfsfenster und Einschätzung eines Parametertests zusammen (GP-046). Registerwert folgt
+#: (vorgeschlagen: `gremien-ki-je-stunde`); bis dahin hier, großzügig gewählt.
+GREMIEN_KI_JE_STUNDE = 10
+
+
+def _ki_vorhanden(zweck: str, eingabe: str, auftrag, antrag=None):
+    """Der erfolgreiche Lauf zu genau dieser Anforderung (gleicher Zweck, gleiche Eingabe, gleiche
+    Auftragsfassung) — oder None. Dieselbe Frage zum selben Stand kostet keinen zweiten Lauf (GP-046)."""
+    from ki.models import KILauf
+
+    laeufe = KILauf.objects.filter(zweck=zweck, eingabe=eingabe, auftrag_version=auftrag.version, erfolgreich=True)
+    if antrag is not None:
+        laeufe = laeufe.filter(antrag=antrag)
+    return laeufe.order_by("-erstellt_am").first()
+
+
+def _ki_gedrosselt(request) -> bool:
+    """True und eine Meldung, wenn das Konto die Stundengrenze der Gremienaufrufe erreicht hat (GP-046).
+    Gezählt wird wie bei den anderen Drosseln je Konto in `Drosselzaehler` (`mitglieder.botschutz`)."""
+    import time
+    from datetime import datetime
+
+    from django.utils import formats
+
+    from mitglieder.botschutz import drossel_zuviel
+
+    if not drossel_zuviel(None, "gremien_ki", GREMIEN_KI_JE_STUNDE, kennung=f"konto:{request.user.pk}"):
+        return False
+    ende = datetime.fromtimestamp((int(time.time() // 3600) + 1) * 3600, tz=timezone.get_current_timezone())
+    messages.error(
+        request,
+        _("Stundengrenze erreicht — höchstens %(n)d Anfragen an die Zukunftswerkstatt je Stunde und Konto; wieder ab %(zeit)s Uhr.")
+        % {"n": GREMIEN_KI_JE_STUNDE, "zeit": formats.time_format(ende, "H:i")},
+    )
+    return True
+
+
 def nur_gremium(*gremien: str):
     """Zugang für aktive Rolleninhaber; Admins dürfen zuschauen (Aufsicht),
     schreiben aber nur mit echter Rolle — das prüfen die Handlungen selbst.
@@ -525,6 +563,12 @@ def fenster_aktion(request, antrag_id: int):
         if wuensche:
             eingabe += "\n\nWünsche der Unterstützer aus der Vorrunde:\n- " + "\n- ".join(wuensche)
         auftrag = auftrag_laden(Zweck.EINSCHAETZUNG)
+        if _ki_vorhanden(Zweck.EINSCHAETZUNG, eingabe, auftrag, antrag=antrag) is not None:
+            # Dieselbe Anforderung zur selben Fassung: Die Einschätzung steht schon im Fenster (GP-046).
+            messages.info(request, _("Zu dieser Fassung liegt die KI-Einschätzung bereits vor."))
+            return redirect("gremien:fenster", antrag_id=antrag.pk)
+        if _ki_gedrosselt(request):
+            return redirect("gremien:fenster", antrag_id=antrag.pk)
         try:
             lauf = lauf_ausfuehren(
                 Zweck.EINSCHAETZUNG, auftrag.text, eingabe, request.user,
@@ -2107,6 +2151,13 @@ def koordination_test(request, test_id: int):
             + f"\nTestzeitraum: {test.beginn} bis {test.ende}"
         )
         auftrag = auftrag_laden(Zweck.PARAMETERVORSCHLAG)
+        vorhanden = _ki_vorhanden(Zweck.PARAMETERVORSCHLAG, eingabe, auftrag)
+        if vorhanden is not None and test.ki_lauf_id == vorhanden.pk:
+            # Derselbe Stand des Tests: Die Einschätzung steht schon da (GP-046).
+            messages.info(request, _("Zu diesem Stand liegt die Einschätzung bereits vor."))
+            return redirect("gremien:koordination")
+        if _ki_gedrosselt(request):
+            return redirect("gremien:koordination")
         try:
             lauf = lauf_ausfuehren(
                 Zweck.PARAMETERVORSCHLAG, auftrag.text, eingabe, request.user, auftrag_version=auftrag.version

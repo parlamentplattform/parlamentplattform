@@ -1,9 +1,10 @@
 {% extends "verfahren/base.html" %}{% load i18n %}
-{% block titel %}{% if form.errors or namensformular.errors %}{% translate "Fehler:" %} {% endif %}{% translate "Mein Gemeindezugang" %}{% endblock %}
+{% block titelvorsatz %}{% if form.errors or namensformular.errors %}{% translate "Fehler:" %} {% endif %}{% endblock %}
+{% block titel %}{% translate "Mein Gemeindezugang" %}{% endblock %}
 {% block inhalt %}
 <h1>{% translate "Mein Gemeindezugang" %}</h1>
-{% include "mitglieder/_formularfehler.html" with form=namensformular %}
-{% include "mitglieder/_formularfehler.html" %}
+{% include "verfahren/_formularfehler.html" with form=namensformular %}
+{% include "verfahren/_formularfehler.html" %}
 <div class="karte">
   <p>{{ user.anzeigename }} · {{ user.email }}</p>
   {% if zugang %}

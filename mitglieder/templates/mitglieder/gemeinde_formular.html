@@ -1,8 +1,9 @@
 {% extends "verfahren/base.html" %}{% load i18n %}
-{% block titel %}{% if form.errors %}{% translate "Fehler:" %} {% endif %}{% translate "Gemeindekonto anlegen" %}{% endblock %}
+{% block titelvorsatz %}{% if form.errors %}{% translate "Fehler:" %} {% endif %}{% endblock %}
+{% block titel %}{% translate "Gemeindekonto anlegen" %}{% endblock %}
 {% block inhalt %}
 <h1>{% translate "Gemeindekonto anlegen" %}</h1>
-{% include "mitglieder/_formularfehler.html" %}
+{% include "verfahren/_formularfehler.html" %}
 <p>{% translate "Kein Parteibeitritt und kein Mitgliedsbeitrag. Den Zugang aktivieren Sie über einen Bestätigungslink an Ihre E-Mail-Adresse." %}</p>
 <div class="karte">
   <form method="post">{% csrf_token %}

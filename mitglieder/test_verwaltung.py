@@ -896,3 +896,48 @@ def test_feldfehler_der_stammdaten_sind_verknuepft(client):
     })
     assert antwort.status_code == 200
     assert verweise_ins_leere(antwort.content.decode()) == []
+
+
+# --- Liste mit Seitenwechsel, Bestand ohne Testkonten (GP-103, KM-18) -------
+
+
+def _konten_anlegen(anzahl):
+    jetzt = timezone.now()
+    Mitglied.objects.bulk_create([
+        Mitglied(username=f'liste{i}@example.org', email=f'liste{i}@example.org',
+                 date_joined=jetzt - timedelta(minutes=i))
+        for i in range(anzahl)
+    ])
+
+
+def test_liste_nennt_n_von_m_und_fuehrt_zur_zweiten_seite(client):
+    client.force_login(admin_anlegen())
+    _konten_anlegen(204)  # mit der Admina 205 Konten
+    url = reverse('mitglieder:verwaltung')
+    html = client.get(url).content.decode()
+    assert '200 von 205' in html
+    assert 'href="?seite=2"' in html
+    assert html.count('öffnen →') == 200
+    zweite = client.get(url, {'seite': 2}).content.decode()
+    assert zweite.count('öffnen →') == 5
+    assert '201–205 von 205' in zweite
+    # die älteste Anlage steht am Ende der zweiten Seite
+    assert zweite.rindex('liste203@example.org') > zweite.index('liste199@example.org')
+
+
+def test_seitenwechsel_behaelt_suche_und_filter(client):
+    client.force_login(admin_anlegen())
+    _konten_anlegen(205)
+    html = client.get(reverse('mitglieder:verwaltung'), {'q': 'liste', 'status': 'aktiv'}).content.decode()
+    assert 'href="?q=liste&amp;status=aktiv&amp;seite=2"' in html
+
+
+def test_bestand_zaehlt_keine_testkonten_und_die_liste_kennzeichnet_sie(client):
+    client.force_login(admin_anlegen())
+    test = mitglied_anlegen('probe')
+    Mitglied.objects.filter(pk=test.pk).update(testkonto=True)
+    antwort = client.get(reverse('mitglieder:verwaltung'))
+    assert antwort.context['zahlen']['gesamt'] == 1
+    assert antwort.context['zahlen']['aktiv'] == 1
+    zeile = antwort.content.decode().split(reverse('mitglieder:verwaltung_mitglied', args=[test.pk]), 1)[1]
+    assert 'Testkonto' in zeile.split('</tr>', 1)[0]

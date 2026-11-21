@@ -35,6 +35,8 @@ erscheinen die Aktion, nicht die Mitgliedsnummer und nicht die Begründung zu ei
   </div>
 </div>
 
+<p class="meta">{% blocktranslate trimmed with von=seite.start_index bis=seite.end_index gesamt=seite.paginator.count %}
+Konten {{ von }}–{{ bis }} von {{ gesamt }}, neueste Kontoanlage zuerst{% endblocktranslate %}</p>
 <div class="karte" style="overflow-x:auto">
 <table class="tabelle">
   <thead><tr><th>{% translate "Mitglied" %}</th><th>{% translate "E-Mail" %}</th><th>{% translate "Wohnsitz" %}</th><th>{% translate "Identität" %}</th><th>{% translate "Status" %}</th><th>{% translate "Beitritt" %}</th><th></th></tr></thead>
@@ -42,7 +44,8 @@ erscheinen die Aktion, nicht die Mitgliedsnummer und nicht die Begründung zu ei
   {% for m in mitglieder %}
   <tr>
     <td data-label="{% translate 'Mitglied' %}"><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">{{ m.get_full_name|default:m.anzeigename }}</a>
-      {% if m.hat_adminrechte %} <span class="badge badge--hell">{% translate "Admin" %}</span>{% endif %}</td>
+      {% if m.hat_adminrechte %} <span class="badge badge--hell">{% translate "Admin" %}</span>{% endif %}
+      {% if m.testkonto %} <span class="badge badge-still">{% translate "Testkonto" %}</span>{% endif %}</td>
     <td data-label="{% translate 'E-Mail' %}">{{ m.email }}</td>
     <td data-label="{% translate 'Wohnsitz' %}">{{ m.gemeinde|default:m.get_wohnsitz_art_display }}</td>
     <td data-label="{% translate 'Identität' %}">{{ m.get_identitaetsstufe_display|truncatechars:22 }}</td>
@@ -56,4 +59,8 @@ erscheinen die Aktion, nicht die Mitgliedsnummer und nicht die Begründung zu ei
   </tbody>
 </table>
 </div>
+{% if seite.has_other_pages %}<nav aria-label="{% translate 'Seiten' %}">
+  {% if seite.has_previous %}<a href="?{% if filter_abfrage %}{{ filter_abfrage }}&amp;{% endif %}seite={{ seite.previous_page_number }}" rel="prev">← {% translate "Zurück" %}</a>{% endif %}
+  {% if seite.has_next %}<a href="?{% if filter_abfrage %}{{ filter_abfrage }}&amp;{% endif %}seite={{ seite.next_page_number }}" rel="next">{% translate "Weiter" %} →</a>{% endif %}
+</nav>{% endif %}
 {% endblock %}

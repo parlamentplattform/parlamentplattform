@@ -66,6 +66,12 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     {% with e=lage.ergebnis %}
     {% include "verfahren/_ki_folgenreihung.html" with ergebnis=e %}
     {% if e.folgenbericht %}{% include "verfahren/_ki_folgenformat.html" with formatstand=e.formatpruefung %}{% else %}{% include "verfahren/_ki_formatstand.html" with formatstand=e.formatpruefung %}{% endif %}
+    {% if e.formatpruefung and not e.formatpruefung.gueltig %}
+    <p class="hilfe">{% translate "Weg zur Korrektur: den Bericht beanstanden; die zuständige Gruppe 1 kann ihn nachrechnen lassen." %}</p>
+    {% for b in einschaetzung.beanstandungen %}{% if b.lauf_id == e.lauf.pk and b.korrekturstand.ergebnis.formatpruefung.gueltig %}
+    <p class="hilfe"><a href="#beanstandung-{{ b.pk }}">{% blocktranslate with n=b.korrekturstand.auftrag.pk %}Nachrechnung #{{ n }} zu diesem Bericht lesen{% endblocktranslate %}</a></p>
+    {% endif %}{% endfor %}
+    {% endif %}
     {% if e.normen %}
     <ul class="normen">
       {% for n in e.normen %}

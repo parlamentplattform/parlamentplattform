@@ -76,6 +76,7 @@ from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied, Mitgliedssta
 from mitglieder.post import region_benachrichtigen
 from mitglieder.verwaltung import nur_admins
 from plattform_core import Phase
+from plattform_core.phases import END_PHASEN
 from plattform_core.rechenschaft import berichtsmonate
 from verfahren.models import (
     Antrag,
@@ -1851,6 +1852,46 @@ def _rechenschaft_nachtragen(request, mandat: Mandat) -> None:
     messages.success(request, _("Nachgetragen — im Register als Nachtrag der Verwaltung gekennzeichnet."))
 
 
+def _anlegen_pruefen(d: dict) -> str:
+    """Offenkundige Fehlgriffe beim Anlegen (GP-115) — leer heißt: in Ordnung. Ein angetretenes Mandat liegt
+    nicht in der Zukunft (sonst verliehe es die Rolle vor dem Antritt); eine verknüpfte Kandidatur ist
+    entschieden, und das Mitglied hat sich in ihr beworben."""
+    if d["angetreten"] > timezone.localdate():
+        return _("Der Tag des Antritts liegt in der Zukunft — angelegt wird ein Mandat ab dem Antritt.")
+    kandidatur = d.get("kandidatur")
+    if kandidatur is None:
+        return ""
+    if not Bewerbung.objects.filter(antrag=kandidatur, mitglied=d["mitglied"], zurueckgezogen=False).exists():
+        return _("In dieser Kandidatur hat das Mitglied keine Bewerbung — bitte die Kandidatur prüfen.")
+    if kandidatur.phase not in END_PHASEN:
+        return _("Diese Kandidatur läuft noch — verknüpft wird eine entschiedene Kandidatur.")
+    return ""
+
+
+def _berichtigen(request, mandat: Mandat) -> None:
+    """Berichtigung der Stammdaten eines Mandats (GP-115): je geändertem Feld ein Vermerk mit altem und
+    neuem Wert im Audit, mit dem handelnden Konto. Ohne Änderung geschieht nichts."""
+    neu = {
+        "bezeichnung": (request.POST.get("bezeichnung") or "").strip()[:120],
+        "gebiet": (request.POST.get("gebiet") or "").strip()[:120],
+    }
+    if not neu["bezeichnung"]:
+        messages.error(request, _("Die Bezeichnung des Mandats darf nicht leer sein."))
+        return
+    geaendert = [feld for feld, wert in neu.items() if getattr(mandat, feld) != wert]
+    if not geaendert:
+        messages.info(request, _("Keine Änderung — nichts berichtigt."))
+        return
+    for feld in geaendert:
+        alt = getattr(mandat, feld)
+        setattr(mandat, feld, neu[feld])
+        AuditEintrag.anhaengen(
+            {"typ": "mandat_berichtigt", "mandat": mandat.pk, "feld": feld, "alt": alt, "neu": neu[feld], "durch": request.user.pk}
+        )
+    mandat.save(update_fields=geaendert)
+    messages.success(request, _("Mandat „%(bezeichnung)s“ berichtigt.") % {"bezeichnung": mandat.bezeichnung})
+
+
 def _im_integritaetsrat(mitglied) -> bool:
     from gremien.models import Gremium, Rolle
 
@@ -1894,6 +1935,21 @@ def verwaltung_aktion(request):
                   "keine neue Mandatsvereinbarung möglich (§ 7 Abs 10 lit f Z 3)."),
             )
             return redirect("mandatare:verwaltung")
+        fehler = _anlegen_pruefen(d)
+        if fehler:
+            messages.error(request, fehler)
+            return redirect("mandatare:verwaltung")
+        # Unter Sperre des Mitglieds: Zwei gleichzeitige Absendungen sehen einander (GP-115)
+        Mitglied.objects.select_for_update().filter(pk=d["mitglied"].pk).first()
+        gleiches = Mandat.objects.filter(
+            mitglied=d["mitglied"], bezeichnung=d["bezeichnung"], ebene=d["ebene"], gebiet=d["gebiet"], beendet__isnull=True,
+        ).first()
+        if gleiches is not None:
+            messages.info(
+                request,
+                _("Mandat „%(bezeichnung)s“ ist bereits angelegt — kein zweites Mal.") % {"bezeichnung": gleiches.bezeichnung},
+            )
+            return redirect("mandatare:verwaltung")
         mandat = Mandat.objects.create(
             mitglied=d["mitglied"],
             bezeichnung=d["bezeichnung"],
@@ -1930,6 +1986,9 @@ def verwaltung_aktion(request):
             _("Mandat „%(bezeichnung)s“ als beendet vermerkt — bleibt dokumentiert.")
             % {"bezeichnung": mandat.bezeichnung},
         )
+
+    elif aktion == "berichtigen":
+        _berichtigen(request, _mandat_der_verwaltung(request, sperren=True))
 
     elif aktion == "foto":
         mandat = _mandat_der_verwaltung(request)

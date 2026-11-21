@@ -256,7 +256,7 @@ def test_register_json_ohne_e_mail_und_klarnamen(client):
     (e,) = daten["eintraege"]
     assert e["mandatar"] == "anna_m" and e["stimme"] == "dagegen" and e["weicht_ab"] is True
     assert e["beschluss_plattform"] == "angenommen" and e["lage"] in ("fristgerecht", "verspaetet")
-    (a,) = daten["ausstaende"]
+    (a,) = [a for a in daten["ausstaende"] if a["art"] == "rechenschaft"]  # dazu der Sammelbericht (GP-114)
     assert a["aufgabe"] == sitzung.pk and a["lage"] == "ausstaendig" and a["seit_tagen"] == 3
     roh = antwort.content.decode()
     assert "example.org" not in roh and "Musterfrau" not in roh
@@ -402,3 +402,40 @@ def test_anlass_der_vertrauensfrage_nennt_die_selbstangabe(client, ordnung, altm
     client.force_login(mitglied_anlegen('gp111carl'))
     inhalt = client.get(reverse('mandatare:vertrauensfrage_stellen', args=[altmandat.pk])).content.decode()
     assert 'Umfahrung frei' in inhalt and SELBSTANGABE in inhalt
+
+
+# ── GP-114: Ausstände aller Arten, auch beendeter Mandate ───────────────────────────────────
+
+
+def test_register_fuehrt_alle_drei_ausstandsarten_auch_nach_dem_mandatsende(client):
+    """GP-114 (MV-10): Rechenschaft, Sammel- und Monatsbericht stehen mit `art` im JSON und im Register; nach dem
+    Beenden bleiben sie (die Pflicht überlebt das Ende), und `/mandatare/` verlinkt das beendete Mandat."""
+    from mandatare.test_mandatare import admin_anlegen
+
+    heute = timezone.localdate()
+    anna = mitglied_anlegen('gp114anna')
+    mandat = mandat_anlegen(anna, angetreten=heute - timedelta(days=100))
+    sitzungstag(mandat, tage=40, titel='Budgetsitzung')
+
+    def arten():
+        daten = json.loads(client.get(reverse('mandatare:rechenschaft_json')).content)
+        return {a['art'] for a in daten['ausstaende'] if a['mandat'] == mandat.pk}
+
+    def register():
+        return client.get(reverse('mandatare:rechenschaft')).content.decode().split('>Ausstände<')[1]
+
+    assert arten() == {'rechenschaft', 'sammelbericht', 'monatsbericht'}
+    karte = register()
+    assert 'Keine Ausstände.' not in karte
+    assert 'Rechenschaft' in karte and 'Sammelbericht' in karte and 'Monatsbericht' in karte
+
+    client.force_login(admin_anlegen())
+    client.post(reverse('mandatare:verwaltung_aktion'), {'aktion': 'beenden', 'mandat': mandat.pk})
+    client.logout()
+    mandat.refresh_from_db()
+    assert mandat.beendet is not None
+
+    assert arten() == {'rechenschaft', 'sammelbericht', 'monatsbericht'}
+    assert 'Keine Ausstände.' not in register()
+    liste = client.get(reverse('mandatare:liste')).content.decode()
+    assert f'href="{reverse("mandatare:detail", args=[mandat.pk])}"' in liste

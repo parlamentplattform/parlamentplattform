@@ -18,8 +18,8 @@
 
 <div class="karte">
   <p class="phasen-titel">{% translate "Ausstände" %}</p>
-  {% for block in ausstaende %}{% for p in block.rechenschaften %}
-  <div class="zeile"><span><a href="{% url 'mandatare:rechenschaft_mandat' block.mandat.pk %}">{{ block.mandat.mitglied.anzeigename }}</a> <span class="meta">· {{ block.mandat.bezeichnung }} · {% translate "Sitzungstag" %} {{ p.sitzungstag|date:"d.m.Y" }} · {{ p.aufgabe.titel }}</span></span>
+  {% for block in ausstaende %}{% for p in block.posten %}
+  <div class="zeile"><span><a href="{% url 'mandatare:rechenschaft_mandat' block.mandat.pk %}">{{ block.mandat.mitglied.anzeigename }}</a> <span class="meta">· {{ block.mandat.bezeichnung }}{% if block.mandat.pflichtende %} · {% translate "beendet am" %} {{ block.mandat.pflichtende|date:"d.m.Y" }}{% endif %} · {{ p.art_name }} · {% if p.monat %}{{ p.monat|date:"F Y" }}{% else %}{% translate "Sitzungstag" %} {{ p.sitzungstag|date:"d.m.Y" }} · {{ p.aufgabe.titel }}{% endif %}</span></span>
     <span>{% if p.lage.status == "ausstaendig" %}<strong class="ausstand">{% translate "ausständig seit" %} {{ p.faellig|date:"d.m.Y" }}</strong>{% else %}<span class="meta">{% translate "fällig bis" %} {{ p.faellig|date:"d.m.Y" }}</span>{% endif %}</span></div>
   {% endfor %}{% empty %}
   <p class="leer">{% translate "Keine Ausstände." %}</p>

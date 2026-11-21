@@ -33,7 +33,6 @@ das freie Mandat bleibt unberührt (§ 7 Abs 2).{% endblocktranslate %}</p>
   </div>
   {% endfor %}
 </div>
-{% if ehemalige %}<p class="erk" style="margin-top:12px">{% blocktranslate count n=ehemalige %}Ein beendetes Mandat bleibt dokumentiert.{% plural %}{{ n }} beendete Mandate bleiben dokumentiert.{% endblocktranslate %}</p>{% endif %}
 {% else %}
 <div class="karte">
   <p><strong>{% translate "Noch hält die DDÖ kein öffentliches Mandat." %}</strong>
@@ -50,6 +49,15 @@ das freie Mandat bleibt unberührt (§ 7 Abs 2).{% endblocktranslate %}</p>
   {% endif %}
   <p style="margin-top:14px"><a class="btn" href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>
   <a class="btn-linie" href="{% url 'verfahren:einbringen' %}" style="margin-left:8px">{% translate "Kandidatur-Antrag einbringen" %}</a></p>
+</div>
+{% endif %}
+{% if ehemalige %}
+<div class="karte" id="beendet">
+  <p class="phasen-titel">{% blocktranslate count n=ehemalige|length %}Ein beendetes Mandat bleibt dokumentiert.{% plural %}{{ n }} beendete Mandate bleiben dokumentiert.{% endblocktranslate %}</p>
+  {% for m in ehemalige %}
+  <div class="zeile"><span><a href="{% url 'mandatare:detail' m.pk %}">{{ m.mitglied.anzeigename }}</a> <span class="meta">· {{ m.bezeichnung }} · {{ m.gebiet|default:m.get_ebene_display }}</span></span>
+    <span class="meta">{% translate "beendet am" %} {{ m.beendet|date:"d.m.Y" }}</span></div>
+  {% endfor %}
 </div>
 {% endif %}
 {% endblock %}

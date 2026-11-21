@@ -492,12 +492,16 @@ def liste(request):
     kandidaturen = (
         Antrag.objects.filter(art=Antragsart.MANDAT, phase__in=LAUFEND).order_by("phase_beginn")[:6]
     )
+    # Beendete Mandate bleiben verlinkt — ihre Seite trägt Register und Ausstände weiter (GP-114)
+    ehemalige = list(
+        Mandat.objects.filter(beendet__isnull=False).select_related("mitglied").defer("foto").order_by("-beendet", "-pk")
+    )
     return render(
         request,
         "mandatare/liste.html",
         {
             "karten": fuer_karten,
-            "ehemalige": Mandat.objects.filter(beendet__isnull=False).count(),
+            "ehemalige": ehemalige,
             "kandidaturen": kandidaturen,
         },
     )
@@ -577,23 +581,45 @@ def rechenschaft_mandat(request, pk: int):
     )
 
 
+#: Die Arten eines Ausstands im Register, in dieser Reihenfolge je Sitzungstag (`art` im JSON).
+AUSSTANDSARTEN = (
+    ("rechenschaft", "rechenschaften", gettext_lazy("Rechenschaft")),
+    ("sammelbericht", "sammelberichte", gettext_lazy("Sammelbericht")),
+    ("monatsbericht", "monatsberichte", gettext_lazy("Monatsbericht")),
+)
+
+
+def _posten(pflichten: dict) -> list[dict]:
+    """Alle offenen Pflichten eines Mandats als eine Reihe mit `art` — Rechenschaft und Sammelbericht je
+    Sitzungstag, Monatsbericht je Monat —, älteste Fälligkeit zuerst (GP-114)."""
+    posten = []
+    for art, schluessel, name in AUSSTANDSARTEN:
+        for p in pflichten[schluessel]:
+            posten.append({**p, "art": art, "art_name": name})
+    posten.sort(key=lambda p: p["faellig"])
+    return posten
+
+
 def _rechenschaft_gesamt(ebene: str):
+    """Einträge und Ausstände des Gesamtregisters. Ausstände aller drei Arten und aller Mandate — auch in der
+    Nachfrist und nach dem Mandatsende: Die Pflicht aus der letzten Sitzung überlebt das Ende (§ 7 Abs 5), die
+    Zähler frieren mit der Nachfrist ein (`Mandat.offene_pflichten_fuer`), so wie die Mandatsseite sie zeigt."""
     eintraege = Rechenschaft.objects.select_related(
         "mandat__mitglied", "antrag", "aufgabe", "freiwillige_begruendung", "punkt"
     ).defer("mandat__foto")
     if ebene in Ebene.values:
         eintraege = eintraege.filter(mandat__ebene=ebene)
     eintraege = eintraege.order_by("-sitzung_am", "-eingetragen_am")
-    aktive = _mandat_queryset().filter(beendet__isnull=True)
+    mandate = _mandat_queryset()
     if ebene in Ebene.values:
-        aktive = aktive.filter(ebene=ebene)
-    aktive = list(aktive)
-    pflichten = _ausstaende_fuer(aktive)
+        mandate = mandate.filter(ebene=ebene)
+    mandate = list(mandate)
+    pflichten = _ausstaende_fuer(mandate)
     ausstaende = []
-    for m in aktive:
-        offen = pflichten[m.pk]
-        if offen["rechenschaften"]:
-            ausstaende.append({"mandat": m, "rechenschaften": offen["rechenschaften"]})
+    for m in mandate:
+        posten = _posten(pflichten[m.pk])
+        if posten:
+            ausstaende.append({"mandat": m, "posten": posten})
     return eintraege, ausstaende
 
 
@@ -657,15 +683,17 @@ def rechenschaft_json(request):
             {
                 "mandat": block["mandat"].pk,
                 "mandatar": block["mandat"].mitglied.anzeigename,
-                "aufgabe": p["aufgabe"].pk,
-                "sitzungstag": p["sitzungstag"].isoformat(),
+                "art": p["art"],
+                "aufgabe": p["aufgabe"].pk if "aufgabe" in p else None,
+                "sitzungstag": p["sitzungstag"].isoformat() if "sitzungstag" in p else None,
+                "monat": p["monat"].strftime("%Y-%m") if "monat" in p else None,
                 "faellig": p["faellig"].isoformat(),
                 "lage": p["lage"].status,
                 "seit_tagen": p["lage"].seit_tagen,
                 "resttage": p["lage"].resttage,
             }
             for block in ausstaende
-            for p in block["rechenschaften"]
+            for p in block["posten"]
         ],
         "vertrauensfragen": _vertrauensfragen_json(ebene),
         "ebene": ebene or None,

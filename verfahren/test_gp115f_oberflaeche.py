@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from verfahren.models import Antrag, antrag_einbringen, stimme_abgeben
+from verfahren.test_oertliche_teilnahme import menschen  # noqa: F401
 from verfahren.test_siegel_stimmliste import _abstimmung, _zettel_einschleusen
 from verfahren.test_views_aktionen import (  # noqa: F401
     ANTRAG,
@@ -112,3 +113,35 @@ def test_ein_ergebnis_ohne_abweichung_nennt_keine_ueberzahl(client, ordnung):  #
     assert antrag.fortschreiben(antrag.phase_beginn + timedelta(days=8)) is True
     inhalt = _seite(client, antrag)
     assert 'Mehr Stimmen als festgestellte' not in inhalt and 'Auszählung angehalten' not in inhalt
+
+
+# --- GP-049: „kein Beschluss“ statt „abgelehnt“ an Badge und Listen ----------------------------------
+
+
+def test_leerer_ortskreis_heisst_an_badge_und_listen_kein_beschluss(client, menschen, ordnung):  # noqa: F811
+    from verfahren.templatetags.phasen import antrag_phase
+    from verfahren.test_ergebnisfeld import _leerer_kreis
+
+    a = _leerer_kreis(client, menschen)
+    inhalt = _seite(client, a)
+    a.refresh_from_db()
+    assert a.phase == 'abgelehnt' and a.ergebnis == 'kein_beschluss'
+    assert '<span class="badge b-abgelehnt">kein Beschluss</span>' in inhalt
+    assert antrag_phase(a) == 'kein Beschluss'
+    zeile = render_to_string('verfahren/_ast_liste.html', {'ast': {'zeilen': [a], 'seite': {'gesamt': 1, 'seiten': 1}}})
+    assert 'kein Beschluss' in zeile and 'abgelehnt' not in zeile
+
+
+def test_abgelehnt_und_laufend_heissen_weiter_wie_ihre_phase(ordnung):  # noqa: F811
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from verfahren.templatetags.phasen import antrag_phase
+
+    a = antrag_einbringen(mitglied_anlegen('alt'), **ANTRAG, ordnung=ordnung)
+    with CaptureQueriesContext(connection) as abfragen:
+        assert antrag_phase(a) == 'Unterstützung'
+    assert len(abfragen) == 0  # vor dem Ergebnis keine Abfrage
+    Antrag.objects.filter(pk=a.pk).update(phase='abgelehnt')
+    a.refresh_from_db()
+    assert antrag_phase(a) == 'abgelehnt'

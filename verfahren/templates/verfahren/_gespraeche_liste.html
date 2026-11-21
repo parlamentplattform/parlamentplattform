@@ -9,7 +9,7 @@ benennen. Klick führt direkt zum letzten Beitrag des Gegenübers. Wird vom Pane
     <span class="gz-thema">{% if g.thema %}<span class="chip klein" title="{{ g.thema.pfad_kurz }}">{{ g.thema.name }}</span>{% else %}<span class="chip klein still">—</span>{% endif %}</span>
     <span class="gz-antrag">
       <strong>{{ g.antrag.titel }}</strong>
-      <span class="meta">{{ g.antrag.phase|phase_name }}</span>
+      <span class="meta">{{ g.antrag|antrag_phase }}</span>
     </span>
     <span class="gz-partner">
       <span class="avatar-initiale klein" aria-hidden="true">{{ g.gegenueber.anzeigename|initiale }}</span>

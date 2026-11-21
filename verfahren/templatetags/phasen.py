@@ -36,6 +36,17 @@ def phase_name(wert: str) -> str:
     return str(NAMEN.get(wert, wert))
 
 
+@register.filter
+def antrag_phase(antrag) -> str:
+    """Der Phasenname eines Antrags für Badge und Listen (GP-049): Endete ein leerer örtlicher Kreis in
+    „abgelehnt“, heißt der Ausgang „kein Beschluss“ (`Antrag.ergebnis_name`). Die Phase bleibt; gefragt
+    wird nur bei „abgelehnt“, und das Ergebniswort stellt keine Abfrage."""
+    phase = getattr(antrag, "phase", "")
+    if phase == "abgelehnt" and getattr(antrag, "ergebnis", None) == "kein_beschluss":
+        return str(antrag.ergebnis_name)
+    return phase_name(phase)
+
+
 # Ampelfarben des Umsetzungsregisters (F-55) als Token-Klassen aus base.html —
 # dieselben Farben wie die Meldungen, in hell und dunkel (FB-P3).
 KLASSEN = {

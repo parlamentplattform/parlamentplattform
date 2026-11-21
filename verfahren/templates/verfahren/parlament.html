@@ -95,7 +95,7 @@ mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her
         {% endfor %}
         {% if antrag_treffer.zeilen %}<p class="gruppe">{% translate "Anträge" %}<span class="gruppe-zahl"> · {% if antrag_treffer.gesamt > antrag_treffer.zeilen|length %}{% blocktranslate with n=antrag_treffer.zeilen|length gesamt=antrag_treffer.gesamt %}{{ n }} von {{ gesamt }}{% endblocktranslate %}{% else %}{{ antrag_treffer.gesamt }}{% endif %}{% if antrag_treffer.gesamt > 1 %} · <a href="{% url 'parameter:regeln' %}#regel-parlamentlisten">{% translate "nach Phase und Frist" %}</a>{% endif %}</span></p>
         {% for a in antrag_treffer.zeilen %}<div class="zeile"><span><a class="treffer-antrag" href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
-          <br><span class="meta">{{ a.phase|phase_name }}</span></span></div>{% endfor %}{% endif %}
+          <br><span class="meta">{{ a|antrag_phase }}</span></span></div>{% endfor %}{% endif %}
         {% if not suchtreffer and not antrag_treffer.zeilen %}<p class="leer abstand">{% translate "Nichts gefunden — andere Schreibweise oder ein Schlagwort versuchen." %}</p>{% endif %}
       {% else %}
         {% include "verfahren/_faecher.html" %}

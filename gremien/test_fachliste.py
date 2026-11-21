@@ -305,18 +305,92 @@ def test_das_mitglied_erklaert_die_einwilligung_selbst_und_die_verwaltung_traegt
     ereignis = _audit('fachliste_eingetragen')[-1]
     assert ereignis['einwilligung'] is True and ereignis['selbst_erklaert'] is True and ereignis['durch'] == admin.pk
 
-    # Widerruf im Profil: Der Name weicht dem Schlüssel (§ 8 Abs 4), danach trägt niemand mehr ohne Haken ein.
+    # Wer geführt wird, widerruft im Profil nicht (Gegenlesen, E-10.8): Wie die Nennung des Namens auf der
+    # Liste widerrufen wird, ist nicht entschieden — Eintrag, Name und Erklärung bleiben, wie sie sind.
     client.force_login(mitglied)
+    karte = vorlage.render(Context({'request': anfrage, 'user': mitglied}))
+    assert 'value="widerrufen"' not in karte and 'value="erklaeren"' not in karte
+    vorher = len(_audit('fachliste_einwilligung'))
     client.post(reverse('gremien:fachliste_einwilligung'), {'aktion': 'widerrufen'})
     eintrag.refresh_from_db()
-    assert not FachlistenEinwilligung.liegt_vor(mitglied)
-    assert eintrag.einwilligung_widerrufen_am is not None and eintrag.anzeigename == eintrag.schluessel
-    assert _audit('fachliste_einwilligung')[-1] == {
-        'typ': 'fachliste_einwilligung', 'aktion': 'widerrufen', 'eintrag': eintrag.pk, 'durch': mitglied.pk,
-    }
+    assert FachlistenEinwilligung.liegt_vor(mitglied)
+    assert eintrag.einwilligung_widerrufen_am is None and eintrag.anzeigename == mitglied.anzeigename
+    assert len(_audit('fachliste_einwilligung')) == vorher
     client.force_login(admin)
     client.post(reverse('gremien:fachliste_aktion'), {'aktion': 'eintragen', 'mitglied': mitglied_anlegen('zweite').pk})
     assert Fachliste.objects.count() == 1  # ohne Selbsterklärung und ohne Haken: niemand
+
+
+def test_eine_erklaerung_laesst_sich_zuruecknehmen_solange_niemand_gefuehrt_wird(client):
+    """GP-009, Gegenlesen: Vor dem Eintrag und nach einer Streichung nimmt das Mitglied seine Erklärung
+    im Profil zurück — die Verwaltung trägt dann nicht mehr ohne eigenen Haken ein und nimmt nicht
+    ohne ihn wieder auf. Am Eintrag selbst und am Namen auf der Liste ändert das nichts (E-10.8)."""
+    from gremien.models import FachlistenEinwilligung
+
+    ziel = reverse('gremien:fachliste_einwilligung')
+    aktion = reverse('gremien:fachliste_aktion')
+    mitglied = mitglied_anlegen('ueberlegt-es-sich')
+    client.force_login(mitglied)
+    client.post(ziel, {'aktion': 'erklaeren'})
+    client.post(ziel, {'aktion': 'widerrufen'})
+    assert not FachlistenEinwilligung.liegt_vor(mitglied)
+    assert _audit('fachliste_einwilligung')[-1] == {
+        'typ': 'fachliste_einwilligung', 'aktion': 'widerrufen', 'eintrag': None, 'durch': mitglied.pk,
+    }
+    admin = _verwaltung(client)
+    client.post(aktion, {'aktion': 'eintragen', 'mitglied': mitglied.pk})
+    assert not Fachliste.objects.exists()  # zurückgenommen: ohne Haken trägt niemand ein
+
+    # Nach einer Streichung: Die alte Erklärung gilt nicht still weiter, wenn das Mitglied sie zurücknimmt.
+    client.force_login(mitglied)
+    client.post(ziel, {'aktion': 'erklaeren'})
+    client.force_login(admin)
+    client.post(aktion, {'aktion': 'eintragen', 'mitglied': mitglied.pk})
+    eintrag = Fachliste.objects.get(mitglied=mitglied)
+    client.post(aktion, {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': 'Auf eigenen Wunsch.'})
+    client.force_login(mitglied)
+    client.post(ziel, {'aktion': 'widerrufen'})
+    eintrag.refresh_from_db()
+    assert not FachlistenEinwilligung.liegt_vor(mitglied)
+    assert eintrag.einwilligung_widerrufen_am is None  # der Eintrag bleibt, wie er ist
+    assert _audit('fachliste_einwilligung')[-1]['eintrag'] == eintrag.pk
+    client.force_login(admin)
+    client.post(aktion, {'aktion': 'wieder_aufnehmen', 'eintrag': eintrag.pk})
+    eintrag.refresh_from_db()
+    assert not eintrag.gefuehrt  # ohne Erklärung und ohne Haken keine Wiederaufnahme
+
+
+def test_die_verwaltung_sieht_als_selbst_erklaert_nur_wer_es_erklaert_hat(client):
+    """GP-009, Gegenlesen: Die Karte „Einwilligung selbst erklärt“ nannte jedes aktive Mitglied ohne
+    Eintrag — auch wer nie etwas erklärt hatte. Sie nennt nur offene Erklärungen."""
+    from gremien.models import FachlistenEinwilligung
+
+    erklaert = mitglied_anlegen('hat-erklaert')
+    mitglied_anlegen('nie-erklaert')
+    widerrufen = mitglied_anlegen('hat-widerrufen')
+    schon_gefuehrt = eintragen('schon-gefuehrt').mitglied
+    for m in (erklaert, widerrufen, schon_gefuehrt):
+        FachlistenEinwilligung.erklaeren(m)
+    FachlistenEinwilligung.widerrufen(widerrufen)
+    _verwaltung(client)
+    seite = client.get(reverse('gremien:fachliste_verwaltung'))
+    assert [m.username for m in seite.context['selbst_erklaert']] == ['hat-erklaert']
+
+
+def test_die_profilkarte_sieht_nur_wer_sich_erklaeren_kann(client):
+    """GP-009, Gegenlesen: Wen der Endpunkt abweist (hier: pausiert), dem zeigt das Profil die Karte nicht."""
+    from django.template import Context, Template
+    from django.test import RequestFactory
+
+    vorlage = Template('{% load gremien_profil %}{% fachliste_einwilligung %}')
+    pausiert = mitglied_anlegen('pausiert')
+    pausiert.status = 'pausiert'
+    pausiert.save(update_fields=['status'])
+    anfrage = RequestFactory().get('/profil/')
+    anfrage.user = pausiert
+    assert 'fachliste-einwilligung' not in vorlage.render(Context({'request': anfrage, 'user': pausiert}))
+    client.force_login(pausiert)
+    assert client.post(reverse('gremien:fachliste_einwilligung'), {'aktion': 'erklaeren'}).status_code == 403
 
 
 def test_die_selbsterklaerung_braucht_ein_aktives_parteikonto(client):

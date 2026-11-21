@@ -2409,8 +2409,9 @@ class FachlistenEinwilligung(models.Model):
     (§ 6 Abs 7, § 8 Abs 4; GP-009).
 
     Bis 0.114 hielt nur die Verwaltung beim Eintragen fest, dass die Einwilligung vorliege. Jetzt erklärt
-    das Mitglied sie im Profil selbst und widerruft sie dort. Nur anfügend: Ein Widerruf trägt sein
-    Datum in die offene Erklärung, eine neue Erklärung ist eine neue Zeile."""
+    das Mitglied sie im Profil selbst und nimmt sie dort zurück, solange es nicht auf der Liste geführt
+    wird. Nur anfügend: Ein Widerruf trägt sein Datum in die offene Erklärung, eine neue Erklärung ist
+    eine neue Zeile."""
 
     mitglied = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="fachlisten_einwilligungen"
@@ -2443,11 +2444,17 @@ class FachlistenEinwilligung(models.Model):
         return True
 
     @classmethod
-    def widerrufen(cls, mitglied, jetzt=None) -> bool:
+    def widerrufen(cls, mitglied, jetzt=None, mit_eintrag: bool = True) -> bool:
         """Widerruft die offene Erklärung; ein Eintrag der Fachliste zeigt danach den Schlüssel statt des
-        Namens (§ 8 Abs 4) — True, wenn sich etwas geändert hat."""
+        Namens (§ 8 Abs 4) — True, wenn sich etwas geändert hat.
+
+        `mit_eintrag=False` nimmt nur die Erklärung zurück und lässt den Eintrag, wie er ist: Das
+        Profil ändert an der öffentlichen Liste nichts, solange offen ist, wie die Nennung des Namens
+        widerrufen wird (Entscheidungsliste E-10.8). Mit dem Eintrag wirkt der Widerruf beim Austritt."""
         jetzt = jetzt or timezone.now()
         geaendert = bool(cls.offene().filter(mitglied=mitglied).update(widerrufen_am=jetzt))
+        if not mit_eintrag:
+            return geaendert
         eintrag = Fachliste.objects.filter(mitglied=mitglied, einwilligung_widerrufen_am__isnull=True).first()
         if eintrag is not None:
             eintrag.einwilligung_widerrufen_am = timezone.localdate(jetzt)

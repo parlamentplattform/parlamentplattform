@@ -907,11 +907,12 @@ def fachliste_verwaltung(request):
     eintraege = list(
         Fachliste.objects.select_related("mitglied").prefetch_related("fachgebiete").order_by("gestrichen_am", "schluessel")
     )
-    # Wer im Profil selbst eingewilligt hat und noch nicht auf der Liste steht (GP-009).
+    # Wer im Profil selbst eingewilligt hat und noch nicht auf der Liste steht (GP-009). Über die
+    # Kennungen der offenen Erklärungen, nicht über die Rückbeziehung: `…__widerrufen_am__isnull=True`
+    # träfe auch jedes Mitglied, das nie etwas erklärt hat.
     selbst_erklaert = list(
         _fachliste_waehlbar()
-        .filter(fachlisten_einwilligungen__widerrufen_am__isnull=True, fachlisteneintrag__isnull=True)
-        .distinct()
+        .filter(pk__in=FachlistenEinwilligung.offene().values("mitglied_id"), fachlisteneintrag__isnull=True)
         .order_by("last_name", "first_name", "username")
     )
     return render(
@@ -924,19 +925,30 @@ def fachliste_verwaltung(request):
 @login_required
 @require_POST
 def fachliste_einwilligung(request):
-    """Das Mitglied erklärt oder widerruft im Profil selbst seine Einwilligung zur Fachliste (GP-009)."""
+    """Das Mitglied erklärt im Profil selbst seine Einwilligung zur Fachliste und nimmt sie dort zurück,
+    solange es nicht auf der Liste geführt wird (GP-009).
+
+    Am Eintrag selbst ändert das Profil nichts: Wie jemand die Nennung des eigenen Namens auf der
+    Liste widerruft, ist nicht entschieden (Entscheidungsliste E-10.8) — bis dahin bleibt es dort beim
+    Stand von 0.114.0. Eine zurückgenommene Erklärung heißt nur: Die Verwaltung trägt nicht mehr ohne
+    eigenen Haken ein und nimmt nicht ohne ihn wieder auf."""
     if not _fachliste_waehlbar().filter(pk=request.user.pk).exists():
         return render(request, "gremien/kein_zugang.html", status=403)
     aktion = request.POST.get("aktion", "")
     with transaction.atomic():
+        eintrag = Fachliste.objects.filter(mitglied=request.user).first()
+        gefuehrt = eintrag is not None and eintrag.gefuehrt
         if aktion == "erklaeren" and FachlistenEinwilligung.erklaeren(request.user):
             aktion_audit = "erklaert"
-        elif aktion == "widerrufen" and FachlistenEinwilligung.widerrufen(request.user):
+        elif (
+            aktion == "widerrufen"
+            and not gefuehrt
+            and FachlistenEinwilligung.widerrufen(request.user, mit_eintrag=False)
+        ):
             aktion_audit = "widerrufen"
         else:
             aktion_audit = ""
         if aktion_audit:
-            eintrag = Fachliste.objects.filter(mitglied=request.user).first()
             AuditEintrag.anhaengen(
                 {
                     "typ": "fachliste_einwilligung",
@@ -948,7 +960,7 @@ def fachliste_einwilligung(request):
     if aktion_audit == "erklaert":
         messages.success(request, _("Einwilligung zur Fachliste erklärt — die Verwaltung kann Sie eintragen."))
     elif aktion_audit == "widerrufen":
-        messages.info(request, _("Einwilligung zur Fachliste widerrufen — auf der Liste steht statt Ihres Namens der Schlüssel."))
+        messages.info(request, _("Einwilligung zur Fachliste widerrufen."))
     return redirect(reverse("mitglieder:profil") + "#fachliste-einwilligung")
 
 

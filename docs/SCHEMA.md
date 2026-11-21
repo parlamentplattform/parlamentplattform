@@ -224,7 +224,7 @@ Ein Registereintrag ohne `schema_key` wäre eine **lokale** Stellgröße (nur f�
 bedeutsam). In der Instanz `at-ddoe` gibt es keine: Ein Wächter (`verfahren/test_partner.py`)
 verlangt für jeden Erstbestandsschlüssel eine Kennung.
 
-### 3.1 Kennungen der Stellgrößen (Schema 1.30, 78 Kennungen)
+### 3.1 Kennungen der Stellgrößen (Schema 1.30, 88 Kennungen)
 
 Die Spalte „Registerschlüssel“ nennt den deutschen Schlüssel der Instanz `at-ddoe`; andere
 Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung. „Startwert“ ist der Wert
@@ -235,16 +235,19 @@ der steht in `/parameter.json`; jede Instanz lernt ihren Wert selbst.
 |---|---|---|---|---|
 | `account.data_exports_per_hour` | `datenexport-je-stunde` | requests/hour | 10 | How many times per hour an account may download its own data export; every download is an entry in the public audit log (at least 1, the export always stays possible) |
 | `account.email_change_waiting_hours` | `adresswechsel-wartefrist-stunden` | hours | 72 | Waiting time before an administrative change of a login address takes effect |
+| `administration.members_per_page` | `verwaltung-liste-seitengroesse` | accounts | 200 | Accounts per page of the administration's member list (10 to 1000) |
 | `ai.assessments_per_page` | `ki-einschaetzungen-je-seite` | runs | 20 | Earlier legal-impact assessments per motion page (1 to 100) |
 | `ai.daily_queue_runs` | `ki-tageslaeufe` | runs/day | 20 | How many provider calls the future workshop's queue makes per calendar day (affected laws, text embeddings) — every attempt counts, including failed ones; the rest waits for the next day |
 | `ai.max_response_tokens` | `ki-antwort-hoechsttokens` | tokens | 900 | Maximum length of a model response |
 | `ai.monthly_token_budget` | `ki-monatstokens` | tokens/month | 1000000 | Hard monthly token budget of the model slot (cost cap of the future workshop) |
+| `ai.objections_per_account_hour` | `beanstandung-je-stunde` | objections/hour | 0 | Objections to a published AI assessment per account and clock hour; 0 = no limit |
 | `archive.audit_display_limit` | `archiv-audit-anzeige` | events | 60 | How many audit events the archive timeline shows; the export always contains all |
 | `areas_fan.max_children` | `faecher-kinder-hoechstzahl` | branches | 3 | How many sub-branches a branch shows before it must be fanned out |
-| `areas_fan.max_search_hits` | `suche-treffer-hoechstzahl` | hits | 24 | Maximum number of hits shown by the search in the areas-of-life fan; also the page size of the municipality search and of the public lists of municipal mandates (council initiatives, projects, budget links, session documents), where values below 1 act as 1 |
+| `areas_fan.max_search_hits` | `suche-treffer-hoechstzahl` | hits | 24 | Maximum number of hits shown by the search in the areas-of-life fan; also limits the motion hits of the title search in the parliament view (with total count) and is the page size of the municipality search and of the public lists of municipal mandates (council initiatives, projects, budget links, session documents), where values below 1 act as 1 |
 | `areas_fan.rule_version` | `faecher-regel` | rule version | 2 | Version of the layout algorithm for the areas-of-life fan |
 | `areas_of_life.per_motion` | `kategorien-je-antrag` | areas | 3 | How many areas of life a motion is assigned to automatically |
 | `areas_of_life.rule_version` | `kategorien-regel` | rule version | 1 | Version of the assignment rule for areas of life (keyword lists, no AI) |
+| `audit.check_overdue_days` | `audit-pruefstand-ueberfaellig-takte` | days | 2 | After how many daily check cycles without a new check result the public audit log shows the chain check as overdue (2 to 31) |
 | `audit.entries_per_page` | `audit-seite-eintraege` | entries | 50 | How many entries the public audit log shows per page (newest first) and per request of /audit.json |
 | `audit.full_check_days` | `audit-vollpruefung-tage` | days | 7 | After how many days the daily audit chain check recomputes the whole chain from the start (in between it checks new entries and that the last checked one is unchanged) |
 | `bodies.role_term_days` | `gremien-rollen-dauer-tage` | days | 730 | Regular term of a body role (public call, confirmation by the assembly, automatic expiry) |
@@ -254,6 +257,7 @@ der steht in `/parameter.json`; jede Instanz lernt ihren Wert selbst.
 | `comparison.socket_timeout_seconds` | `gegenueberstellung-zeitgrenze-sekunden` | seconds | 8 | Timeout per connection step for an explicit private comparison, clamped to 1 to 45 |
 | `comparison.total_text_chars` | `gegenueberstellung-textzeichen` | characters | 20000 | Total title and text characters per explicit comparison, clamped to 1 to 100000; no silent truncation |
 | `conversations.list_limit` | `gespraeche-liste-hoechstzahl` | conversations | 30 | How many conversations the panel shows at once; the counter covers all of them |
+| `council.ai_requests_per_account_hour` | `gremien-ki-je-stunde` | requests/hour | 0 | AI workshop requests per account and hour in the councils (draft assessment and parameter test together); 0 = no limit |
 | `council.decision_days` | `gremien-beschluss-tage` | days | 7 | Default deadline for an internal decision in a council body |
 | `council.decisions_per_page` | `gremien-beschluesse-seite` | decisions | 50 | How many council decisions the public list shows at once |
 | `council.first_draft_days` | `expertenrat-erstvorschlag-tage` | days | 21 | Days the expert council has for its first proposal; also the minimum deliberation period |
@@ -271,6 +275,7 @@ der steht in `/parameter.json`; jede Instanz lernt ihren Wert selbst.
 | `feedback.min_interval_seconds` | `anstoss-mindestabstand-sekunden` | seconds | 60 | Waiting time between two feedback messages from the same person |
 | `fees.bank_calls_reserved_for_administration` | `beitrag-abruf-verwaltungsvorbehalt` | calls/day | 1 | How many of the bank's daily account queries stay reserved for the administration; members' reports only trigger a query while more than that remain (0 up to the bank's daily quota) |
 | `fees.member_reports_with_bank_call_per_day` | `beitrag-meldungen-mit-abruf-je-konto` | reports/day | 1 | How many times per calendar day a member's report of a transfer triggers a bank account query; further reports that day do not query (at least 1) |
+| `implementation.entries_per_page` | `umsetzung-seite-hoechstzahl` | entries | 50 | Entries per page of the public implementation register (with total count); 0 = all |
 | `legal_effects.total_input_chars` | `rechtsfolgen-eingabezeichen` | characters | 30000 | Maximum complete public legal-effects input including frozen law and staffing sources, clamped to 1 to 100000; no truncation or procedure blockage |
 | `live.max_session_hours` | `live-hoechstdauer-stunden` | hours | 18 | After how many hours a live session counts as ended if the office holder did not end it (between 1 and 72) |
 | `live.refresh_seconds` | `live-takt-sekunden` | seconds | 15 | How often the live page of a running session reloads itself (between 5 and 300) |
@@ -279,10 +284,13 @@ der steht in `/parameter.json`; jede Instanz lernt ihren Wert selbst.
 | `mail.new_motion_federal` | `post-neuer-antrag-bund` | flag | 1 | Whether a new nationwide motion is mailed to every member who consented to platform mail (0 or 1; regional motions always go only to the members whose residence is affected) |
 | `mandate.confidence_support_days` | `vertrauensfrage-unterstuetzung-tage` | days | 30 | Support window of a confidence question about an office holder (never above the statutory maximum of 30 days; frozen into the motion when it is submitted) |
 | `mandate.confidence_vote_window_days` | `vertrauensfrage-abstimmung-tage` | days | 7 | Duration of the vote on a confidence question (never below the statutory minimum of 7 days; frozen into the motion when it is submitted) |
+| `mandate.list_per_page` | `mandatare-liste-seite` | mandates | 50 | Mandates per page of the public list of mandataries (10 to 500) |
 | `mandate.monthly_report_grace_days` | `mandatar-monatsbericht-frist-tage` | days | 7 | Day of the following month until which an office holder's monthly report counts as on time |
 | `mandate.question_vote_window_days` | `mandatsfrage-abstimmung-tage` | days | 7 | Duration of the vote on a mandate question opened by an office holder (never below the statutory minimum; frozen into the motion when it is opened) |
 | `motion.resubmission_block_months` | `verfahren-wiedereinbringung-monate` | months | 6 | Months before a rejected or lapsed motion may be resubmitted verbatim |
 | `overview.decided_votes` | `uebersicht-abstimmungen` | entries | 20 | How many decided votes the public overview lists before pointing to the registers |
+| `overview.running_votes_per_page` | `uebersicht-laufende-je-seite` | motions | 50 | Running votes per page of the public overview (1 to 500) |
+| `parliament.group_limit` | `parlament-gruppe-hoechstzahl` | motions | 60 | Motions shown per neutral group of the parliament view (with total count); also the page size of an opened group and of an area-of-life list; 0 = all |
 | `region.secondary_residence_counts` | `region-nebenwohnsitz-zaehlt` | flag | 0 | Whether My Region also displays motions from the area of a registered secondary residence (0 or 1; display only) |
 | `similarity.embeddings_per_call` | `aehnlichkeit-einbettungen-je-aufruf` | motions | 20 | How many open motions without a stored text embedding are embedded in the same provider call when a new motion is submitted |
 | `similarity.max_hits` | `aehnlichkeit-treffer` | motions | 3 | How many similar motions are shown when submitting |
@@ -292,6 +300,7 @@ der steht in `/parameter.json`; jede Instanz lernt ihren Wert selbst.
 | `similarity.preview_max_chars` | `aehnlichkeit-vorschau-hoechstzeichen` | characters | 20000 | Maximum text length checked while typing; longer texts are still checked when submitting |
 | `similarity.preview_min_chars` | `aehnlichkeit-vorschau-mindestzeichen` | characters | 40 | Minimum combined title and motion text length for the local preview |
 | `similarity.request_timeout_seconds` | `aehnlichkeit-zeitgrenze-sekunden` | seconds | 8 | How long submitting a motion waits for the AI provider (per connection step) before continuing with the word comparison alone |
+| `similarity.rows_per_fetch` | `aehnlichkeit-seite-zeilen` | rows | 200 | Rows per database fetch while the similarity check walks open motions and stored vectors; changes memory use only, never the result (50 to 2000) |
 | `similarity.threshold_percent` | `aehnlichkeit-schwelle-prozent` | percent | 30 | Similarity above which the platform points to an existing motion when submitting a new one |
 | `soft_filter.max_profiles` | `weicherfilter-profile-hoechstzahl` | profiles | 5 | How many personal filter profiles a member may store |
 | `soft_filter.rule_version` | `weicherfilter-regel` | rule version | 2 | Version of the member-controlled ordering rule (nine sliders, neutral by default) |
@@ -299,12 +308,13 @@ der steht in `/parameter.json`; jede Instanz lernt ihren Wert selbst.
 | `sources.context_limit` | `quellenkontext-hoechstzahl` | sources | 3 | Maximum official context candidates per new legal-impact request, 0 to 20 |
 | `sources.context_min_word_length` | `quellenkontext-mindestwortlaenge` | characters | 3 | Minimum word length for published local prefix matching, 2 to 12 |
 | `sources.context_scan_limit` | `quellenkontext-bestandsgrenze` | snapshots | 500 | Maximum latest official snapshots scanned in official identifier order, 1 to 2000 |
-| `sources.inventory_max_records` | `faktenbasis-bestandsnachweis-hoechstzahl` | snapshots | 2000 | Maximum local snapshot rows in the complete source inventory; zero disables, hard maximum 10000; invalid values or excess produce no partial evidence |
+| `sources.inventory_max_records` | `faktenbasis-bestandsnachweis-hoechstzahl` | snapshots | 2000 | Maximum local snapshot rows in the complete source inventory, counted over all seven collections (norms, document texts, promulgation records, staffing aggregates, ministry tables, Constitutional Court metadata, RIS change pages); zero disables, hard maximum 10000; invalid values or excess produce no partial evidence |
+| `sources.inventory_warning_percent` | `faktenbasis-bestandsnachweis-warnanteil` | percent | 100 | Share of the source inventory maximum from which the administration is warned (1 to 100) |
 | `sources.manual_requests_per_hour` | `faktenbasis-manuelle-abrufe-je-stunde` | requests/hour | 10 | Shared hourly limit for explicit RIS metadata and document requests; zero disables requests |
 | `sources.snapshots_per_page` | `faktenbasis-seitengroesse` | snapshots | 20 | Official metadata snapshots per page (1 to 100) |
 | `support.review_days` | `gremien-review-tage` | days | 14 | Days the supporters have to accept a draft or return it with a concrete wish (draft loop) |
-| `support.threshold` | `verfahren-unterstuetzung-schwelle` | supporters | 3 | Number of supporters a motion needs to enter deliberation |
 | `support.threshold_share_percent` | `verfahren-unterstuetzung-anteil-prozent` | percent | 5 | Support threshold as a share of the members eligible to vote on the day of submission (0 = off; support.threshold stays the minimum); the resulting number is frozen into the motion |
+| `support.threshold` | `verfahren-unterstuetzung-schwelle` | supporters | 3 | Number of supporters a motion needs to enter deliberation |
 | `support.window_days` | `verfahren-unterstuetzung-tage` | days | 60 | Days a motion has to reach the support threshold |
 | `tiles.completed` | `kacheln-abgeschlossen` | entries | 20 | How many completed procedures appear in the feed |
 | `tiles.highlighted` | `kacheln-hervorgehoben` | tiles | 3 | How many highlighted votes the important-votes field shows |

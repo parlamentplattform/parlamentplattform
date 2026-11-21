@@ -177,7 +177,7 @@ def test_vorschau_bei_2000_offenen_antraegen_bleibt_unter_der_speichergrenze(cli
     antwort, abfragen, spitze = _gemessen(lambda: client.post(reverse('verfahren:einbringen_vorschau'), NEU))
     print(f'VORSCHAU 2000: abfragen={abfragen} spitze_mib={spitze / MIB:.1f} bytes={len(antwort.content)}')
     assert antwort.status_code == 200
-    assert abfragen <= 11
+    assert abfragen <= 12  # 0.115.0: eine feste Abfrage mehr für den Registerwert aehnlichkeit-seite-zeilen
     assert spitze < 3 * MIB  # 0.114.0: 14,2 MiB; jetzt rund 0,7 MiB
 
 

@@ -119,9 +119,11 @@ class _Kandidat:
     text: str = ""
 
 
-#: Zeilen je Datenbankabruf beim Durchgehen der offenen Anträge und der gespeicherten Vektoren
-#: (GP-153). Bestimmt nur, wie viel zugleich im Speicher liegt, nicht das Ergebnis — Registerwert folgt.
-VERGLEICH_SEITE_ZEILEN = 200
+def _zeilen_je_abruf() -> int:
+    """Zeilen je Datenbankabruf beim Durchgehen der offenen Anträge und der gespeicherten Vektoren
+    (GP-153, Register `aehnlichkeit-seite-zeilen`). Bestimmt nur, wie viel zugleich im Speicher liegt,
+    nicht das Ergebnis."""
+    return max(1, zahl("aehnlichkeit-seite-zeilen", 200))
 
 
 def _offene_zeilen():
@@ -136,7 +138,7 @@ def _offene_zeilen():
             juengster_wortlaut=Subquery(juengste.values("wortlaut")[:1]),
         )
         .values_list("pk", "titel", "art", "juengste_nummer", "juengster_wortlaut")
-        .iterator(chunk_size=VERGLEICH_SEITE_ZEILEN)
+        .iterator(chunk_size=_zeilen_je_abruf())
     )
 
 
@@ -178,7 +180,7 @@ def _bedeutung(
     gespeichert = (
         AntragsEinbettung.objects.filter(modell=modell, antrag__phase__in=OFFENE_PHASEN)
         .values_list("antrag_id", "fassung_nummer", "vektor")
-        .iterator(chunk_size=VERGLEICH_SEITE_ZEILEN)
+        .iterator(chunk_size=_zeilen_je_abruf())
     )
     for antrag_id, nummer, vektor in gespeichert:
         k = sachlich.get(antrag_id)

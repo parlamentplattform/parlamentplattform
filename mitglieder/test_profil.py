@@ -857,6 +857,7 @@ def test_export_deckt_jede_rueckbeziehung_des_mitglieds_ab(client, ordnung):  # 
         "Gemeindezugang.konto": "gemeindezugang",
         "OertlicheTeilnahme.mitglied": "oertliche_verfahrenskreise",
         "Postauftrag.mitglied": "postauftraege",
+        "Statusverlauf.mitglied": "statusverlauf",
         "Adresswechsel.mitglied": "adresswechsel",
         "Beitragseingang.mitglied": "beitraege",
         "Antrag.eingebracht_von": "antraege",

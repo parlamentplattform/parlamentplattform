@@ -271,34 +271,120 @@ class Mitglied(AbstractUser):
         ]
 
     def save(self, *args, **kwargs):
+        """Speichert das Konto. Zwei Wächter am gespeicherten Stand: Der Kontotyp wird nie
+        umgeschrieben, und jeder Statuswechsel eines Parteikontos schreibt in derselben Transaktion
+        eine Zeile in den `Statusverlauf` (GP-094) — gleich, welcher Weg den Status setzt. Zieht
+        der Aufrufer `status_seit` nicht mit, wird der Tag des Wechsels nachgetragen.
+        `QuerySet.update()` läuft daran vorbei und hinterlässt keinen Verlauf."""
         fields = kwargs.get("update_fields")
-        if self.pk and (fields is None or "parteikonto" in fields):
-            typ = type(self).objects.filter(pk=self.pk).values_list("parteikonto", flat=True).first()
-            if typ is not None and typ != self.parteikonto:
-                raise ValidationError("Der Kontotyp wird nicht nachträglich umgeschrieben.")
-        return super().save(*args, **kwargs)
+        typ_dabei = fields is None or "parteikonto" in fields
+        status_dabei = fields is None or "status" in fields
+        vorher = None
+        if self.pk and (typ_dabei or status_dabei):
+            vorher = (
+                type(self).objects.filter(pk=self.pk)
+                .values("parteikonto", "status", "status_seit", "is_active", "beitritt").first()
+            )
+        if vorher is not None and typ_dabei and vorher["parteikonto"] != self.parteikonto:
+            raise ValidationError("Der Kontotyp wird nicht nachträglich umgeschrieben.")
+        if vorher is None or not status_dabei or not self.parteikonto or vorher["status"] == self.status:
+            return super().save(*args, **kwargs)
 
-    def ist_stimmberechtigt(self, gegenstand: Gegenstand | str, stichtag, uebergang: bool = False) -> bool:
-        """Stimmberechtigt AM STICHTAG (§ 4 Abs 4 lit a) — nicht zum Aufrufzeitpunkt.
+        from django.db import transaction
+        from django.utils import timezone
 
-        Beitritt, Freischaltung (`geprueft_seit`) und Status (`status_seit`) werden alle
-        gegen denselben Tag geprüft. Nur so steht ein Mitglied genau dann im Zähler,
-        wenn es auch im Nenner (`stimmberechtigte_zaehlen`) gezählt wurde; wer erst nach
-        Abstimmungsbeginn freigeschaltet oder wieder aktiv wird, stimmt bei dieser
-        Abstimmung nicht mit."""
+        datum_dabei = fields is None or "status_seit" in fields
+        if not datum_dabei or self.status_seit is None or self.status_seit == vorher["status_seit"]:
+            self.status_seit = timezone.localdate()
+            if not datum_dabei:
+                kwargs["update_fields"] = [*fields, "status_seit"]
+        verschoben = 0
+        if (
+            vorher["status"] == Mitgliedsstatus.PAUSIERT
+            and self.status == Mitgliedsstatus.AKTIV
+            and (fields is None or "beitritt" in fields)
+            and vorher["beitritt"] is not None
+            and self.beitritt is not None
+            and self.beitritt > vorher["beitritt"]
+        ):
+            verschoben = (self.beitritt - vorher["beitritt"]).days  # siehe `status_setzen`
+        with transaction.atomic():
+            ergebnis = super().save(*args, **kwargs)
+            Statusverlauf.objects.create(
+                mitglied=self,
+                tag=self.status_seit,
+                status_vorher=vorher["status"],
+                status=self.status,
+                seit_vorher=vorher["status_seit"],
+                konto_aktiv_vorher=vorher["is_active"],
+                anwartschaft_verschoben_tage=verschoben,
+            )
+        return ergebnis
+
+    def stand_am(self, stichtag, spaetere=None):
+        """Status, Kontozustand und Beitritt, wie sie AM STICHTAG galten (GP-094) — oder None,
+        wenn sich der Stand von damals nicht feststellen lässt.
+
+        Ohne Statuswechsel nach dem Stichtag gilt der heutige Stand, ohne Abfrage. Sonst zählt der
+        Stand VOR dem ersten späteren Wechsel aus dem `Statusverlauf`; eine seither beendete Pause
+        hat den Beitritt vorgerückt (`status_setzen`), für den Stichtag davor wird das abgezogen.
+
+        Altbestand: Für Wechsel vor Einführung des Verlaufs gibt es keine Zeile. Liegt `status_seit`
+        nach dem Stichtag und fehlt der Verlauf — oder reicht er nicht bis zum Stichtag zurück —,
+        ist der Stand nicht feststellbar, und das Konto zählt wie bisher nicht mit.
+
+        `spaetere`: die Verlaufszeilen dieses Kontos nach dem Stichtag, aufsteigend — die Zählung
+        reicht sie gebündelt herein; None heißt selbst nachlesen."""
+        if self.status_seit is None or self.status_seit <= stichtag:
+            return self.status, self.is_active, self.beitritt
+        if spaetere is None:
+            spaetere = list(self.statusverlauf.filter(tag__gt=stichtag).order_by("tag", "pk"))
+        if not spaetere:
+            return None
+        erster = spaetere[0]
+        if erster.seit_vorher is not None and erster.seit_vorher > stichtag:
+            return None
+        beitritt = self.beitritt
+        if beitritt is not None:
+            from datetime import timedelta
+
+            beitritt -= timedelta(days=sum(e.anwartschaft_verschoben_tage for e in spaetere))
+        return erster.status_vorher, erster.konto_aktiv_vorher, beitritt
+
+    def stand_im_nenner(
+        self, gegenstand: Gegenstand | str, stichtag, uebergang: bool = False, spaetere=None
+    ) -> bool:
+        """Stimmberechtigt AM STICHTAG (§ 4 Abs 4 lit a) — die eine Regel für Zählung
+        (`stimmberechtigte_zaehlen`) und Einzelprüfung (`ist_stimmberechtigt`).
+
+        Beitritt, Freischaltung (`geprueft_seit`) und Status werden gegen denselben Tag geprüft,
+        der Status über `stand_am`: Ein Wechsel NACH dem Stichtag ändert nichts daran, wer an
+        diesem Tag stimmberechtigt war — gleich, an welchem Tag gezählt wird (GP-094)."""
         if not self.parteikonto or self.beitritt is None or self.testkonto:
             return False  # Testkonten stehen in keinem Nenner und in keinem Zähler
         if self.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
             return False
+        stand = self.stand_am(stichtag, spaetere)
+        if stand is None:
+            return False  # Stand am Stichtag nicht feststellbar (Altbestand) — wie bisher
+        status, konto_aktiv, beitritt = stand
+        if status != Mitgliedsstatus.AKTIV or not konto_aktiv:
+            return False  # am Stichtag pausiert, ausgeschlossen, ausgetreten oder Konto geschlossen
         # Altbestand ohne Datum: die Datenmigration trägt den Beitritt nach; hier als Rückfall.
-        geprueft_seit = self.geprueft_seit or self.beitritt
+        geprueft_seit = self.geprueft_seit or beitritt
         if geprueft_seit > stichtag:
             return False  # am Stichtag noch ungeprüft — stand nicht im Nenner
+        return stimmberechtigt(beitritt, gegenstand, stichtag, uebergang=uebergang)
+
+    def ist_stimmberechtigt(self, gegenstand: Gegenstand | str, stichtag, uebergang: bool = False) -> bool:
+        """Darf dieses Mitglied HEUTE mitstimmen, wenn der Stichtag der Abstimmung `stichtag` ist?
+
+        Es muss am Stichtag im Nenner gestanden haben (`stand_im_nenner`, § 4 Abs 4 lit a) — wer
+        erst nach Abstimmungsbeginn freigeschaltet oder wieder aktiv wird, stimmt bei dieser
+        Abstimmung nicht mit —, und seine Rechte dürfen heute nicht ruhen (F-51)."""
         if self.status != Mitgliedsstatus.AKTIV:
             return False  # pausiert oder ausgeschlossen: Mitwirkungsrechte ruhen (F-51)
-        if self.status_seit is not None and self.status_seit > stichtag:
-            return False  # am Stichtag noch pausiert oder ausgeschlossen
-        return stimmberechtigt(self.beitritt, gegenstand, stichtag, uebergang=uebergang)
+        return self.stand_im_nenner(gegenstand, stichtag, uebergang=uebergang)
 
     def identitaetsstufe_setzen(self, stufe: str) -> list[str]:
         """Setzt die Stufe und führt `geprueft_seit` nach (§ 4 Abs 4 lit a).
@@ -424,19 +510,72 @@ class Gemeindezugang(models.Model):
         return f"Gemeindezugang {self.konto_id}"
 
 
+class Statusverlauf(models.Model):
+    """Additiver Verlauf der Statuswechsel eines Parteikontos (GP-094, § 4 Abs 4 lit a).
+
+    Wozu: Jede Schwelle bezieht sich auf die Stimmberechtigten am Tag des Abstimmungsbeginns. Wird
+    dieser Tag erst später verarbeitet, muss der Stand von damals feststellbar sein — sonst senkte
+    eine Pause NACH dem Stichtag den Nenner. Je Wechsel eine Zeile mit dem Stand davor; geschrieben
+    von `Mitglied.save`, gelesen von `Mitglied.stand_am`. Zeilen werden nie geändert.
+
+    Altbestand: Wechsel vor Einführung dieser Tabelle haben keine Zeile; dort gilt der heutige
+    Status wie bisher (`stand_am`). Bereits festgestellte Nenner werden nicht neu gerechnet.
+
+    Personenbezug: Status und Kalendertage eines Kontos, keine Begründung (die steht nur in
+    `status_grund`). Die Zeilen stehen im Datenexport des Mitglieds und bleiben beim Austritt wie
+    die Kontozeile selbst — sie tragen den Nenner eines Stichtags vor dem Austritt (Grundregel 7)."""
+
+    mitglied = models.ForeignKey(Mitglied, on_delete=models.CASCADE, related_name="statusverlauf")
+    tag = models.DateField(db_index=True, help_text="Kalendertag des Wechsels — `status_seit` nach dem Wechsel.")
+    status_vorher = models.CharField(max_length=16, choices=Mitgliedsstatus.choices)
+    status = models.CharField(max_length=16, choices=Mitgliedsstatus.choices)
+    seit_vorher = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Seit wann der vorige Status galt (leer = seit jeher) — davor ist der Stand nicht belegt.",
+    )
+    konto_aktiv_vorher = models.BooleanField(
+        default=True, help_text="War das Konto vor dem Wechsel offen (`is_active`)?"
+    )
+    anwartschaft_verschoben_tage = models.PositiveIntegerField(
+        default=0,
+        help_text="Um so viele Tage rückte der Beitritt mit diesem Wechsel vor (Ende einer Pause, § 4 Abs 4).",
+    )
+
+    class Meta:
+        ordering = ["tag", "pk"]
+        verbose_name = "Statuswechsel"
+        verbose_name_plural = "Statusverlauf"
+
+    def __str__(self) -> str:
+        return f"Statuswechsel für Mitglied {self.mitglied_id}: {self.status_vorher} → {self.status} ({self.tag})"
+
+
+def im_nenner_zaehlen(konten, gegenstand, stichtag, uebergang: bool = False) -> int:
+    """Zählt in `konten` (Queryset von Parteikonten), wer am Stichtag stimmberechtigt war —
+    mit derselben Regel wie die Einzelprüfung (`Mitglied.stand_im_nenner`). Gleich, an welchem
+    Tag gezählt wird: Ein Statuswechsel nach dem Stichtag ändert das Ergebnis nicht (GP-094)."""
+    konten = list(
+        konten.filter(testkonto=False)
+        .filter(models.Q(is_active=True, status=Mitgliedsstatus.AKTIV) | models.Q(status_seit__gt=stichtag))
+        .exclude(beitritt=None)
+        .exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
+    )
+    spaetere: dict[int, list] = {}
+    if any(m.status_seit is not None and m.status_seit > stichtag for m in konten):
+        for eintrag in Statusverlauf.objects.filter(tag__gt=stichtag).order_by("tag", "pk"):
+            spaetere.setdefault(eintrag.mitglied_id, []).append(eintrag)
+    return sum(
+        m.stand_im_nenner(gegenstand, stichtag, uebergang=uebergang, spaetere=spaetere.get(m.pk, []))
+        for m in konten
+    )
+
+
 def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> int:
     """Zahl der am Stichtag stimmberechtigten Mitglieder (§ 4 Abs 4 lit a).
     Wird bei Abstimmungsbeginn festgestellt, am Antrag gespeichert und
     veröffentlicht — danach nie mehr verändert."""
-    anzahl = 0
-    for m in (
-        Mitglied.parteikonten.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False)
-        .exclude(beitritt=None)
-        .exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
-    ):
-        if m.ist_stimmberechtigt(gegenstand, stichtag, uebergang=uebergang):
-            anzahl += 1
-    return anzahl
+    return im_nenner_zaehlen(Mitglied.parteikonten.all(), gegenstand, stichtag, uebergang=uebergang)
 
 
 class Adresswechsel(models.Model):

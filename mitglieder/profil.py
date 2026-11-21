@@ -670,6 +670,9 @@ def daten_export(mitglied: Mitglied) -> dict:
         "postauftraege": list(m.postauftrag_set.order_by("pk").values(
             "art", "bezug", "antrag", "erstellt_am", "versandt_am", "anhang_versandt_am", "erledigt", "versuche",
             "naechster_versuch")),
+        # GP-094: je Statuswechsel der Stand davor — daraus liest die Zählung den Stand an einem Stichtag.
+        "statusverlauf": list(m.statusverlauf.order_by("tag", "pk").values(
+            "tag", "status_vorher", "status", "seit_vorher", "konto_aktiv_vorher", "anwartschaft_verschoben_tage")),
         "post": {"willkommen_am": m.willkommen_post_am, "freischaltung_am": m.freischaltung_post_am},
         "mitgliedsnummer": m.mitgliedsnummer,
         "testkonto": m.testkonto,

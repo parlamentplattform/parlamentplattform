@@ -621,3 +621,88 @@ def test_altbestand_ein_geplanter_test_ausserhalb_des_bereichs_beginnt_nicht(cli
     assert not Aenderung.objects.filter(parameter=parameter).exists()
     assert 'Nicht angeordnet' in beschluss.umsetzungsvermerk and 'Wertbereich' in beschluss.umsetzungsvermerk
     assert not ereignisse('parametertest_begonnen')
+
+
+# --- GP-003 (Rest) · Die Wartezeit im Werkstattfenster ------------------------------------------
+
+
+def _fensterkarte(client, antrag, rat):
+    """Die Karte „Stand der Schleife“ im Entwurfsfenster, wie sie ein Mitglied der Gruppe 1 liest."""
+    from django.urls import reverse
+
+    client.force_login(rat)
+    inhalt = client.get(reverse('gremien:fenster', args=[antrag.pk])).content.decode()
+    return inhalt.split('Stand der Schleife', 1)[1].split('</div>', 1)[0]
+
+
+def test_in_der_wartezeit_nennt_das_werkstattfenster_den_beginn_der_endabstimmung(client, ordnung):  # noqa: F811
+    """GP-003, Rest: Zwischen verstrichener Unterstützerfrist und Beratungsende stand im Werkstattfenster
+    weiter „Die Unterstützer haben bis <vergangenes Datum> Zeit“, und der Zwischenstand zählte weiter.
+    Jetzt steht dort, dass der Vorschlag angenommen ist und wann die Endabstimmung beginnt — mit dem
+    Stand, der zum Fristende festgestellt wurde (§ 5 Abs 13)."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.test_werkstatt import (
+        _nur_die_unterstuetzerfrist_verstreicht,
+        einreichen,
+        reagieren,
+        systembeitrag,
+        werkstatt_lage,
+    )
+    from verfahren.models import Reaktion
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    reagieren(client, antrag, passt, unterstuetzer[0])
+    vorher = _fensterkarte(client, antrag, er[0])
+    assert 'Die Unterstützer haben bis' in vorher and 'ist angenommen' not in vorher
+    frist = _nur_die_unterstuetzerfrist_verstreicht(entwurf)
+    # Eine Ablehnung, die erst nach dem Fristende in der Datenbank steht, zählt nicht mehr mit.
+    Reaktion.objects.create(kommentar=passt, mitglied=unterstuetzer[1], art='ablehnung', erstellt_am=frist + timedelta(minutes=30))
+    karte = _fensterkarte(client, antrag, er[0])
+    antrag.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert antrag.phase == 'beratung' and entwurf.status == 'unterstuetzer'
+    ende = antrag.phase_beginn + timedelta(days=antrag.policy().beratung_tage)
+    assert 'Die Unterstützer haben bis' not in karte and 'danach wertet die Frist aus' not in karte
+    assert 'ist angenommen' in karte
+    assert f'{timezone.localtime(frist):%d.%m.%Y %H:%M}' in karte
+    assert f'Ende der Beratung am {timezone.localtime(ende):%d.%m.%Y %H:%M}' in karte
+    assert '1 👍 / 0 👎 (100 %)' in karte and '1 👍 / 1 👎' not in karte
+    warte = entwurf.endabstimmung_wartet()
+    assert (warte['ab'], warte['grund'], warte['frist']) == (ende, 'angenommen', frist)
+    assert (warte['stand']['ja'], warte['stand']['nein'], warte['stand']['angenommen']) == (1, 0, True)
+
+
+def test_in_der_wartezeit_nach_verstrichener_ueberarbeitung_nennt_das_werkstattfenster_das_beratungsende(client, ordnung):  # noqa: F811
+    """GP-003, Rest, zweiter Weg: Nach verstrichener Überarbeitungsfrist stand im Werkstattfenster weiter
+    „Überarbeitung bis <vergangenes Datum>“."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import Entwurf, EntwurfsStatus
+    from gremien.test_werkstatt import einreichen, werkstatt_lage
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    jetzt = timezone.now()
+    Entwurf.objects.filter(pk=entwurf.pk).update(
+        status=EntwurfsStatus.IN_ARBEIT, runde=2, review_frist=None, ueberarbeitung_frist=jetzt + timedelta(days=2)
+    )
+    assert 'Überarbeitung bis' in _fensterkarte(client, antrag, er[0])  # die Frist läuft noch
+    frist = jetzt - timedelta(hours=2)
+    Entwurf.objects.filter(pk=entwurf.pk).update(ueberarbeitung_frist=frist)
+    karte = _fensterkarte(client, antrag, er[0])
+    antrag.refresh_from_db()
+    assert antrag.phase == 'beratung'
+    ende = antrag.phase_beginn + timedelta(days=antrag.policy().beratung_tage)
+    assert 'Überarbeitung bis' not in karte
+    assert 'Überarbeitungsfrist ist am' in karte and f'{timezone.localtime(frist):%d.%m.%Y %H:%M}' in karte
+    assert f'Ende der Beratung am {timezone.localtime(ende):%d.%m.%Y %H:%M}' in karte
+    entwurf.refresh_from_db()
+    warte = entwurf.endabstimmung_wartet()
+    assert (warte['ab'], warte['grund'], warte['frist'], warte['stand']) == (ende, 'ueberarbeitung', frist, None)

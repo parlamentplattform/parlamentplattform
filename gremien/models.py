@@ -407,7 +407,10 @@ class Entwurf(models.Model):
         Antragsseite soll ihn nennen statt einer Frist in der Vergangenheit. Nur lesend; dieselbe
         Rechnung wie `fortschreiben`. Rückgabe: `ab` (Beginn der Endabstimmung) und `grund`:
         „angenommen“ (auch bei Stille, § 5 Abs 13), „hoechstrunden“ (§ 5 Abs 12: niemand hat
-        angenommen) oder „ueberarbeitung“ (die Frist der Gruppe 1 verstrich ohne Einreichung)."""
+        angenommen) oder „ueberarbeitung“ (die Frist der Gruppe 1 verstrich ohne Einreichung).
+        Dazu `frist` (die abgelaufene Schleifenfrist) und `stand`: die Rechnung des
+        Abstimmungs-Chats zum Fristende — der festgestellte Stand, nicht der beim Aufruf
+        (§ 5 Abs 13); None, wenn die Überarbeitungsfrist verstrich."""
         from plattform_core import Phase
 
         jetzt = jetzt or timezone.now()
@@ -427,11 +430,11 @@ class Entwurf(models.Model):
                 return None  # die Rückgabe an Gruppe 1 ist fällig, keine Endabstimmung
             frist, grund = self.review_frist, "angenommen" if stand["angenommen"] else "hoechstrunden"
         elif self.ueberarbeitung_verstrichen(jetzt):
-            frist, grund = self.ueberarbeitung_frist, "ueberarbeitung"
+            frist, grund, stand = self.ueberarbeitung_frist, "ueberarbeitung", None
         else:
             return None
         ab = self._endabstimmung_fruehestens(antrag, frist, jetzt)
-        return {"ab": ab, "grund": grund} if jetzt < ab else None
+        return {"ab": ab, "grund": grund, "frist": frist, "stand": stand} if jetzt < ab else None
 
     def abstimmung_fruehestens_ab(self):
         """Der Zeitpunkt, vor dem der Regelübergang in die Abstimmung nicht wirken darf — oder None.

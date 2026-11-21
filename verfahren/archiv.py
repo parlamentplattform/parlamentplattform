@@ -458,6 +458,63 @@ def nachweis_felder(antrag) -> dict:
     }
 
 
+#: Der Stand der Nachrechnung einer Beanstandung, wie der Markdown-Export ihn nennt (GP-085).
+NACHRECHNUNG_NAMEN = {
+    "keine": gettext_lazy("keine Nachrechnung"),
+    "angefordert": gettext_lazy("Nachrechnung angefordert"),
+    "erledigt": gettext_lazy("Nachrechnung erledigt"),
+    "gescheitert": gettext_lazy("Nachrechnung gescheitert"),
+}
+
+
+def beanstandungen(antrag) -> list[dict]:
+    """Alle öffentlichen Beanstandungen der Einschätzungen dieses Antrags (§ 6 Abs 11 lit b, GP-085),
+    in der Reihenfolge ihres Eingangs — auch die, zu denen niemand eine Nachrechnung angefordert hat.
+
+    Je Beanstandung: Text, Zeitpunkt, der beanstandete Lauf (`lauf`, null bei alten Vermerken ohne
+    Laufbezug) und der Stand der Nachrechnung (`nachrechnung`): `keine`, `angefordert` (der Auftrag
+    wartet oder läuft), `erledigt` oder `gescheitert`; `nachrechnung_auftrag` verweist auf den Auftrag,
+    dessen Läufe unter `rechtsbezug.korrekturen` stehen. Ein alter Erledigungsvermerk ohne Auftrag
+    gilt als `erledigt` und steht mit Tag und Wortlaut dabei. Ohne Namen: Wer beanstandet hat, zeigt
+    die Antragsseite mit dem dort geltenden Anzeigenamen."""
+    from ki.models import Auftragsstatus, KIAuftrag, Zweck
+
+    eintraege = list(antrag.beanstandungen.order_by("erstellt_am", "pk"))
+    if not eintraege:
+        return []
+    auftraege = {
+        a.beanstandung_id: a
+        for a in KIAuftrag.objects.filter(antrag=antrag, zweck=Zweck.KORREKTUR, beanstandung__in=eintraege)
+    }
+    staende = {Auftragsstatus.ERLEDIGT: "erledigt", Auftragsstatus.GESCHEITERT: "gescheitert"}
+    ergebnis = []
+    for b in eintraege:
+        auftrag = auftraege.get(b.pk)
+        if auftrag is not None:
+            stand = staende.get(auftrag.status, "angefordert")
+        else:
+            stand = "erledigt" if b.erledigt_am else "keine"
+        ergebnis.append(
+            {
+                "id": b.pk,
+                "text": b.text,
+                "erstellt_am": b.erstellt_am.isoformat(),
+                "lauf": b.lauf_id,
+                "nachrechnung": stand,
+                "nachrechnung_auftrag": auftrag.pk if auftrag is not None else None,
+                "erledigt_am": b.erledigt_am.isoformat() if b.erledigt_am else None,
+                "erledigt_vermerk": b.erledigt_vermerk,
+            }
+        )
+    return ergebnis
+
+
+def _ortszeit(iso: str) -> str:
+    """Ein Zeitstempel des Archivs (ISO, UTC) für den Markdown-Export: Ortszeit, „2026-10-20 01:30“ —
+    derselbe Kalendertag wie auf der Antragsseite (GP-126)."""
+    return f"{timezone.localtime(datetime.fromisoformat(iso)):%Y-%m-%d %H:%M}"
+
+
 def audit_anzahl(antrag) -> int:
     """Wie viele Audit-Ereignisse dieser Antrag hat — gezählt in der Datenbank."""
     return AuditEintrag.objects.filter(ereignis__antrag=antrag.pk).count()
@@ -498,6 +555,7 @@ def archiv(antrag) -> dict:
         "fassungen": fassungen,
         "eigenstaendigkeit": einstufungen(antrag),
         "rechtsbezug": antrag_export(antrag),
+        "beanstandungen": beanstandungen(antrag),
         "zeitleiste": zeitleiste(antrag, alles=True),
         "entwurf": entwurf_bloecke(antrag),
         "audit": audit_spur(antrag),
@@ -666,6 +724,16 @@ def als_markdown(antrag) -> str:
                 lauf["eingabe"], "", lauf["antwort"] if lauf["erfolgreich"] else lauf["fehler"], "",
             ]
         zeilen += [str(_("KI-Vorschlag — ohne RIS-Prüfung, keine Rechtsberatung, keine Wirkung auf das Verfahren.")), ""]
+    if d["beanstandungen"]:
+        zeilen += [f"## {_('Beanstandungen')}", ""]
+        for b in d["beanstandungen"]:
+            kopf = f"- **{_('Beanstandung')} #{b['id']}** ({_ortszeit(b['erstellt_am'])})"
+            if b["lauf"]:
+                kopf += f" · {_('Beanstandeter Lauf')} #{b['lauf']}"
+            zeilen += [f"{kopf} · {NACHRECHNUNG_NAMEN[b['nachrechnung']]}", f"  {b['text']}".replace("\n", "\n  ")]
+            if b["erledigt_vermerk"]:
+                zeilen.append(f"  {_('Antwort der Werkstatt:')} {b['erledigt_vermerk']}".replace("\n", "\n  "))
+            zeilen.append("")
     if d["audit"]:
         zeilen += [f"## {_('Audit-Spur')}", ""]
         zeilen += [f"- {e['zeit'][:16].replace('T', ' ')} · {e['typ']} · `{e['hash'] or '•'}`" for e in d["audit"]]

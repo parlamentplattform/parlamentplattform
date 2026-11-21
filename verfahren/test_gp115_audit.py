@@ -191,3 +191,17 @@ def test_die_schwaerzung_wirkt_auch_auf_frueher_geschriebene_streichungen(client
     assert zeilen[alt.lfd]["grund"] == "•" and zeilen[alt.lfd]["hash"] is None
     assert zeilen[danach.lfd]["vorgaenger"] is None
     assert "Beispielname" not in client.get(reverse("verfahren:audit")).content.decode()
+
+
+# ── GP-199: /audit.json ist ein offenes Format ────────────────────────────────────────────
+
+
+def test_audit_json_traegt_die_kopfzeile_der_offenen_formate_bei_get_und_head(client):
+    AuditEintrag.anhaengen({"typ": "probe"})
+    adresse = reverse("verfahren:audit_json")
+    gelesen = client.get(adresse)
+    assert gelesen.status_code == 200 and gelesen["Access-Control-Allow-Origin"] == "*"
+    kopf = client.head(adresse)
+    assert kopf.status_code == 200 and kopf["Access-Control-Allow-Origin"] == "*"
+    assert "Access-Control-Allow-Origin" not in client.post(adresse)  # nur lesende Anfragen
+    assert "Access-Control-Allow-Origin" not in client.get(reverse("verfahren:audit"))  # die Seite ist kein Format

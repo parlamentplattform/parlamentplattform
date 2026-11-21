@@ -640,9 +640,14 @@ class Adresswechsel(models.Model):
 
     @staticmethod
     def wartefrist_stunden() -> int:
-        from parameter.models import zahl
+        """Die Wartefrist aus dem Register, nach unten geklammert (GP-021): Ein Wert unter der
+        Untergrenze des Registers (Wertbereich, mindestens eine Stunde) — etwa aus einem Altbestand
+        oder einem Testwert — machte den Adresswechsel sofort wirksam, also zur Kontoübernahme."""
+        from parameter.models import WERTBEREICHE, zahl
 
-        return zahl("adresswechsel-wartefrist-stunden", Adresswechsel.WARTEFRIST_STUNDEN)
+        schluessel = "adresswechsel-wartefrist-stunden"
+        untergrenze = max(1, (WERTBEREICHE.get(schluessel) or (1, None))[0])
+        return max(untergrenze, zahl(schluessel, Adresswechsel.WARTEFRIST_STUNDEN))
 
     @classmethod
     def offener(cls, mitglied) -> Adresswechsel | None:

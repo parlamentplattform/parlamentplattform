@@ -985,3 +985,26 @@ def test_ausschluss_verweist_auf_paragraf_4_absatz_5():
     zeile = next(z for z in konzept.splitlines() if z.startswith('| F-51 |'))
     assert '§ 4 Abs 6' not in zeile and '§ 4 Abs 5' in zeile
 
+
+# --- Wartefrist des Adresswechsels klammert nach unten (GP-021, RVA-01) -------
+
+
+@pytest.mark.parametrize('wert', ['0', '-1', '-72'])
+def test_wartefrist_des_adresswechsels_faellt_nie_unter_eine_stunde(wert):
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(
+        schluessel='adresswechsel-wartefrist-stunden',
+        defaults={'wert': wert, 'einheit': 'Stunden', 'beschreibung': 'Wartefrist', 'quelle': '§ 4'},
+    )
+    assert Adresswechsel.wartefrist_stunden() == 1
+
+
+def test_wartefrist_des_adresswechsels_folgt_einem_gueltigen_registerwert():
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(
+        schluessel='adresswechsel-wartefrist-stunden',
+        defaults={'wert': '48', 'einheit': 'Stunden', 'beschreibung': 'Wartefrist', 'quelle': '§ 4'},
+    )
+    assert Adresswechsel.wartefrist_stunden() == 48

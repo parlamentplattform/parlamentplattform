@@ -230,9 +230,6 @@ msgstr "Save"
 msgid "Interne Beratung (dokumentiert, § 6 Abs 9)"
 msgstr "Internal deliberation (documented, § 6 para. 9)"
 
-msgid "Aus dem Modell-Steckplatz — jeder Lauf steht im öffentlichen Archiv."
-msgstr "From the model socket — every run is in the public archive."
-
 msgid "KI-Vorschlag"
 msgstr "AI suggestion"
 
@@ -1190,10 +1187,6 @@ msgstr ""
 msgid "Mitglieder"
 msgstr "Members"
 
-#, python-format
-msgid "bestätigte Mitglieder · %(neu)s neu in den letzten 7 Tagen"
-msgstr "confirmed members · %(neu)s new in the last 7 days"
-
 msgid "Anträge"
 msgstr "Motions"
 
@@ -1348,9 +1341,6 @@ msgstr "%(p)s %% of those eligible have voted"
 
 msgid "Tendenz verdeckt bis Fristende"
 msgstr "Leaning hidden until the deadline"
-
-msgid "Frist endet heute"
-msgstr "Deadline ends today"
 
 #, python-format
 msgid "noch <strong>%(t)s</strong> Tag"
@@ -2078,12 +2068,6 @@ msgstr "No procedure is running at the moment."
 msgid "Meine Favoriten"
 msgstr "My favourites"
 
-msgid "Lebensbereich suchen …"
-msgstr "Search areas of life …"
-
-msgid "Lebensbereich suchen"
-msgstr "Search areas of life"
-
 #, python-format
 msgid "ein laufendes Verfahren"
 msgid_plural "%(n)s laufende Verfahren"
@@ -2648,13 +2632,6 @@ msgstr "Approval withdrawn."
 msgid ""
 "Diese Zustimmung konnte nicht erfasst werden (läuft die Abstimmung noch?)."
 msgstr "This approval could not be recorded (is the vote still open?)."
-
-msgid ""
-"Als Favorit gemerkt — Sie finden das Thema jetzt in Ihrem Bereich auf der "
-"Startseite."
-msgstr ""
-"Saved as a favourite — you will now find the topic in your area on the home "
-"page."
 
 msgid "Favorit entfernt."
 msgstr "Favourite removed."
@@ -3992,9 +3969,6 @@ msgstr "The rules of procedure are built from this value."
 msgid "Im Test"
 msgstr "Under test"
 
-msgid "Der Testwert wirkt sofort überall, wo die Stellgröße gelesen wird; Werte der Verfahrensordnung sind vom Test ausgenommen."
-msgstr "The test value takes effect immediately wherever the setting is read; values of the rules of procedure are excluded from tests."
-
 msgid "Aus dem Register lässt sich derzeit keine Fassung bauen:"
 msgstr "No version can be built from the register at the moment:"
 
@@ -4918,9 +4892,6 @@ msgstr "Implementation:"
 
 msgid "Umsetzungsvermerk festgehalten — er steht öffentlich beim Beschluss."
 msgstr "Implementation note recorded — it is public with the decision."
-
-msgid "Umsetzungsvermerk ändern"
-msgstr "Change implementation note"
 
 msgid "Umsetzungsvermerk — was wie umgesetzt wird"
 msgstr "Implementation note — what is implemented and how"
@@ -7524,12 +7495,6 @@ msgid ""
 msgstr "<strong>Audit chain:</strong> every administrative and body action as an entry with timestamp and identifiers (numbers), without names and without e-mail addresses; permanent and unalterable."
 
 msgid ""
-"<strong>Konto:</strong> Vor- und Nachname, E-Mail-Adresse (zugleich Anmeldename; es gibt kein\n"
-"    Passwort), Wohnsitzgemeinde und auf Wunsch Nebenwohnsitz, Beitrittsdatum, Mitgliedsnummer, Identitätsstufe\n"
-"    und Mitgliedsstatus. Das Geburtsjahr wird bei der Anmeldung nur geprüft (§ 4 Abs 1) und nicht gespeichert."
-msgstr "<strong>Account:</strong> first and last name, e-mail address (also the login name; there is no password), municipality of residence and, if you wish, a secondary residence, date of joining, membership number, identity level and membership status. The year of birth is only checked at registration (§ 4 (1)) and not stored."
-
-msgid ""
 "<strong>Postausgang:</strong> welche Nachricht wann an Ihr Konto ging und ob der Versand gelang — ohne\n"
 "    den Inhalt der Nachricht."
 msgstr "<strong>Mail queue:</strong> which message went to your account when and whether sending succeeded — without the content of the message."
@@ -7877,12 +7842,6 @@ msgid ""
 "    Stimmliste. Die Zuordnung Pseudonym → Konto liegt getrennt bei der Plattform und ist zugriffsbeschränkt — sie ist\n"
 "    nicht kryptografisch geheim."
 msgstr "<strong>Vote register:</strong> your votes are listed under a pseudonym in the published list of votes. The mapping pseudonym → account is held separately by the platform and access is restricted — it is not cryptographically secret."
-
-msgid ""
-"<strong>Fachliste:</strong> wenn Sie darauf stehen, Name, Fachgebiete, Interessenbindungen und\n"
-"    Honorare — öffentlich mit Ihrer Einwilligung (§ 6 Abs 7, § 8 Abs 4). Nach einem Widerruf steht statt des Namens\n"
-"    eine Kennung; der sachliche Inhalt bleibt."
-msgstr "<strong>Expert roster:</strong> if you are on it, name, fields of expertise, conflicts of interest and fees — public with your consent (§ 6 (7), § 8 (4)). After a withdrawal an identifier replaces the name; the factual content remains."
 
 msgid "Diese Erklärung sagt nur, was der Code tut."
 msgstr "This policy says only what the code does."
@@ -9958,9 +9917,6 @@ msgstr "After how many days the daily audit-chain check recalculates the entire 
 msgid "Auszählung von Sachfragen"
 msgstr "Counting votes on substantive questions"
 
-msgid "Zählt die Ja-, Nein- und Enthaltungsstimmen einer Sachabstimmung und stellt fest, ob der Antrag angenommen ist: Zuerst muss die Mindestbeteiligung erreicht sein, dann entscheidet die Mehrheit. Gerechnet wird ausschließlich mit ganzen Zahlen, damit kein Rundungsfehler über einen Beschluss entscheiden kann."
-msgstr "Counts the yes, no and abstention votes on a substantive question and determines whether the motion is adopted: minimum participation must be reached first, then the majority decides. Uses integers only so that no rounding error can decide a resolution."
-
 msgid "Auszählung der Zustimmungswahl bei Kandidaturen"
 msgstr "Counting approval votes for candidacies"
 
@@ -10684,9 +10640,6 @@ msgstr "Publish your own membership"
 msgid "Mindestens jährlich öffentlich berichten"
 msgstr "Report publicly at least annually"
 
-msgid "Jahresbericht je Kalenderjahr, erzeugt aus Beschlüssen, Aussetzungen und Regelprüfung — Link im eigenen Bereich"
-msgstr "Annual report for each calendar year, generated from decisions, suspensions and rule reviews — link in your own area"
-
 msgid "Ein unabhängiges externes Sicherheitsaudit veranlassen und veröffentlichen"
 msgstr "Commission and publish an independent external security audit"
 
@@ -11025,9 +10978,6 @@ msgstr "The hash refers to canonical JSON for statute metadata, original JSON fo
 msgid "Dies ist keine amtliche Signatur, keine erneute Prüfung der Originaldateien und kein Nachweis einer vollständigen oder rechtlich aktuellen Rechtsordnung. Bereits verwendete Modellkontexte bleiben unverändert. Es werden keine Quellen abgerufen und keine Modelle aufgerufen."
 msgstr "No official signature, renewed verification of original files, or evidence of a complete or legally current body of law is provided. Previously used model contexts remain unchanged. No sources are fetched and no models are called."
 
-msgid "Höchstzahl lokaler Norm-, Dokumenttext- und Personalstände für den vollständigen Bestandsnachweis. 0 deaktiviert den Nachweis; technisch höchstens 10000. Bei Überschreitung oder ungültigem Wert kein Teilnachweis und kein Rückfall auf einen Ersatzwert."
-msgstr "Maximum number of local legal metadata, document text and staffing snapshots for complete inventory evidence. 0 disables evidence; the technical maximum is 10000. Exceeding the limit or an invalid value produces no partial evidence and no fallback value."
-
 msgid "Darstellung des gespeicherten Quellenbestands"
 msgstr "Presentation of the stored source inventory"
 
@@ -11237,9 +11187,6 @@ msgstr "Hello,\n\nconfirm your municipal account using this link (valid for 48 h
 
 msgid "Die Anmeldung wurde nicht gespeichert. Bitte versuchen Sie den E-Mail-Versand später erneut."
 msgstr "Your registration was not saved. Please try requesting the email again later."
-
-msgid "Dieser Vorgang gehört zur Parteimitgliedschaft."
-msgstr "This action requires party membership."
 
 msgid "Altersgrenze der Gemeindeanmeldung"
 msgstr "Age requirement for municipal registration"
@@ -12332,9 +12279,6 @@ msgstr "As for Group 1 — with the requirement that the two groups must be appo
 msgid "Wie viele Anstöße eine Person (Sitzung im Browser) am Tag senden kann. Derselbe Wert begrenzt zusätzlich die Anstöße je Verbindung und Stunde — alle, die sich eine Adresse teilen, teilen sich auch diese Grenze, auch ohne Sitzungscookie. Wirkt sofort."
 msgstr "How many messages a person (browser session) can send per day. The same value also limits the messages per connection and hour — everyone sharing an address also shares this limit, even without a session cookie. Takes effect immediately."
 
-msgid "Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt. Derselbe Wert ist die Seitengröße der Gemeindesuche und der öffentlichen Listen der Gemeindemandate: Ratsinitiativen, Projektstände, Haushaltslinks und Sitzungsunterlagen; dort wirkt ein Wert unter 1 wie 1. Wirkt sofort."
-msgstr "How many hits the search in the areas-of-life fan shows at most. The same value is the page size of the municipality search and of the public lists of municipal mandates: council initiatives, project updates, budget links and session documents; there a value below 1 acts as 1. Takes effect immediately."
-
 #, python-format
 msgid "Wortvergleich: ohne Modell, nachrechenbar (<a href=\"%(regel)s\">Regelverzeichnis</a>). Ähnliche Anträge sind gereiht nach dem höheren der beiden Werte, bei Gleichstand der ältere zuerst."
 msgstr "Word comparison: without a model, recomputable (<a href=\"%(regel)s\">rule register</a>). Similar motions are ranked by the higher of the two values, the older one first in a tie."
@@ -12361,9 +12305,6 @@ msgstr "To the legal-consequences report on the motion →"
 
 msgid "Zur Gemeinde →"
 msgstr "To the municipality →"
-
-msgid "Zählt eine Mandats-Kandidatur aus: Jedes Mitglied kann mehreren Bewerbungen zustimmen; die Bewerbung mit den meisten Zustimmungen gewinnt, und die Reihenfolge der Zustimmungszahlen ergibt die Reihung des Wahlvorschlags. Bei Stimmengleichheit steht die früher eingereichte Bewerbung vorn. Das gilt auch an der Spitze: Haben zwei Bewerbungen gleich viele Zustimmungen, ist die früher eingereichte gewählt."
-msgstr "Counts a mandate candidacy vote: each member may approve several applicants; the applicant with the most approvals wins, and the approval counts determine the order of the election nomination list. Ties are resolved in favour of the earlier application. This also applies at the top: if two applications have the same number of approvals, the earlier one is elected."
 
 msgid "alle stimmberechtigten Mitglieder; kein örtlicher Kreis."
 msgstr "all members entitled to vote; no local circle."
@@ -12527,23 +12468,14 @@ msgstr "<strong>%(anbieter)s</strong> (AI provider of the Zukunftswerkstatt): It
 msgid "<strong>Adresswechsel:</strong> wenn die Verwaltung Ihre Anmeldeadresse ändert, die neue Adresse, wann der Wechsel beantragt, bestätigt und wirksam wurde und welche Verwaltungskonten beteiligt waren. Nach einem Austritt bleibt davon nur der Vorgang ohne Adresse."
 msgstr "<strong>Change of address:</strong> if the administration changes your login address, the new address, when the change was requested, confirmed and took effect, and which administration accounts were involved. After you leave, only the process remains, without the address."
 
-msgid "<strong>Anmeldung:</strong> wann Ihr Konto angelegt wurde und wann Sie sich zuletzt angemeldet haben."
-msgstr "<strong>Login:</strong> when your account was created and when you last logged in."
-
 msgid "<strong>GitHub, Inc.</strong> (Sicherungskopien): Einmal im Monat geht eine Kopie der ganzen Datenbank — ohne Anmeldesitzungen und Anmeldelinks — in ein privates Repository der Partei bei GitHub. Die Kopie ist nicht verschlüsselt. GitHub ist ein US-Unternehmen."
 msgstr "<strong>GitHub, Inc.</strong> (backup copies): Once a month a copy of the whole database — without login sessions and login links — goes to a private repository of the party at GitHub. The copy is not encrypted. GitHub is a US company."
 
 msgid "<strong>KI-Aufträge:</strong> Jeder Aufruf des KI-Anbieters steht mit dem Konto, das ihn ausgelöst hat, dauerhaft im Lauf-Archiv — mit Eingabe, Antwort und Verbrauch. Bei Berichten zu einem Antrag (betroffene Gesetze, Rechtsfolgen) ist die Eingabe am Antrag und im Archivexport öffentlich nachlesbar; das Konto dahinter nicht. Eingaben zur Einschätzung für die Gremien-Werkstatt, zu Entwürfen vor dem Einbringen und zu Parametertests zeigt die Plattform nicht an."
 msgstr "<strong>AI requests:</strong> Every call to the AI provider is kept permanently in the run archive with the account that triggered it — with input, response and usage. For reports on a motion (affected laws, legal consequences) the input can be read publicly on the motion and in the archive export; the account behind it cannot. The platform does not display inputs on the assessment for the council workshop, on drafts before submission or on parameter tests."
 
-msgid "<strong>Mitgliedsausweis:</strong> ein Prüfcode, über den der QR-Code des Ausweises Ihre Mitgliedschaft bestätigt, und der Zeitpunkt der ersten Ausstellung. Der Code bleibt gleich, damit gedruckte Ausweise gültig bleiben."
-msgstr "<strong>Membership card:</strong> a verification code through which the card's QR code confirms your membership, and the time it was first issued. The code stays the same so that printed cards remain valid."
-
 msgid "Die Abstimmung beginnt"
 msgstr "The vote is starting"
-
-msgid "Ihr Konto besteht bis zum Austritt. Mit dem Austritt werden Name, E-Mail-Adresse und Wohnsitz geleert, und das Konto lässt sich nicht mehr anmelden. Ein Ausschluss sperrt das Konto; Name, E-Mail-Adresse und Wohnsitz bleiben dabei stehen. Was nach dem Austritt bleibt: Ihre Verfahrensbeiträge unter Ihrem Pseudonym oder als „Ehemaliges Mitglied n“ — pseudonymisiert, nicht anonymisiert, denn sie sind Teil eines öffentlichen Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im Stimmregister, bis die Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es heute noch nicht. Aus Gründen der Buchhaltung bleiben außerdem Ihre Mitgliedsnummer, der Stamm Ihrer Zahlungsreferenz und die verbuchten Beitragseingänge (Datum, Betrag, Umsatzkennung) am geschlossenen Konto sowie die Liste der an Ihr Konto gesandten Nachrichten (ohne Inhalt), Ihre Anstöße mit Kontobezug, ein Gemeindezugang, der Prüfcode Ihres Mitgliedsausweises und der Zeitpunkt Ihrer letzten Anmeldung. Die Audit-Kette wird nie gelöscht; sie enthält keine Namen."
-msgstr "Your account exists until you resign. On resignation, name, e-mail address and residence are emptied and the account can no longer sign in. An exclusion blocks the account; name, e-mail address and residence remain. What remains after resignation: your procedural contributions under your pseudonym or as “Former member n” — pseudonymised, not anonymised, because they are part of a public procedure that must remain verifiable (§ 5 (8)) — and the mapping in the vote register, until the procedural rules set a deletion period (§ 8 (6)); no such period exists today. For accounting reasons, your membership number, the stem of your payment reference and the recorded membership fee payments (date, amount, transaction ID) also remain with the closed account, as well as the list of messages sent to your account (without content), your suggestions linked to the account, any municipal access, the verification code of your membership card and the time of your last login. The audit chain is never deleted; it contains no names."
 
 msgid "Nur technische: die Sitzung (sessionid, Anmeldung, 14 Tage), der CSRF-Schutz gegen untergeschobene Formulare (csrftoken, ein Jahr), kurzlebig die Rückmeldung nach einer Handlung (messages; sie verschwindet mit der nächsten Seite) und — nur wenn Sie die Sprache umschalten — die Sprachwahl (django_language). Keine Analyse-Cookies, keine Cookies Dritter, kein Tracking. Im Browserspeicher Ihres Geräts merkt sich die Plattform außerdem Erscheinungsbild, Filterleiste, Leseposition im Chat und Fokus-Modus; diese Einstellungen verlassen das Gerät nicht."
 msgstr "Technical ones only: the session (sessionid, login, 14 days), the CSRF protection against forged forms (csrftoken, one year), briefly the feedback after an action (messages; it disappears with the next page) and — only if you switch the language — the language choice (django_language). No analytics cookies, no third-party cookies, no tracking. In your device's browser storage the platform also remembers appearance, filter bar, reading position in the chat and focus mode; these settings never leave the device."
@@ -12551,3 +12483,1674 @@ msgstr "Technical ones only: the session (sessionid, login, 14 days), the CSRF p
 #, python-format
 msgid "Sicherungskopien der Datenbank bleiben %(tage)s Tage; so lange stehen darin auch Angaben, die nach einem Austritt in der Datenbank schon geleert sind."
 msgstr "Backup copies of the database are kept for %(tage)s days; for that long they also contain details that have already been cleared in the database after a member leaves."
+
+#, python-format
+msgid "%(ein)s+%(aus)s Tokens"
+msgstr "%(ein)s+%(aus)s tokens"
+
+#, python-format
+msgid "%(gebiet)s: Die Unterstützungsschwelle von %(n)s Unterstützungen ist dort derzeit nicht erreichbar, weil weniger Mitglieder unterstützen dürfen."
+msgstr "%(gebiet)s: The support threshold of %(n)s supports cannot currently be reached there, because fewer members are allowed to support."
+
+#, python-format
+msgid "%(ms)s ms"
+msgstr "%(ms)s ms"
+
+#, python-format
+msgid "%(n)s Stimme (%(anteil)s %%)"
+msgid_plural "%(n)s Stimmen (%(anteil)s %%)"
+msgstr[0] "%(n)s vote (%(anteil)s %%)"
+msgstr[1] "%(n)s votes (%(anteil)s %%)"
+
+#, python-format
+msgid "%(n)s laufende Abstimmung"
+msgid_plural "%(n)s laufende Abstimmungen"
+msgstr[0] "%(n)s running vote"
+msgstr[1] "%(n)s running votes"
+
+#, python-format
+msgid "%(n)s von %(gesamt)s"
+msgstr "%(n)s of %(gesamt)s"
+
+#, python-format
+msgid "%(von)s–%(bis)s von %(n)s"
+msgstr "%(von)s–%(bis)s of %(n)s"
+
+msgid "<strong>Anmeldung:</strong> wann Ihr Konto angelegt wurde und wann Sie sich zuletzt angemeldet haben. Fordern Sie den Anmeldelink von einer geschützten Seite aus an, merkt sich die Plattform an diesem Link die Adresse dieser Seite und führt Sie nach dem Einlösen dorthin. Mit dem Einlösen wird die Adresse gelöscht; an einem nicht eingelösten Link bleibt sie längstens bis zum Austritt stehen."
+msgstr "<strong>Login:</strong> when your account was created and when you last logged in. If you request the login link from a protected page, the platform remembers the address of that page with the link and takes you there once you redeem it. Redeeming the link deletes the address; with a link that is never redeemed it remains until you resign at the latest."
+
+msgid "<strong>Fachliste:</strong> wenn Sie darauf stehen, Name, Fachgebiete, Interessenbindungen und\n    Honorare — öffentlich mit Ihrer Einwilligung (§ 6 Abs 7, § 8 Abs 4). Nach einem Widerruf steht statt des Namens\n    eine Kennung; der sachliche Inhalt bleibt. Erklären Sie die Einwilligung im Profil selbst, speichert die Plattform, wann Sie sie erklärt und wann Sie sie zurückgenommen haben; diese Zeitpunkte bleiben nach dem Austritt."
+msgstr "<strong>Expert roster:</strong> if you are on it, name, fields of expertise, conflicts of interest and fees — public with your consent (§ 6 (7), § 8 (4)). After a withdrawal an identifier replaces the name; the factual content remains. If you declare your consent yourself in your profile, the platform stores when you declared it and when you withdrew it; these times remain after you resign."
+
+msgid "<strong>Konto:</strong> Vor- und Nachname, E-Mail-Adresse (zugleich Anmeldename; es gibt kein\n    Passwort), Wohnsitzgemeinde und auf Wunsch Nebenwohnsitz, Beitrittsdatum, Mitgliedsnummer, Identitätsstufe\n    und Mitgliedsstatus. Das Geburtsjahr wird bei der Anmeldung nur geprüft (§ 4 Abs 1) und nicht gespeichert. Jeder Wechsel Ihres Mitgliedsstatus wird mit Tag und vorigem Stand festgehalten, ohne Begründung, damit die Zahl der Stimmberechtigten an einem Stichtag nachrechenbar bleibt (§ 4 Abs 4)."
+msgstr "<strong>Account:</strong> first and last name, e-mail address (also the login name; there is no password), municipality of residence and, if you wish, a secondary residence, date of joining, membership number, identity level and membership status. The year of birth is only checked at registration (§ 4 (1)) and not stored. Every change of your membership status is recorded with the date and the previous state, without a reason, so that the number of members entitled to vote on an as-of date remains verifiable (§ 4 (4))."
+
+msgid "<strong>Lesestand:</strong> Öffnen Sie angemeldet einen Antrag oder eine Sitzung, merkt sich die Plattform je Antrag oder Sitzung den Zeitpunkt Ihres letzten Besuchs, um neue Beiträge zu kennzeichnen. Er ist nicht öffentlich und wird mit dem Austritt gelöscht."
+msgstr "<strong>Reading status:</strong> If you open a motion or a session while logged in, the platform remembers, for each motion or session, the time of your last visit in order to mark new contributions. It is not public and is deleted when you resign."
+
+msgid "<strong>Mitgliedsausweis:</strong> ein Prüfcode und ein Zufallsschlüssel für die Adresse hinter dem QR-Code, über die der Ausweis Ihre Mitgliedschaft bestätigt, und der Zeitpunkt der ersten Ausstellung. Beide bleiben gleich, damit gedruckte Ausweise gültig bleiben."
+msgstr "<strong>Membership card:</strong> a verification code and a random key for the address behind the QR code, through which the card confirms your membership, and the time it was first issued. Both stay the same so that printed cards remain valid."
+
+msgid "Ab welchem Anteil der Höchstzahl des Bestandsnachweises die Verwaltung gewarnt wird. Bei 100 erst, wenn der nächste Import den Nachweis ausfallen ließe. Zwischen 1 und 100. Wirkt sofort."
+msgstr "From which share of the maximum of the inventory record the administration is warned. At 100 only when the next import would make the record fail. Between 1 and 100. Takes effect immediately."
+
+msgid "Abfall & Kreislaufwirtschaft"
+msgstr "Waste & circular economy"
+
+#, python-format
+msgid "Abgelehnt: Mindestbeteiligung verfehlt — %(abgegeben)s/%(berechtigte)s Stimmberechtigten, erforderlich %(mindest)s (§ 5 Abs 4)."
+msgstr "Rejected: minimum turnout not reached — %(abgegeben)s/%(berechtigte)s eligible voters, required %(mindest)s (§ 5 para 4)."
+
+#, python-format
+msgid "Abgelehnt: keine Mehrheit — %(mehrheit)s, Enthaltungen %(enthaltung)s; Beteiligung %(abgegeben)s/%(berechtigte)s."
+msgstr "Rejected: no majority — %(mehrheit)s, abstentions %(enthaltung)s; turnout %(abgegeben)s/%(berechtigte)s."
+
+msgid "Abofallen & Fake-Shops"
+msgstr "Subscription traps & fake shops"
+
+msgid "Adminrechte erst für ein anmeldbares Konto."
+msgstr "Admin rights only for an account that can sign in."
+
+msgid "Agrarförderung & Einkommen"
+msgstr "Agricultural subsidies & income"
+
+msgid "Aktives Altern & Einsamkeit"
+msgstr "Active ageing & loneliness"
+
+#, python-format
+msgid "Alle %(n)s zeigen ›"
+msgstr "Show all %(n)s ›"
+
+msgid "Alle Gruppen"
+msgstr "All groups"
+
+msgid "Alternativen zu Tierversuchen"
+msgstr "Alternatives to animal testing"
+
+msgid "Angaben zum Mandat berichtigen"
+msgstr "Correct the mandate details"
+
+#, python-format
+msgid "Angenommen: %(mehrheit)s, Enthaltungen %(enthaltung)s; Beteiligung %(abgegeben)s/%(berechtigte)s (§ 5 Abs 4)."
+msgstr "Adopted: %(mehrheit)s, abstentions %(enthaltung)s; turnout %(abgegeben)s/%(berechtigte)s (§ 5 para 4)."
+
+msgid "Antrag hervorheben"
+msgstr "Highlight motion"
+
+msgid "Antrag suchen (Nummer oder Titel)"
+msgstr "Find motion (number or title)"
+
+msgid "Antrag zurückweisen"
+msgstr "Reject motion"
+
+msgid "Antrittsalter & Modelle"
+msgstr "Retirement age & models"
+
+msgid "Arbeit & Beruf"
+msgstr "Work & occupation"
+
+msgid "Arbeit & Beschäftigung"
+msgstr "Labour & employment"
+
+msgid "Arbeits- & Fachkräftemigration"
+msgstr "Labour & skilled worker migration"
+
+msgid "Arbeitslosengeld & Zumutbarkeit"
+msgstr "Unemployment benefit & reasonable job offers"
+
+msgid "Arbeitsmarkt & AMS"
+msgstr "Labour market & public employment service"
+
+msgid "Arbeitsrecht & Arbeitszeit"
+msgstr "Labour law & working hours"
+
+msgid "Arbeitsschutz & Gesundheit am Arbeitsplatz"
+msgstr "Occupational safety & health at work"
+
+msgid "Arbeitszeitmodelle"
+msgstr "Working time models"
+
+msgid "Artenschutz"
+msgstr "Species protection"
+
+msgid "Asyl & Schutz"
+msgstr "Asylum & protection"
+
+msgid "Asylverfahren"
+msgstr "Asylum procedures"
+
+msgid "Aus dem Modell-Steckplatz — im öffentlichen Lauf-Archiv stehen Zweck, Modell, Verbrauch und Zeit dieses Laufs, nicht Eingabe und Antwort."
+msgstr "From the model slot — the public run archive lists purpose, model, usage and time of this run, not its input and answer."
+
+msgid "Ausgründungen & Patente"
+msgstr "Spin-offs & patents"
+
+msgid "Ausrüstung & Budget"
+msgstr "Equipment & budget"
+
+msgid "Aussetzen"
+msgstr "Suspend"
+
+msgid "Aussetzung aufheben"
+msgstr "Lift suspension"
+
+msgid "Austausch bei Gruppe 1 beantragen"
+msgstr "request replacement in group 1"
+
+msgid "Auszählung angehalten"
+msgstr "Count halted"
+
+msgid "Außenpolitik & Diplomatie"
+msgstr "Foreign policy & diplomacy"
+
+msgid "Bahnausbau & Regionalbahnen"
+msgstr "Rail expansion & regional railways"
+
+msgid "Banken & Finanzmärkte"
+msgstr "Banks & financial markets"
+
+msgid "Barrierefreiheit baulich & digital"
+msgstr "Accessibility in buildings & online"
+
+msgid "Baumeister & Hochbau"
+msgstr "Master builders & building construction"
+
+msgid "Bauordnung & Sanierung"
+msgstr "Building regulations & renovation"
+
+msgid "Bauwirtschaft & Baugewerbe"
+msgstr "Construction industry & building trades"
+
+msgid "Beanstandung"
+msgstr "Objection"
+
+msgid "Beanstandungen"
+msgstr "Objections"
+
+msgid "Beanstandungen je Stunde"
+msgstr "objections per hour"
+
+msgid "Behinderung & Teilhabe"
+msgstr "Disability & participation"
+
+msgid "Beihilfen & Familienbonus"
+msgstr "Allowances & family bonus"
+
+msgid "Beratung & Kanzleien"
+msgstr "Consulting & law firms"
+
+msgid "Berichtigen"
+msgstr "Correct"
+
+#, python-format
+msgid "Bestandsnachweis: %(bestand)s von höchstens %(grenze)s Schnappschüssen"
+msgstr "Record of holdings: %(bestand)s of at most %(grenze)s snapshots"
+
+msgid "Betriebskosten & Kautionen"
+msgstr "Service charges & deposits"
+
+msgid "Bieterkreis nachvollziehbar, keine Häufung derselben Anbieter"
+msgstr "Range of bidders traceable, no clustering of the same suppliers"
+
+msgid "Bildung"
+msgstr "Education"
+
+msgid "Bildung, Entwicklung & Gesellschaft"
+msgstr "Education, development & society"
+
+msgid "Bildungssystem & Forschung"
+msgstr "Education system & research"
+
+msgid "Bio-Ausbau & Pestizidreduktion"
+msgstr "Expanding organic farming & reducing pesticides"
+
+msgid "Biologische Landwirtschaft"
+msgstr "Organic farming"
+
+msgid "Bodenleger & Innenausbau"
+msgstr "Floor laying & interior finishing"
+
+msgid "Bodenverbrauch & Versiegelung"
+msgstr "Land consumption & soil sealing"
+
+msgid "Botschaften & Konsulate"
+msgstr "Embassies & consulates"
+
+msgid "Breitband & Funklöcher"
+msgstr "Broadband & dead zones"
+
+msgid "Breiten- & Schulsport"
+msgstr "Grassroots & school sport"
+
+msgid "Brief- & Auslandswahl"
+msgstr "Postal & overseas voting"
+
+msgid "Budget & Schuldenregeln"
+msgstr "Budget & debt rules"
+
+msgid "Bundesheer & Neutralität"
+msgstr "Armed forces & neutrality"
+
+msgid "Bus & Mikro-ÖV am Land"
+msgstr "Buses & on-demand transport in rural areas"
+
+msgid "Bäuerliche Betriebe"
+msgstr "Family farms"
+
+msgid "Bürgerbeteiligung"
+msgstr "Citizen participation"
+
+msgid "Bürgerräte"
+msgstr "Citizens' assemblies"
+
+msgid "CO2-Bepreisung & Klimabonus"
+msgstr "CO2 pricing & climate bonus"
+
+msgid "Chronologisch zeigen"
+msgstr "Show chronologically"
+
+msgid "Cybersicherheit"
+msgstr "Cyber security"
+
+msgid "Dachdecker & Zimmerei"
+msgstr "Roofing & carpentry"
+
+#, python-format
+msgid "Das Ende des Mandats liegt zwischen dem Antritt (%(ab)s) und heute."
+msgstr "The end of the mandate lies between taking office (%(ab)s) and today."
+
+msgid "Das Formular wurde sehr schnell abgeschickt — bitte einen Moment warten und erneut absenden."
+msgstr "The form was sent very quickly — please wait a moment and send it again."
+
+msgid "Das Monatsbudget der Zukunftswerkstatt war erschöpft."
+msgstr "The monthly budget of the Zukunftswerkstatt was used up."
+
+msgid "Das Parameterregister"
+msgstr "The parameter register"
+
+msgid "Das Regelverzeichnis"
+msgstr "The rule directory"
+
+msgid "Das Umsetzungsregister"
+msgstr "The implementation register"
+
+msgid "Das Verfahren ist beendet — der Chat ist nur noch im Archiv lesbar."
+msgstr "The procedure has ended — the chat can only be read in the archive."
+
+msgid "Das gesellschaftliche Zusammenleben"
+msgstr "Living together in society"
+
+msgid "Datenpolitik & Plattformen"
+msgstr "Data policy & platforms"
+
+msgid "Datenschutz & Privatsphäre"
+msgstr "Data protection & privacy"
+
+msgid "Datenschutz im Alltag"
+msgstr "Data protection in everyday life"
+
+msgid "Demokratie, Staat & Verwaltung"
+msgstr "Democracy, state & administration"
+
+msgid "Denkmalschutz & Kulturerbe"
+msgstr "Monument protection & cultural heritage"
+
+#, python-format
+msgid "Der Anbieter hat die Anfrage mit einem Fehler beantwortet (HTTP %(status)s)."
+msgstr "The provider answered the request with an error (HTTP %(status)s)."
+
+msgid "Der Anbieter war nicht erreichbar."
+msgstr "The provider could not be reached."
+
+msgid "Der Auftrag konnte nicht vorbereitet werden."
+msgstr "The job could not be prepared."
+
+msgid "Der Expertenrat arbeitet am Vorschlag — der Chat öffnet mit dem Vorschlag."
+msgstr "The Expert Council is working on the proposal — the chat opens with the proposal."
+
+msgid "Der Tag des Antritts liegt in der Zukunft — angelegt wird ein Mandat ab dem Antritt."
+msgstr "The day of taking office lies in the future — a mandate is created from the day it is taken up."
+
+msgid "Der Testwert wirkt sofort überall, wo die Stellgröße gelesen wird. Die Werte der Verfahrensordnung sowie die Zeichengrenzen und das Bearbeitungsfenster des Chats, die laufende Verfahren lesen, sind vom Test ausgenommen."
+msgstr "The test value takes effect immediately wherever the setting is read. The values of the rules of procedure, and the chat character limits and editing window read by ongoing procedures, are excluded from the test."
+
+#, python-format
+msgid "Der öffentliche Bestandsnachweis fällt aus: %(bestand)s Schnappschüsse bei einer Nachweisgrenze von %(grenze)s. Die Grenze steht im Parameterregister."
+msgstr "The public record of holdings is unavailable: %(bestand)s snapshots with a record limit of %(grenze)s. The limit is set in the parameter register."
+
+msgid "Die Antwort des Anbieters hatte eine unerwartete Form."
+msgstr "The provider's answer had an unexpected form."
+
+msgid "Die Bezeichnung des Mandats darf nicht leer sein."
+msgstr "The name of the mandate must not be empty."
+
+msgid "Die Einwilligung des Mitglieds liegt vor (§ 8 Abs 4)"
+msgstr "The member's consent has been given (§ 8 para 4)"
+
+#, python-format
+msgid "Die Grenze stellt die Verwaltung im Parameterregister ein (%(schluessel)s)."
+msgstr "The administration sets the limit in the parameter register (%(schluessel)s)."
+
+msgid "Die Modellantwort wurde an der Längengrenze abgeschnitten und nicht als Ergebnis übernommen."
+msgstr "The model answer was cut off at the length limit and was not taken as a result."
+
+msgid "Die Modellantwort wurde an der Längengrenze abgeschnitten."
+msgstr "The model answer was cut off at the length limit."
+
+msgid "Die Stellgrößen mit Herkunft und Änderungsgeschichte."
+msgstr "The settings with origin and change history."
+
+msgid "Die Stimmliste besteht die Gegenprobe nicht; es wird kein Ergebnis festgestellt."
+msgstr "The voting list fails the cross-check; no result is declared."
+
+msgid "Die Zurückweisung ist beim Parteischiedsgericht bekämpfbar (§ 5 Abs 2)."
+msgstr "The return can be challenged before the party arbitration court (§ 5 para 2)."
+
+msgid "Die angefragte Seite setzt eine Anmeldung voraus. Der Anmeldelink führt Sie danach dorthin."
+msgstr "The requested page requires you to sign in. The sign-in link will take you there afterwards."
+
+msgid "Die beim Einbringen eingefrorenen Regeln eines Antrags bleiben unverändert."
+msgstr "The rules frozen when a motion was submitted remain unchanged."
+
+msgid "Die festgestellte Zahl der Stimmberechtigten und ihr Stichtag bleiben unverändert."
+msgstr "The established number of eligible voters and its reference date remain unchanged."
+
+msgid "Dienstleistungen & freie Berufe"
+msgstr "Services & liberal professions"
+
+msgid "Diese Kandidatur läuft noch — verknüpft wird eine entschiedene Kandidatur."
+msgstr "This candidacy is still running — only a decided candidacy can be linked."
+
+msgid "Diesen Dokumenttext anzeigen"
+msgstr "Show this document text"
+
+msgid "Dieser Eintrag wird bereits geführt."
+msgstr "This entry is already listed."
+
+msgid "Digitale Amtswege"
+msgstr "Digital public services"
+
+msgid "Digitale Verbraucherrechte"
+msgstr "Digital consumer rights"
+
+msgid "Digitales & Medien"
+msgstr "Digital affairs & media"
+
+msgid "Direktvermarktung & Regionalität"
+msgstr "Direct marketing & regional produce"
+
+msgid "E-Government & digitale Verwaltung"
+msgstr "E-government & digital administration"
+
+msgid "E-Mobilität & Ladeinfrastruktur"
+msgstr "E-mobility & charging infrastructure"
+
+msgid "EU-Budget & Förderungen"
+msgstr "EU budget & funding"
+
+msgid "EU-Politik"
+msgstr "EU policy"
+
+msgid "EU-Rechtsetzung & Umsetzung"
+msgstr "EU legislation & implementation"
+
+msgid "Ehrenamt & Freiwilligenwesen"
+msgstr "Volunteering & voluntary service"
+
+msgid "Eigentum & Grund"
+msgstr "Property & land"
+
+msgid "Eigentumserwerb & Nebenkosten"
+msgstr "Buying property & ancillary costs"
+
+msgid "Ein Eintrag der Audit-Kette bleibt unverändert; es wird nur angehängt."
+msgstr "An entry of the audit chain remains unchanged; entries are only ever appended."
+
+#, python-format
+msgid "Ein Mandat"
+msgid_plural "%(n)s Mandate"
+msgstr[0] "One mandate"
+msgstr[1] "%(n)s mandates"
+
+msgid "Ein Stimmzettel lässt sich nur über die Stimmabgabe schreiben."
+msgstr "A ballot can only be written through the voting procedure."
+
+msgid "Ein mitstimmendes Mitglied hat diesen Antrag eingebracht."
+msgstr "A voting member introduced this motion."
+
+msgid "Einbürgerung"
+msgstr "Naturalisation"
+
+msgid "Eine veröffentlichte Fassung bleibt unverändert; geändert wird durch eine neue Fassung."
+msgstr "A published version remains unchanged; changes are made by adding a new version."
+
+msgid "Eine Änderung im Register bleibt, wie sie geschrieben wurde; die Historie wird nur fortgeschrieben."
+msgstr "A change in the register stays as it was written; the history is only ever extended."
+
+msgid "Einwilligung erklären"
+msgstr "Declare consent"
+
+msgid "Einwilligung selbst erklärt"
+msgstr "Consent declared by the member"
+
+msgid "Einwilligung widerrufen"
+msgstr "Withdraw consent"
+
+msgid "Einwilligung zur Fachliste erklärt — die Verwaltung kann Sie eintragen."
+msgstr "Consent to the expert list declared — the administration can now add you."
+
+msgid "Einwilligung zur Fachliste widerrufen."
+msgstr "Consent to the expert list withdrawn."
+
+msgid "Einwilligung zur erneuten Eintragung zurücknehmen"
+msgstr "Withdraw consent to being entered again"
+
+msgid "Einwilligung zurückgenommen: Die Verwaltung trägt Sie nicht erneut ein. Der gestrichene Eintrag bleibt mit Ihrem Namen auf der Fachliste stehen; die Nennung Ihres Namens widerrufen Sie bei der Verwaltung (plattform@ddoe.at)."
+msgstr "Consent withdrawn: the administration will not enter you again. The struck-off entry remains on the expert list with your name; to revoke the mention of your name, contact the administration (plattform@ddoe.at)."
+
+msgid "Einzelhandel & Nahversorgung"
+msgstr "Retail & local shops"
+
+msgid "Elektrotechnik"
+msgstr "Electrical engineering"
+
+msgid "Elementarpädagogisches Personal"
+msgstr "Early childhood education staff"
+
+#, python-format
+msgid "Endabstimmung ab %(ab)s"
+msgstr "Final vote from %(ab)s"
+
+msgid "Ende am"
+msgstr "Ended on"
+
+msgid "Energie"
+msgstr "Energy"
+
+msgid "Energie- & Kinderarmut"
+msgstr "Energy poverty & child poverty"
+
+msgid "Energiegemeinschaften"
+msgstr "Energy communities"
+
+msgid "Energiepreise & -kosten"
+msgstr "Energy prices & costs"
+
+msgid "Entwicklungszusammenarbeit"
+msgstr "Development cooperation"
+
+msgid "Erneuerbare Energie"
+msgstr "Renewable energy"
+
+msgid "Erste verzeichnete Fassung. „Wichtige Abstimmungen“ reihte nach dem Phasenbeginn statt nach dem Fristende und schnitt ohne Gesamtzahl ab; „Meine Region“ und die Suche hatten keine offengelegte Regel; bei tausenden Verfahren wuchs das Parlament ohne Grenze (Gründerentscheidung D-B1a vom 29.9.2026: Obergrenze je Gruppe mit weiteren Seiten)."
+msgstr "First registered version. “Important votes” ordered by the start of the phase instead of the end of the deadline and cut off without a total; “My region” and the search had no disclosed rule; with thousands of procedures the Parliament grew without limit (founder’s decision D-B1a of 29 September 2026: a limit per group with further pages)."
+
+msgid "Erwachsenenbildung"
+msgstr "Adult education"
+
+msgid "Europa & Internationales"
+msgstr "Europe & international affairs"
+
+msgid "Familie & Generationen"
+msgstr "Family & generations"
+
+msgid "Familien- & Erbrecht"
+msgstr "Family & inheritance law"
+
+msgid "Familienleistungen"
+msgstr "Family benefits"
+
+msgid "Fehler:"
+msgstr "Error:"
+
+msgid "Feuerwehr & Rettungswesen"
+msgstr "Fire brigades & rescue services"
+
+msgid "Finanzausgleich"
+msgstr "Fiscal equalisation"
+
+msgid "Finanzmarktaufsicht"
+msgstr "Financial market supervision"
+
+msgid "Formular unvollständig übermittelt"
+msgstr "Form submitted incompletely"
+
+msgid "Forschungsförderung"
+msgstr "Research funding"
+
+#, python-format
+msgid "Frist des Koordinationsrats über den Austauschantrag: %(frist)s (gehemmt, solange der Antrag zurückgewiesen war)"
+msgstr "Deadline of the Coordination Council on the replacement request: %(frist)s (suspended while the motion was rejected)"
+
+#, python-format
+msgid "Frist endet heute um %(um)s"
+msgstr "Deadline ends today at %(um)s"
+
+msgid "Ganztagsschule & Nachhilfe"
+msgstr "All-day school & private tutoring"
+
+msgid "Gastronomie & Personal"
+msgstr "Hospitality & staff"
+
+msgid "Gebühren & Indexanpassungen"
+msgstr "Fees & index adjustments"
+
+msgid "Geflügel & Eier"
+msgstr "Poultry & eggs"
+
+msgid "Gehwege & Schulwege"
+msgstr "Footpaths & routes to school"
+
+msgid "Geld, Steuern & Budget"
+msgstr "Money, taxes & budget"
+
+msgid "Gemeindebau & Genossenschaften"
+msgstr "Municipal housing & cooperatives"
+
+msgid "Gemeindefinanzen"
+msgstr "Municipal finances"
+
+msgid "Gemeindeleben & -verwaltung"
+msgstr "Municipal life & administration"
+
+msgid "Gemeinden, Regionen & Raumordnung"
+msgstr "Municipalities, regions & spatial planning"
+
+msgid "Gemeinnütziger & sozialer Wohnbau"
+msgstr "Non-profit & social housing"
+
+msgid "Gemerkt"
+msgstr "Bookmarked"
+
+msgid "Gemerkt — Sie finden den Antrag im Parlament unter „★ Gemerkt“."
+msgstr "Bookmarked — you will find the motion in the Parliament under “★ Bookmarked”."
+
+msgid "Gerichte & Verfahren"
+msgstr "Courts & proceedings"
+
+#, python-format
+msgid "Gespeicherter Bestand: %(bestand)s Schnappschüsse, Nachweisgrenze: %(grenze)s."
+msgstr "Stored holdings: %(bestand)s snapshots, record limit: %(grenze)s."
+
+msgid "Gesundheit & Pflege"
+msgstr "Health & care"
+
+msgid "Gesundheit am Arbeitsplatz"
+msgstr "Health at work"
+
+msgid "Gesundheitswesen & Prävention"
+msgstr "Healthcare & prevention"
+
+msgid "Gewaltschutz"
+msgstr "Protection from violence"
+
+msgid "Gewerbeordnung & Betriebsanlagen"
+msgstr "Trade regulations & business premises"
+
+#, python-format
+msgid "Gewählt ist Bewerbung %(bewerbung)s mit %(stimmen)s Zustimmungen; Beteiligung %(beteiligung)s/%(berechtigte)s erreicht die Mindestbeteiligung von %(mindest)s (§ 5 Abs 4, § 7 Abs 1)."
+msgstr "Elected: application %(bewerbung)s, approvals: %(stimmen)s; turnout %(beteiligung)s/%(berechtigte)s reaches the minimum turnout of %(mindest)s (§ 5 para 4, § 7 para 1)."
+
+msgid "Gewährleistung & Reparatur"
+msgstr "Warranty & repair"
+
+msgid "Gleichstellung & Antidiskriminierung"
+msgstr "Equality & anti-discrimination"
+
+msgid "Gleichstellung von Frauen"
+msgstr "Equality for women"
+
+msgid "Grundlagen- & angewandte Forschung"
+msgstr "Basic & applied research"
+
+msgid "Grundrechte & Gleichstellung"
+msgstr "Fundamental rights & equality"
+
+msgid "Grundversorgung & Unterbringung"
+msgstr "Basic care & accommodation"
+
+msgid "Güterverkehr & Logistik"
+msgstr "Freight transport & logistics"
+
+msgid "Haltung & Handel"
+msgstr "Keeping & trade"
+
+msgid "Handel & Gewerbe"
+msgstr "Trade & commerce"
+
+msgid "Hauptwohnsitz laut Selbstauskunft, nicht amtlich geprüft."
+msgstr "Main residence as declared by the member, not officially verified."
+
+msgid "Heime & Hospiz"
+msgstr "Care homes & hospices"
+
+msgid "Heimtiere"
+msgstr "Pets"
+
+msgid "Herkunft & Täuschungsschutz"
+msgstr "Origin & protection from deception"
+
+msgid "Hervorhebung aufheben"
+msgstr "Remove highlight"
+
+msgid "Hier steht nichts."
+msgstr "Nothing here."
+
+msgid "Hochschule & Studium"
+msgstr "Higher education & studies"
+
+msgid "Hochwasser- & Naturgefahrenschutz"
+msgstr "Flood & natural hazard protection"
+
+msgid "Homeoffice & mobiles Arbeiten"
+msgstr "Home office & mobile working"
+
+msgid "Humanitäre Hilfe"
+msgstr "Humanitarian aid"
+
+#, python-format
+msgid "Höchstens eine Beanstandung je Stunde — bitte später noch einmal."
+msgid_plural "Höchstens %(n)s Beanstandungen je Stunde — bitte später noch einmal."
+msgstr[0] "At most one objection per hour — please try again later."
+msgstr[1] "At most %(n)s objections per hour — please try again later."
+
+msgid "Höchstzahl lokaler Schnappschüsse für den vollständigen Bestandsnachweis. Gezählt werden alle sieben Sammlungen: Normstände, Dokumenttexte, Kundmachungsbelege, Personalstände, Ressorttabellen, VfGH-Metadaten und RIS-Änderungsseiten. 0 deaktiviert den Nachweis; technisch höchstens 10000. Bei Überschreitung oder ungültigem Wert kein Teilnachweis und kein Rückfall auf einen Ersatzwert."
+msgstr "Maximum number of local snapshots for the complete inventory record. All seven collections are counted: norm states, document texts, promulgation records, staffing states, ministry tables, Constitutional Court metadata and RIS change pages. 0 disables the record; technically at most 10000. If exceeded or invalid, no partial record and no fallback to a substitute value."
+
+msgid "ID Austria & digitale Identität"
+msgstr "ID Austria & digital identity"
+
+msgid "Ich willige ein, mit Namen, Fachgebieten, Interessenbindungen und Honoraren öffentlich auf der Fachliste geführt zu werden (§ 6 Abs 7, § 8 Abs 4)."
+msgstr "I consent to being listed publicly on the expert list with my name, fields, interests and fees (§ 6 para 7, § 8 para 4)."
+
+msgid "Ihr Eintrag ist gestrichen. Nehmen Sie die Einwilligung hier zurück, verhindert das nur, dass die Verwaltung Sie erneut einträgt. Der gestrichene Eintrag bleibt mit Ihrem Namen auf der Fachliste stehen; die Nennung Ihres Namens widerrufen Sie bei der Verwaltung (plattform@ddoe.at)."
+msgstr "Your entry has been struck off. Withdrawing your consent here only prevents the administration from entering you again. The struck-off entry remains on the expert list with your name; to revoke the mention of your name, contact the administration (plattform@ddoe.at)."
+
+msgid "Ihr Konto besteht bis zum Austritt. Mit dem Austritt werden Name, E-Mail-Adresse und Wohnsitz geleert, und das Konto lässt sich nicht mehr anmelden. Ein Ausschluss sperrt das Konto; Name, E-Mail-Adresse und Wohnsitz bleiben dabei stehen. Was nach dem Austritt bleibt: Ihre Verfahrensbeiträge unter Ihrem Pseudonym oder als „Ehemaliges Mitglied n“ — pseudonymisiert, nicht anonymisiert, denn sie sind Teil eines öffentlichen Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im Stimmregister, bis die Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es heute noch nicht. Aus Gründen der Buchhaltung bleiben außerdem Ihre Mitgliedsnummer, der Stamm Ihrer Zahlungsreferenz und die verbuchten Beitragseingänge (Datum, Betrag, Umsatzkennung) am geschlossenen Konto sowie die Liste der an Ihr Konto gesandten Nachrichten (ohne Inhalt), Ihre Anstöße mit Kontobezug, ein Gemeindezugang, der Prüfcode und der Adressschlüssel Ihres Mitgliedsausweises, der Verlauf Ihrer Statuswechsel, die Zeitpunkte Ihrer Erklärung zur Fachliste und der Zeitpunkt Ihrer letzten Anmeldung. Die Audit-Kette wird nie gelöscht; sie enthält keine Namen."
+msgstr "Your account exists until you resign. On resignation, name, e-mail address and residence are emptied and the account can no longer sign in. An exclusion blocks the account; name, e-mail address and residence remain. What remains after resignation: your procedural contributions under your pseudonym or as “Former member n” — pseudonymised, not anonymised, because they are part of a public procedure that must remain verifiable (§ 5 (8)) — and the mapping in the vote register, until the procedural rules set a deletion period (§ 8 (6)); no such period exists today. For accounting reasons, your membership number, the stem of your payment reference and the recorded membership fee payments (date, amount, transaction ID) also remain with the closed account, as well as the list of messages sent to your account (without content), your suggestions linked to the account, any municipal access, the verification code and the address key of your membership card, the history of your status changes, the times of your declarations on the expert roster and the time of your last login. The audit chain is never deleted; it contains no names."
+
+msgid "Ihre Einwilligung liegt vor: Sie dürfen mit Namen, Fachgebieten, Interessenbindungen und Honoraren öffentlich auf der Fachliste stehen."
+msgstr "Your consent is on record: you may be listed publicly on the expert list with your name, fields, interests and fees."
+
+msgid "Impf- & Vorsorgeprogramme"
+msgstr "Vaccination & screening programmes"
+
+msgid "In dieser Kandidatur hat das Mitglied keine Bewerbung — bitte die Kandidatur prüfen."
+msgstr "The member has no application in this candidacy — please check the candidacy."
+
+msgid "Industrie & Produktion"
+msgstr "Industry & production"
+
+msgid "Industriestandort & Energiekosten"
+msgstr "Industrial location & energy costs"
+
+msgid "Informationsfreiheit"
+msgstr "Freedom of information"
+
+msgid "Infrastruktur & Digitales"
+msgstr "Infrastructure & digital affairs"
+
+msgid "Inhalt passt nicht zum Hash — der Eintrag wurde verändert"
+msgstr "Content does not match the hash — the entry was altered"
+
+msgid "Inklusion & Barrierefreiheit"
+msgstr "Inclusion & accessibility"
+
+msgid "Innere & Äußere Sicherheit"
+msgstr "Internal & external security"
+
+msgid "Inserate & Medientransparenz"
+msgstr "Advertisements & media transparency"
+
+msgid "Installateur & Gebäudetechnik"
+msgstr "Plumbing & building services"
+
+msgid "Integration & Sprache"
+msgstr "Integration & language"
+
+msgid "Interessenbindungen der Gruppe 1 offengelegt und unauffällig"
+msgstr "Interests of group 1 disclosed and unremarkable"
+
+msgid "Interner Fehler der Plattform."
+msgstr "Internal platform error."
+
+#, python-format
+msgid "Ja %(ja)s : Nein %(nein)s"
+msgstr "Yes %(ja)s : No %(nein)s"
+
+#, python-format
+msgid "Ja %(ja)s von %(abgegeben)s abgegebenen"
+msgstr "Yes %(ja)s of %(abgegeben)s votes cast"
+
+msgid "Jagdrecht & Wildmanagement"
+msgstr "Hunting law & wildlife management"
+
+msgid "Jahresbericht je Kalenderjahr, erzeugt aus Beschlüssen, Aussetzungen und Regelprüfung — öffentlich, verlinkt auf der Seite „Gremien“"
+msgstr "Annual report for each calendar year, generated from decisions, suspensions and rule reviews — public, linked on the “Bodies” page"
+
+msgid "Jede automatisierte Regel mit Fassung, Datum und Begründung (§ 2 Abs 6)."
+msgstr "Every automated rule with version, date and reasons (§ 2 para 6)."
+
+msgid "Jugend"
+msgstr "Youth"
+
+msgid "Jugendschutz"
+msgstr "Youth protection"
+
+msgid "Justizpersonal & Ausstattung"
+msgstr "Judicial staff & equipment"
+
+msgid "KI in Verwaltung & Wirtschaft"
+msgstr "AI in public administration & business"
+
+msgid "KI-Regulierung & Kennzeichnung"
+msgstr "AI regulation & labelling"
+
+msgid "Karenz & Elternzeit"
+msgstr "Parental leave"
+
+msgid "Kassenärztliche Versorgung"
+msgstr "Statutory health insurance doctors"
+
+msgid "Katastrophenschutz & Rettung"
+msgstr "Civil protection & rescue"
+
+msgid "Kein Anbieter angeschlossen."
+msgstr "No provider connected."
+
+msgid "Kein Antrag gefunden."
+msgstr "No motion found."
+
+msgid "Keine Auszählung zum Beschlusszeitpunkt festgehalten."
+msgstr "No count was recorded when the decision was closed."
+
+msgid "Keine Bewerbung erhielt eine Zustimmung — niemand gilt als gewählt."
+msgstr "No application received an approval — nobody is elected."
+
+msgid "Keine Stimmberechtigten im festgehaltenen örtlichen Kreis — kein Beschluss."
+msgstr "No eligible voters in the recorded local group — no decision."
+
+msgid "Keine Stimmberechtigten im festgehaltenen örtlichen Kreis — niemand gewählt."
+msgstr "No eligible voters in the recorded local group — nobody elected."
+
+msgid "Keine wählbare Bewerbung — die Kandidatur bleibt ohne Ergebnis (§ 7 Abs 1)."
+msgstr "No eligible application — the candidacy has no result (§ 7 para 1)."
+
+msgid "Keine Änderung — nichts berichtigt."
+msgstr "No change — nothing corrected."
+
+msgid "Kinderbetreuung & Elementarpädagogik"
+msgstr "Childcare & early childhood education"
+
+msgid "Klimaschutz"
+msgstr "Climate protection"
+
+msgid "Klimaticket & Tarife"
+msgstr "Climate ticket & fares"
+
+msgid "Klimawandelanpassung"
+msgstr "Climate change adaptation"
+
+msgid "Konsum & Verbraucherschutz"
+msgstr "Consumption & consumer protection"
+
+msgid "Konten"
+msgstr "accounts"
+
+#, python-format
+msgid "Konten %(von)s–%(bis)s von %(gesamt)s, Testkonten eingeschlossen, neueste Kontoanlage zuerst"
+msgstr "Accounts %(von)s–%(bis)s of %(gesamt)s, test accounts included, most recently created first"
+
+msgid "Kredite & Sparen"
+msgstr "Loans & savings"
+
+msgid "Kultur, Medien & Sport"
+msgstr "Culture, media & sport"
+
+msgid "Kultur, Sport & Freizeit"
+msgstr "Culture, sport & leisure"
+
+msgid "Kulturförderung & Fair Pay"
+msgstr "Cultural funding & fair pay"
+
+msgid "Kunst & Kultur"
+msgstr "Art & culture"
+
+msgid "Kündigung & Befristung"
+msgstr "Dismissal & fixed-term contracts"
+
+msgid "Künstliche Intelligenz"
+msgstr "Artificial intelligence"
+
+msgid "Landwirtschaft & Ernährung"
+msgstr "Agriculture & food"
+
+msgid "Lebensbereich oder Antrag suchen"
+msgstr "Search area of life or motion"
+
+msgid "Lebensmittel & Qualität"
+msgstr "Food & quality"
+
+msgid "Lebensmittelkennzeichnung"
+msgstr "Food labelling"
+
+msgid "Lebensraum & Infrastruktur"
+msgstr "Living space & infrastructure"
+
+msgid "Leerstand & Spekulation"
+msgstr "Vacancy & speculation"
+
+msgid "Legt fest, in welcher Reihenfolge und wie viele Anträge die Listen im Parlament zeigen: die Gruppen des WeicherFilters ohne gestellte Regler, „Wichtige Abstimmungen“, „Meine Region“, die Anträge eines Lebensbereichs und die Titelsuche. Keine Liste reiht nach Beliebtheit; keine schneidet still ab, jede gekürzte Liste nennt ihre Gesamtzahl."
+msgstr "Determines in which order and how many motions the lists in the Parliament show: the groups of the WeicherFilter without set sliders, “Important votes”, “My region”, the motions of an area of life and the title search. No list orders by popularity; none cuts off silently, every shortened list states its total."
+
+msgid "Lehre & Berufsausbildung"
+msgstr "Apprenticeships & vocational training"
+
+msgid "Lehrkräftemangel & Quereinstieg"
+msgstr "Teacher shortage & career changers"
+
+msgid "Lehrlingsausbildung"
+msgstr "Apprentice training"
+
+msgid "Lehrpläne & Inhalte"
+msgstr "Curricula & content"
+
+msgid "Lieferketten & Rohstoffe"
+msgstr "Supply chains & raw materials"
+
+msgid "Lobbying & Offenlegung"
+msgstr "Lobbying & disclosure"
+
+msgid "Lohnnebenkosten"
+msgstr "Non-wage labour costs"
+
+msgid "Luftqualität"
+msgstr "Air quality"
+
+msgid "Ländlicher Raum & Nahversorgung"
+msgstr "Rural areas & local shops"
+
+msgid "Löhne & Gehälter"
+msgstr "Wages & salaries"
+
+msgid "Mandat & Abgeordnete"
+msgstr "Mandate & members of parliament"
+
+#, python-format
+msgid "Mandat „%(bezeichnung)s“ berichtigt."
+msgstr "Mandate “%(bezeichnung)s” corrected."
+
+#, python-format
+msgid "Mandat „%(bezeichnung)s“ ist bereits angelegt — kein zweites Mal."
+msgstr "Mandate “%(bezeichnung)s” has already been created — not a second time."
+
+msgid "Mandate"
+msgstr "mandates"
+
+msgid "Maschinenlesbar, mit voller Historie."
+msgstr "Machine-readable, with full history."
+
+msgid "Medien & Rundfunk"
+msgstr "Media & broadcasting"
+
+msgid "Medienvielfalt & Förderung"
+msgstr "Media diversity & funding"
+
+msgid "Medikamente & Heilmittel"
+msgstr "Medicines & remedies"
+
+#, python-format
+msgid "Mehr Stimmen als festgestellte Stimmberechtigte (%(stimmen)s zu %(n)s); die Abweichung ist mit dem Ergebnis in der Audit-Kette ausgewiesen."
+msgstr "More votes than established eligible voters (%(stimmen)s to %(n)s); the discrepancy is recorded with the result in the audit chain."
+
+msgid "Meine Anträge"
+msgstr "My motions"
+
+msgid "Meinungs- & Pressefreiheit"
+msgstr "Freedom of expression & of the press"
+
+msgid "Miet- & Nachbarschaftsrecht"
+msgstr "Tenancy & neighbour law"
+
+msgid "Mieten & Wohnrecht"
+msgstr "Rents & tenancy law"
+
+msgid "Mietpreise & Befristungen"
+msgstr "Rent levels & fixed-term leases"
+
+msgid "Migration & Integration"
+msgstr "Migration & integration"
+
+#, python-format
+msgid "Mindestbeteiligung verfehlt: %(beteiligung)s/%(berechtigte)s, erforderlich %(mindest)s (§ 5 Abs 4) — keine Bewerbung gilt als gewählt."
+msgstr "Minimum turnout not reached: %(beteiligung)s/%(berechtigte)s, required %(mindest)s (§ 5 para 4) — no application is elected."
+
+#, python-format
+msgid "Mindestbeteiligung: %(n)s Stimme (%(prozent)s %% von %(von)s)"
+msgid_plural "Mindestbeteiligung: %(n)s Stimmen (%(prozent)s %% von %(von)s)"
+msgstr[0] "Minimum turnout: %(n)s vote (%(prozent)s %% of %(von)s)"
+msgstr[1] "Minimum turnout: %(n)s votes (%(prozent)s %% of %(von)s)"
+
+msgid "Mindestlöhne & Kollektivverträge"
+msgstr "Minimum wages & collective agreements"
+
+msgid "Mindestsicherung & Armut"
+msgstr "Minimum income & poverty"
+
+msgid "Mit dem Gemeindekonto lesen Sie das Parlament mit — mitentscheiden können Parteimitglieder."
+msgstr "With the municipal account you can follow the Parliament — party members take part in decisions."
+
+msgid "Mit dem Gemeindekonto nicht möglich"
+msgstr "Not possible with the municipal account"
+
+msgid "Mitglied des Integritätsrats (§ 6 Abs 3 lit a)"
+msgstr "member of the integrity council (§ 6 para 3 lit a)"
+
+msgid "Mitglied des Integritätsrats — kein anderer Rat (§ 6 Abs 3 lit a)"
+msgstr "member of the integrity council — no other council (§ 6 para 3 lit a)"
+
+msgid "Mitglied eines anderen Rates (§ 6 Abs 3 lit a)"
+msgstr "member of another council (§ 6 para 3 lit a)"
+
+#, python-format
+msgid "Mitglieder · %(neu)s neu in den letzten 7 Tagen"
+msgstr "members · %(neu)s new in the last 7 days"
+
+msgid "Mobilität & Verkehr"
+msgstr "Mobility & transport"
+
+msgid "Nach Engagement zeigen"
+msgstr "Show by engagement"
+
+msgid "Nach wie vielen täglichen Prüftakten ohne neuen Prüfstand das öffentliche Audit-Log die Prüfung der Audit-Kette als überfällig ausweist. Zwischen 2 und 31. Wirkt sofort."
+msgstr "After how many daily check cycles without a new check result the public audit log shows the check of the audit chain as overdue. Between 2 and 31. Takes effect immediately."
+
+#, python-format
+msgid "Nachrechnung #%(n)s zu diesem Bericht lesen"
+msgstr "Read recalculation #%(n)s of this report"
+
+msgid "Nachrechnung angefordert"
+msgstr "recalculation requested"
+
+msgid "Nachrechnung erledigt"
+msgstr "recalculation completed"
+
+msgid "Nachrechnung gescheitert"
+msgstr "recalculation failed"
+
+msgid "Nachweisgrenze deaktiviert oder ungültig eingestellt: Es gibt keinen öffentlichen Bestandsnachweis."
+msgstr "Record limit disabled or set to an invalid value: there is no public record of holdings."
+
+msgid "Nachweisgrenze erreicht: Weitere Importe lassen den öffentlichen Bestandsnachweis ausfallen."
+msgstr "Record limit reached: further imports will make the public record of holdings unavailable."
+
+msgid "Nachweisgrenze überschritten: Der öffentliche Bestandsnachweis ist nicht verfügbar."
+msgstr "Record limit exceeded: the public record of holdings is unavailable."
+
+msgid "Nahversorgung & Ortskerne"
+msgstr "Local shops & village centres"
+
+msgid "Naturschutz & Artenvielfalt"
+msgstr "Nature conservation & biodiversity"
+
+msgid "Netzausbau & Breitband"
+msgstr "Network expansion & broadband"
+
+msgid "Netzausbau & Netzgebühren"
+msgstr "Grid expansion & grid fees"
+
+msgid "Netze & Versorgungssicherheit"
+msgstr "Grids & security of supply"
+
+#, python-format
+msgid "Neu einbringen lässt sich der Antrag ab %(ab)s (§ 5 Abs 3 lit b)."
+msgstr "The motion can be submitted again from %(ab)s (§ 5 para 3 lit b)."
+
+msgid "Neutrale Ordnung: zuerst die Phase (Abstimmung, Beratung, Unterstützung), dann das Fristende aufsteigend, bei Gleichstand die kleinere Antragsnummer. So reihen die Gruppen des WeicherFilters ohne Regler (steht der Schalter „Favoriten zuerst“, stehen Anträge aus abonnierten Lebensbereichen innerhalb der Gruppe vorn), „Meine Region“ je Zeile, die Anträge eines Lebensbereichs samt Unterbereichen und die laufenden Treffer der Titelsuche. Jede Gruppe des WeicherFilters zeigt höchstens so viele Anträge, wie das Parameterregister als Höchstzahl je Gruppe vorsieht (Startwert 60; 0 zeigt alle), die übrigen stehen seitenweise in derselben Größe unter „Alle zeigen“. „Abgeschlossen“ zeigt die zuletzt entschiedenen zuerst (Beginn der letzten Phase absteigend, dann Antragsnummer absteigend), in der Übersicht so viele, wie der Registerwert „kacheln-abgeschlossen“ sagt. „Wichtige Abstimmungen“: die vom Integritätsrat hervorgehobenen laufenden Anträge nach Fristende aufsteigend, so viele, wie der Registerwert „kacheln-hervorgehoben“ sagt; der Feldkopf nennt die Gesamtzahl. „Gemerkt“: die eigenen gemerkten Anträge, laufende in neutraler Ordnung, danach die übrigen, zuletzt entschiedene zuerst. Die Anträge eines Lebensbereichs stehen seitenweise in derselben Größe. Die Suche zeigt Lebensbereiche nach ihrer Tiefe im Baum, dann nach Name, und Anträge mit dem Suchwort im Titel, laufende in neutraler Ordnung, danach die übrigen, zuletzt entschiedene zuerst; beide Listen höchstens so viele, wie das Parameterregister für Suchtreffer vorsieht."
+msgstr "Neutral order: first the phase (vote, deliberation, support), then the end of the period ascending, in a tie the lower motion number. This is how the groups of the WeicherFilter without sliders are ordered (if the switch “Favourites first” is set, motions from subscribed areas of life come first within the group), “My region” per row, the motions of an area of life including sub-areas and the running hits of the title search. Each group of the WeicherFilter shows at most as many motions as the parameter register provides as the maximum per group (starting value 60; 0 shows all); the rest are listed page by page in the same size under “Show all”. “Completed” shows the most recently decided first (start of the last phase descending, then motion number descending), in the overview as many as the register value “kacheln-abgeschlossen” says. “Important votes”: the running motions highlighted by the Integrity Council by end of period ascending, as many as the register value “kacheln-hervorgehoben” says; the field header names the total. “Saved”: one's own saved motions, running ones in neutral order, then the others, most recently decided first. The motions of an area of life are listed page by page in the same size. The search shows areas of life by their depth in the tree, then by name, and motions with the search word in the title, running ones in neutral order, then the others, most recently decided first; both lists at most as many as the parameter register provides for search hits."
+
+msgid "Nicht gespeichert — bitte prüfen:"
+msgstr "Not saved — please check:"
+
+msgid "Nicht wieder aufgenommen — nur aktive Mitglieder stehen auf der Fachliste."
+msgstr "Not reinstated — only active members are on the expert list."
+
+msgid "Nicht wieder aufgenommen — ohne Einwilligung des Mitglieds steht niemand auf der Fachliste (§ 8 Abs 4)."
+msgstr "Not reinstated — no one is on the expert list without the member's consent (§ 8 para 4)."
+
+msgid "Noch keine eigenen Anträge."
+msgstr "No motions of your own yet."
+
+msgid "Nur für Parteimitglieder"
+msgstr "Party members only"
+
+msgid "Nutztiere & Landwirtschaftliche Tierhaltung"
+msgstr "Farm animals & livestock farming"
+
+msgid "ORF & Haushaltsabgabe"
+msgstr "ORF & household levy"
+
+msgid "Ohne E-Mail-Bestätigung freischalten"
+msgstr "Activate without email confirmation"
+
+msgid "Onlinehandel & Plattformen"
+msgstr "Online retail & platforms"
+
+msgid "Open Data & Register"
+msgstr "Open data & registers"
+
+msgid "Opferschutz"
+msgstr "Victim protection"
+
+msgid "Ortsdemokratie & Ehrenamt"
+msgstr "Local democracy & volunteering"
+
+msgid "Parlamentarische Kontrolle"
+msgstr "Parliamentary oversight"
+
+msgid "Parteien & Parlament"
+msgstr "Parties & parliament"
+
+msgid "Parteienfinanzierung"
+msgstr "Party financing"
+
+msgid "Pensionen"
+msgstr "Pensions"
+
+msgid "Pensionshöhe & Anpassung"
+msgstr "Pension level & adjustment"
+
+msgid "Persönliche Assistenz & Arbeit"
+msgstr "Personal assistance & work"
+
+msgid "Petitionen & Initiativen"
+msgstr "Petitions & initiatives"
+
+msgid "Pfand & Verpackung"
+msgstr "Deposits & packaging"
+
+msgid "Pflege & Betreuung"
+msgstr "Nursing & care"
+
+msgid "Pflege zuhause & Angehörige"
+msgstr "Care at home & family carers"
+
+msgid "Pflegepersonal & Ausbildung"
+msgstr "Care staff & training"
+
+msgid "Photovoltaik & Speicher"
+msgstr "Photovoltaics & storage"
+
+msgid "Planung & Technik"
+msgstr "Planning & engineering"
+
+msgid "Plattform-Regeln & DSA"
+msgstr "Platform rules & DSA"
+
+msgid "Plätze & Öffnungszeiten"
+msgstr "Places & opening hours"
+
+msgid "Polizei & Kriminalität"
+msgstr "Police & crime"
+
+msgid "Polizeiarbeit & Ausstattung"
+msgstr "Policing & equipment"
+
+msgid "Preise & Gebühren"
+msgstr "Prices & fees"
+
+msgid "Preistransparenz & Preistreiberei"
+msgstr "Price transparency & price gouging"
+
+msgid "Produktsicherheit & Kennzeichnung"
+msgstr "Product safety & labelling"
+
+msgid "Produktsicherheit & Rückrufe"
+msgstr "Product safety & recalls"
+
+msgid "Präsenz-Identitätsfeststellung (§ 13 Abs 2)"
+msgstr "in-person identity check (§ 13 para 2)"
+
+msgid "Prävention & Vorsorge"
+msgstr "Prevention & screening"
+
+msgid "Prüfung überfällig"
+msgstr "Check overdue"
+
+#, python-format
+msgid "Prüfung überfällig · %(n)s Eintrag ungeprüft"
+msgid_plural "Prüfung überfällig · %(n)s Einträge ungeprüft"
+msgstr[0] "Check overdue · %(n)s entry unchecked"
+msgstr[1] "Check overdue · %(n)s entries unchecked"
+
+msgid "Psychische Gesundheit"
+msgstr "Mental health"
+
+msgid "Pädagogisches Personal"
+msgstr "Teaching staff"
+
+msgid "Rad- & Fußverkehr"
+msgstr "Cycling & walking"
+
+msgid "Radwege & Abstellanlagen"
+msgstr "Cycle paths & bicycle parking"
+
+msgid "Raumplanung & Flächenwidmung"
+msgstr "Spatial planning & zoning"
+
+msgid "Raus aus Öl und Gas"
+msgstr "Phasing out oil and gas"
+
+msgid "Raus aus Öl- und Gasheizungen"
+msgstr "Phasing out oil and gas heating"
+
+msgid "Recht & Justiz"
+msgstr "Law & justice"
+
+msgid "Reihung und Umfang der Listen im Parlament"
+msgstr "Order and length of the lists in the Parliament"
+
+msgid "Reihung: Ebene, Gebiet, Antritt; beendete zuletzt, das zuletzt beendete zuerst"
+msgstr "Order: level, area, start of office; ended mandates last, the most recently ended first"
+
+msgid "Reparatur & Langlebigkeit"
+msgstr "Repair & durability"
+
+msgid "SV der Selbstständigen & Geringfügigen"
+msgstr "Social insurance for the self-employed & marginally employed"
+
+msgid "Schularten & Übertritte"
+msgstr "School types & transitions"
+
+msgid "Schulbau & Ausstattung"
+msgstr "School buildings & equipment"
+
+msgid "Schule & Unterricht"
+msgstr "School & teaching"
+
+msgid "Schutz journalistischer Arbeit"
+msgstr "Protection of journalistic work"
+
+msgid "Schutz kritischer Infrastruktur"
+msgstr "Protection of critical infrastructure"
+
+msgid "Schutzgebiete & Renaturierung"
+msgstr "Protected areas & renaturation"
+
+msgid "Schweine- & Rinderhaltung"
+msgstr "Pig & cattle farming"
+
+msgid "Schwellenwerte des Vergaberechts beachtet"
+msgstr "Procurement law thresholds observed"
+
+msgid "Seiten der Gruppe"
+msgstr "Pages of the group"
+
+msgid "Seiten des Registers"
+msgstr "Pages of the register"
+
+msgid "Seniorinnen & Senioren"
+msgstr "Older people"
+
+msgid "Sicherheit & Soziales Fundament"
+msgstr "Security & social foundation"
+
+msgid "Sicherheit & Verteidigung"
+msgstr "Security & defence"
+
+msgid "Sie sind mit Ihrem Gemeindekonto angemeldet. Dieser Zugang liest auf den Seiten der Partei mit; Einbringen, Unterstützen, Mitberaten, Abstimmen und der Beitritt zur Partei laufen nicht über das Gemeindekonto."
+msgstr "You are signed in with your municipal account. On the party pages this access is read-only; submitting, supporting, deliberating, voting and joining the party do not run through the municipal account."
+
+msgid "Soziale Absicherung & Generationen"
+msgstr "Social security & generations"
+
+msgid "Soziales & Absicherung"
+msgstr "Social affairs & security"
+
+msgid "Sozialversicherung"
+msgstr "Social insurance"
+
+msgid "Sperre einer Vertrauensfrage feststellen"
+msgstr "Establish the bar on a confidence vote"
+
+msgid "Spitzensport"
+msgstr "Elite sport"
+
+msgid "Spitäler & Ambulanzen"
+msgstr "Hospitals & outpatient clinics"
+
+msgid "Spitäler & medizinische Versorgung"
+msgstr "Hospitals & medical care"
+
+msgid "Sport"
+msgstr "Sport"
+
+msgid "Sprach- & Wertevermittlung"
+msgstr "Language & values courses"
+
+msgid "Staatliche Überwachung"
+msgstr "State surveillance"
+
+msgid "Staatsbürgerschaft"
+msgstr "Citizenship"
+
+msgid "Staatsfinanzen & Steuern"
+msgstr "Public finances & taxes"
+
+msgid "Staatshaushalt & Schulden"
+msgstr "Public budget & debt"
+
+msgid "Stand der Umsetzung zu jedem angenommenen Antrag, mit Historie."
+msgstr "Implementation status of every adopted motion, with history."
+
+msgid "Stand des Modell-Steckplatzes, Budget, Läufe."
+msgstr "Status of the model slot, budget, runs."
+
+msgid "Steuern & Abgaben"
+msgstr "Taxes & levies"
+
+msgid "Steuern auf Arbeit & Einkommen"
+msgstr "Taxes on work & income"
+
+msgid "Steuern auf Konsum"
+msgstr "Taxes on consumption"
+
+#, python-format
+msgid "Stimmberechtigte am Einbringungstag: %(n)s."
+msgstr "Members eligible to vote on the day of submission: %(n)s."
+
+msgid "Stimmberechtigte am Einbringungstag: nicht festgehalten."
+msgstr "Members eligible to vote on the day of submission: not recorded."
+
+#, python-format
+msgid "Stimmen: %(stimmen)s, festgestellte Stimmberechtigte: %(n)s"
+msgstr "Votes: %(stimmen)s, established eligible voters: %(n)s"
+
+#, python-format
+msgid "Stimmzettel ohne Registerzeile: %(n)s"
+msgstr "Ballots without a register entry: %(n)s"
+
+#, python-format
+msgid "Stimmzettel: %(zettel)s, Stimm-Ereignisse in der Audit-Kette: %(ereignisse)s"
+msgstr "Ballots: %(zettel)s, vote events in the audit chain: %(ereignisse)s"
+
+msgid "Strafmaß & Delikte"
+msgstr "Sentencing & offences"
+
+msgid "Strafrecht & Strafvollzug"
+msgstr "Criminal law & prisons"
+
+msgid "Strafvollzug & Resozialisierung"
+msgstr "Prisons & rehabilitation"
+
+msgid "Straßen & Individualverkehr"
+msgstr "Roads & private transport"
+
+msgid "Straßenbau & Maut"
+msgstr "Road building & tolls"
+
+msgid "Strom- & Gaspreise"
+msgstr "Electricity & gas prices"
+
+msgid "Studienbeihilfe & Wohnen"
+msgstr "Student grants & housing"
+
+msgid "Studienplätze & Zugang"
+msgstr "University places & access"
+
+#, python-format
+msgid "Stundengrenze erreicht — höchstens %(n)d Anfragen an die Zukunftswerkstatt je Stunde und Konto; wieder ab %(zeit)s Uhr."
+msgstr "Hourly limit reached — at most %(n)d requests to the Zukunftswerkstatt per hour and account; available again from %(zeit)s."
+
+msgid "Suchen …"
+msgstr "Search …"
+
+msgid "Sucht- & Beschaffungskriminalität"
+msgstr "Addiction & drug-related crime"
+
+msgid "Tatsächlich verwendeten Text im Antragsarchiv nachlesen"
+msgstr "Read the text actually used in the motion archive"
+
+msgid "Technologie & Transfer"
+msgstr "Technology & transfer"
+
+msgid "Tempolimits & Verkehrsberuhigung"
+msgstr "Speed limits & traffic calming"
+
+msgid "Therapieplätze & Kassenleistung"
+msgstr "Therapy places & insurance coverage"
+
+msgid "Thermische Sanierung & Heizungstausch"
+msgstr "Thermal renovation & heating replacement"
+
+msgid "Tiere & Tierschutz"
+msgstr "Animals & animal welfare"
+
+msgid "Tiertransporte"
+msgstr "Animal transport"
+
+msgid "Tierversuche"
+msgstr "Animal testing"
+
+msgid "Tourismus & Gastronomie"
+msgstr "Tourism & hospitality"
+
+msgid "Tourismuslenkung & Ortsbild"
+msgstr "Visitor management & townscape"
+
+msgid "Transit & Verlagerung"
+msgstr "Transit & modal shift"
+
+msgid "Transparenz & Korruptionsbekämpfung"
+msgstr "Transparency & fighting corruption"
+
+msgid "Treffer erscheinen alphabetisch nach Gemeindename, dann nach Bezirk und Kennziffer."
+msgstr "Results appear alphabetically by municipality name, then by district and municipality code."
+
+msgid "Trennung & Recycling"
+msgstr "Waste separation & recycling"
+
+msgid "Trinkwasser & Grundwasser"
+msgstr "Drinking water & groundwater"
+
+msgid "Umschulung & Qualifizierung"
+msgstr "Retraining & qualification"
+
+msgid "Umsetzungsregister als JSON"
+msgstr "Implementation register as JSON"
+
+msgid "Umwelt, Klima & Landwirtschaft"
+msgstr "Environment, climate & agriculture"
+
+msgid "Umwelt, Natur & Klima"
+msgstr "Environment, nature & climate"
+
+msgid "Unternehmenssteuern"
+msgstr "Corporate taxes"
+
+msgid "Unterstützungspersonal"
+msgstr "Support staff"
+
+msgid "Vereine & Ehrenamt"
+msgstr "Associations & volunteering"
+
+msgid "Verfahrensdauer & Kosten"
+msgstr "Length & cost of proceedings"
+
+#, python-format
+msgid "Verfallen: %(n)s von %(m)s Unterstützung bis zum Fristende am %(frist)s (§ 5 Abs 3 lit b)."
+msgid_plural "Verfallen: %(n)s von %(m)s Unterstützungen bis zum Fristende am %(frist)s (§ 5 Abs 3 lit b)."
+msgstr[0] "Lapsed: %(n)s of %(m)s support by the deadline on %(frist)s (§ 5 para 3 lit b)."
+msgstr[1] "Lapsed: %(n)s of %(m)s supports by the deadline on %(frist)s (§ 5 para 3 lit b)."
+
+msgid "Verfügbarkeit & Kosten"
+msgstr "Availability & costs"
+
+msgid "Vergleichsangebote oder eine Begründung, warum es keine gibt"
+msgstr "Comparative offers, or reasons why there are none"
+
+msgid "Verkehr & Mobilität"
+msgstr "Transport & mobility"
+
+msgid "Vermerk"
+msgstr "Note"
+
+msgid "Vermerk speichern"
+msgstr "Save note"
+
+msgid "Vermögens- & Erbschaftssteuern"
+msgstr "Wealth & inheritance taxes"
+
+msgid "Versiegelung & Entsiegelung"
+msgstr "Soil sealing & unsealing"
+
+msgid "Verwaltung & Behörden"
+msgstr "Administration & authorities"
+
+msgid "Verwaltungsvereinfachung"
+msgstr "Administrative simplification"
+
+msgid "Vielfalt & Antidiskriminierung"
+msgstr "Diversity & anti-discrimination"
+
+msgid "Volksbegehren & Volksabstimmung"
+msgstr "Citizens' initiatives & referendums"
+
+msgid "Wahlen & Abstimmungen"
+msgstr "Elections & votes"
+
+msgid "Wahlrecht & Wahlverfahren"
+msgstr "Electoral law & electoral procedure"
+
+msgid "Wald & Forstwirtschaft"
+msgstr "Forests & forestry"
+
+msgid "Waldpflege & Schutzwald"
+msgstr "Forest management & protective forests"
+
+msgid "Wartezeiten & Versorgungslücken"
+msgstr "Waiting times & gaps in care"
+
+msgid "Wasser, Boden & Luft"
+msgstr "Water, soil & air"
+
+msgid "Wasserkraft & Biomasse"
+msgstr "Hydropower & biomass"
+
+msgid "Weg zur Korrektur: den Bericht beanstanden; die zuständige Gruppe 1 kann ihn nachrechnen lassen."
+msgstr "Way to a correction: object to the report; the responsible Group 1 can have it recalculated."
+
+msgid "Wehrpflicht & Miliz"
+msgstr "Conscription & militia"
+
+msgid "Weiteren Umsetzungsvermerk anfügen"
+msgstr "Add another implementation note"
+
+msgid "Widmung & Baulandmobilisierung"
+msgstr "Zoning & mobilising building land"
+
+msgid "Wie viele Anfragen an die Zukunftswerkstatt ein Konto je Stunde in den Räten stellen kann, Einschätzung im Entwurfsfenster und Einschätzung eines Parametertests zusammen. 0 = keine Grenze. Dieselbe Frage zum selben Stand kostet keinen zweiten Lauf. Wirkt sofort."
+msgstr "How many requests to the Future Workshop an account can make per hour in the councils, assessment in the draft window and assessment of a parameter test together. 0 = no limit. The same question on the same state does not cost a second run. Takes effect immediately."
+
+msgid "Wie viele Anträge jede neutrale Gruppe im Parlament höchstens zeigt; die Gesamtzahl steht dabei. Derselbe Wert ist die Seitengröße, wenn eine Gruppe ganz geöffnet ist, und der Liste eines Lebensbereichs. 0 = alle. Wirkt sofort."
+msgstr "How many motions each neutral group in the parliament shows at most; the total is shown alongside. The same value is the page size when a group is fully opened, and of the list of an area of life. 0 = all. Takes effect immediately."
+
+msgid "Wie viele Beanstandungen einer Einschätzung der Zukunftswerkstatt ein Konto je Kalenderstunde absetzen kann. 0 = keine Grenze. Jede Beanstandung bleibt öffentlich am Antrag stehen. Wirkt sofort."
+msgstr "How many objections to an assessment of the Future Workshop an account can file per clock hour. 0 = no limit. Every objection remains publicly visible on the motion. Takes effect immediately."
+
+msgid "Wie viele Einträge das öffentliche Umsetzungsregister je Seite zeigt; die Gesamtzahl steht dabei, jeder Eintrag bleibt erreichbar. 0 = alle. Wirkt sofort."
+msgstr "How many entries the public implementation register shows per page; the total is shown alongside, every entry remains reachable. 0 = all. Takes effect immediately."
+
+msgid "Wie viele Konten die Mitgliederliste der Verwaltung je Seite zeigt. Zwischen 10 und 1000. Wirkt sofort."
+msgstr "How many accounts the administration's member list shows per page. Between 10 and 1000. Takes effect immediately."
+
+msgid "Wie viele Läufe das öffentliche Lauf-Archiv der Zukunftswerkstatt je Seite zeigt, neueste Nummer zuerst; jeder Lauf bleibt unter seiner Nummer erreichbar. Zwischen 10 und 500. Wirkt sofort."
+msgstr "How many runs the future workshop's public run archive shows per page, newest number first; every run stays reachable under its number. Between 10 and 500. Takes effect immediately."
+
+msgid "Wie viele Mandate die öffentliche Liste der Mandatare je Seite zeigt; jedes Mandat bleibt unter seiner Nummer erreichbar. Zwischen 10 und 500. Wirkt sofort."
+msgstr "How many mandates the public list of mandataries shows per page; every mandate remains reachable under its number. Between 10 and 500. Takes effect immediately."
+
+msgid "Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt. Derselbe Wert begrenzt die Antragstreffer der Titelsuche im Parlament, die Gesamtzahl der Treffer steht dabei. Er ist auch die Seitengröße der Gemeindesuche und der öffentlichen Listen der Gemeindemandate: Ratsinitiativen, Projektstände, Haushaltslinks und Sitzungsunterlagen; dort wirkt ein Wert unter 1 wie 1. Wirkt sofort."
+msgstr "How many hits the search in the areas-of-life fan shows at most. The same value limits the motion hits of the title search in the parliament, with the total number of hits shown. It is also the page size of the municipality search and of the public lists of municipal mandates: council initiatives, project statuses, budget links and session documents; there a value below 1 acts as 1. Takes effect immediately."
+
+msgid "Wie viele Zeilen der Ähnlichkeitsvergleich beim Durchgehen offener Anträge und gespeicherter Textvektoren je Datenbankabruf liest. Ändert nur den Speicherbedarf, nie das Ergebnis. Zwischen 50 und 2000. Wirkt beim nächsten Vergleich."
+msgstr "How many rows the similarity check reads per database fetch while going through open motions and stored text vectors. Changes only the memory use, never the result. Between 50 and 2000. Takes effect at the next check."
+
+msgid "Wie viele laufende Abstimmungen die öffentliche Übersicht je Seite zeigt; die Gesamtzahl steht dabei, weitere Seiten folgen. Zwischen 1 und 500. Wirkt sofort."
+msgstr "How many running votes the public overview shows per page; the total is shown alongside, further pages follow. Between 1 and 500. Takes effect immediately."
+
+msgid "Wieder aufgenommen — der Eintrag lost wieder mit."
+msgstr "Reinstated — the entry takes part in the draw again."
+
+msgid "Wieder aufnehmen"
+msgstr "Reinstate"
+
+msgid "Wildtiere & Jagd"
+msgstr "Wild animals & hunting"
+
+msgid "Windkraft"
+msgstr "Wind power"
+
+msgid "Wirtschaft & Unternehmen"
+msgstr "Economy & business"
+
+msgid "Wirtschaft, Arbeit & Finanzen"
+msgstr "Economy, labour & finance"
+
+msgid "Wirtschaftsordnung & Handel"
+msgstr "Economic order & trade"
+
+msgid "Wissenschaft, Forschung & Innovation"
+msgstr "Science, research & innovation"
+
+msgid "Wissenschaftsethik & -vertrauen"
+msgstr "Research ethics & trust in science"
+
+msgid "Wissenschaftsvertrauen & Skepsis"
+msgstr "Trust in science & scepticism"
+
+msgid "Wohnen & Bauen"
+msgstr "Housing & construction"
+
+msgid "Wohnungslosigkeit & Delogierung"
+msgstr "Homelessness & evictions"
+
+msgid "Wolf, Bär & Fischotter"
+msgstr "Wolf, bear & otter"
+
+msgid "Zeilen"
+msgstr "rows"
+
+#, python-format
+msgid "Zeitangaben in Ortszeit (%(zone)s)"
+msgstr "Times in local time (%(zone)s)"
+
+msgid "Zivil- & Vertragsrecht"
+msgstr "Civil & contract law"
+
+msgid "Zu Ihrem Gemeindekonto"
+msgstr "To your municipal account"
+
+msgid "Zu diesem Stand liegt die Einschätzung bereits vor."
+msgstr "The assessment for this state is already available."
+
+msgid "Zu dieser Fassung liegt die KI-Einschätzung bereits vor."
+msgstr "The AI assessment for this version is already available."
+
+msgid "Zurückweisung aufheben"
+msgstr "Lift rejection"
+
+msgid "Zusammenleben & Außenbeziehungen"
+msgstr "Living together & external relations"
+
+msgid "Zuwanderung & Aufenthalt"
+msgstr "Immigration & residence"
+
+msgid "Zweiter Bildungsweg"
+msgstr "Second-chance education"
+
+msgid "Zählt die Ja-, Nein- und Enthaltungsstimmen einer Sachabstimmung und stellt fest, ob der Antrag angenommen ist: Zuerst muss die Mindestbeteiligung erreicht sein, dann entscheidet die Mehrheit. Gerechnet wird ausschließlich mit ganzen Zahlen, damit kein Rundungsfehler über einen Beschluss entscheiden kann. Vor der Feststellung prüft plattform_core.tally.gegenprobe die Stimmliste gegen das Stimmregister des Antrags, gegen die festgestellte Zahl der Stimmberechtigten und gegen die Stimm-Ereignisse der Audit-Kette. Angehalten wird nur, was kein Weg der Stimmabgabe erzeugt: ein Stimmzettel ohne Registerzeile oder eine abweichende Zahl der Stimm-Ereignisse — dann wird kein Ergebnis festgestellt, und die Audit-Kette nennt den Befund. Mehr Stimmen als festgestellte Stimmberechtigte werden mit dem Ergebnis ausgewiesen und halten nicht an."
+msgstr "Counts the yes, no and abstention votes of a vote on a matter and determines whether the motion is adopted: first the minimum turnout must be reached, then the majority decides. Only whole numbers are used, so that no rounding error can decide a resolution. Before the result is determined, plattform_core.tally.gegenprobe checks the ballot list against the motion's voting register, against the established number of eligible members and against the vote events of the audit chain. Only what no way of casting a vote produces stops the count: a ballot without a register entry or a differing number of vote events — then no result is determined, and the audit chain names the finding. More votes than established eligible members are shown with the result and do not stop the count."
+
+msgid "Zählt eine Mandats-Kandidatur aus: Jedes Mitglied kann mehreren Bewerbungen zustimmen; die Bewerbung mit den meisten Zustimmungen gewinnt, und die Reihenfolge der Zustimmungszahlen ergibt die Reihung des Wahlvorschlags. Bei Stimmengleichheit steht die früher eingereichte Bewerbung vorn. Das gilt auch an der Spitze: Haben zwei Bewerbungen gleich viele Zustimmungen, ist die früher eingereichte gewählt. Vor der Feststellung prüft plattform_core.tally.gegenprobe die geltenden Zustimmungen gegen das Stimmregister des Antrags, die Zahl der zustimmenden Menschen gegen die festgestellte Zahl der Stimmberechtigten und die Zahl der Zustimmungen gegen die Stimm-Ereignisse der Audit-Kette (gegebene abzüglich zurückgenommener Zustimmungen). Angehalten wird nur, was kein Weg der Stimmabgabe erzeugt: eine Zustimmung ohne Registerzeile oder eine abweichende Zahl der Stimm-Ereignisse — dann wird kein Ergebnis festgestellt, und die Audit-Kette nennt den Befund. Mehr zustimmende Menschen als festgestellte Stimmberechtigte werden mit dem Ergebnis ausgewiesen und halten nicht an."
+msgstr "Counts a mandate candidacy: every member can approve several applications; the application with the most approvals wins, and the order of the approval counts gives the ranking of the list of candidates. In a tie, the application submitted earlier comes first. This also applies at the top: if two applications have the same number of approvals, the one submitted earlier is elected. Before the result is determined, plattform_core.tally.gegenprobe checks the valid approvals against the motion's voting register, the number of approving people against the established number of eligible members and the number of approvals against the vote events of the audit chain (approvals given minus approvals withdrawn). Only what no way of casting a vote produces stops the count: an approval without a register entry or a differing number of vote events — then no result is determined, and the audit chain names the finding. More approving people than established eligible members are shown with the result and do not stop the count."
+
+msgid "der zuletzt geprüfte Eintrag ist verändert oder fehlt"
+msgstr "the last checked entry was altered or is missing"
+
+msgid "die Zeitspalte weicht von der versiegelten Zeit im Eintrag ab — der Zeitpunkt wurde verändert"
+msgstr "the time column differs from the time sealed in the entry — the timestamp was altered"
+
+msgid "elektronischer Identitätsnachweis (§ 2 Abs 4)"
+msgstr "electronic proof of identity (§ 2 para 4)"
+
+msgid "geprüft (Beitragseingang verbucht)"
+msgstr "verified (contribution booked)"
+
+msgid "hängt nicht am Hash des Vorgängers — ein Eintrag wurde entfernt, eingeschoben oder umgehängt"
+msgstr "does not link to the hash of its predecessor — an entry was removed, inserted or relinked"
+
+msgid "kein Beschluss"
+msgstr "no decision"
+
+msgid "keine Nachrechnung"
+msgstr "no recalculation"
+
+msgid "keine angegeben"
+msgstr "none stated"
+
+msgid "laut Angabe des Mandatars, kein Antrag verknüpft"
+msgstr "as stated by the mandate holder, no motion linked"
+
+#, python-format
+msgid "mit %(n)s Person beschlossen"
+msgid_plural "mit %(n)s Personen beschlossen"
+msgstr[0] "decided by %(n)s person"
+msgstr[1] "decided by %(n)s people"
+
+msgid "mit Begründung zurückgeben"
+msgstr "return with reasons"
+
+msgid "nach Fristende"
+msgstr "by end of deadline"
+
+msgid "nach Phase und Frist"
+msgstr "by phase and deadline"
+
+msgid "nach Tiefe und Name"
+msgstr "by depth and name"
+
+msgid "nicht geprüft — Gruppe 2 unbesetzt"
+msgstr "not reviewed — group 2 vacant"
+
+msgid "ohne Ergebnis — nicht validiert"
+msgstr "no result — not validated"
+
+#, python-format
+msgid "ohne eine Unterstützung eines Testkontos"
+msgid_plural "ohne %(n)s Unterstützungen von Testkonten"
+msgstr[0] "excluding one support from a test account"
+msgstr[1] "excluding %(n)s supports from test accounts"
+
+msgid "pausiert (Beitrag ausständig)"
+msgstr "paused (contribution outstanding)"
+
+msgid "ungeprüft"
+msgstr "unverified"
+
+msgid "validieren"
+msgstr "validate"
+
+msgid "weiter"
+msgstr "next"
+
+msgid "zu Ihrem Gemeindekonto"
+msgstr "to your municipal account"
+
+msgid "zuletzt eingebracht zuerst"
+msgstr "most recently submitted first"
+
+msgid "zurück"
+msgstr "back"
+
+msgid "§ 6 Abs 4: verantwortet Erstellung, Betrieb und Optimierung von ParlamentPlattform und Zukunftswerkstatt."
+msgstr "§ 6 para 4: responsible for building, running and improving the ParlamentPlattform and the Zukunftswerkstatt."
+
+msgid "§ 6 Abs 5 · § 6 Abs 10: führt das öffentliche Umsetzungsregister und nimmt Vollzugsberichte entgegen."
+msgstr "§ 6 para 5 · § 6 para 10: keeps the public implementation register and receives implementation reports."
+
+msgid "Ältere & Langzeitarbeitslose"
+msgstr "Older & long-term unemployed people"
+
+msgid "Öffentlicher Dienst"
+msgstr "Public service"
+
+msgid "Öffentlicher Verkehr"
+msgstr "Public transport"
+
+#, python-format
+msgid "überfällig seit %(datum)s"
+msgstr "overdue since %(datum)s"
+
+msgid "übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)"
+msgstr "holds a mandate for the DDÖ (§ 6 para 3 lit a)"

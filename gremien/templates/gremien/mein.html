@@ -4,7 +4,8 @@
 {% block inhalt %}
 {% comment %}
 Die Auswahl für Menschen mit mehr als einer Rolle (FB-I1). Wer nur eine hat, landet ohne
-Umweg in seinem Bereich — diese Seite sieht er nie.
+Umweg in seinem Bereich — diese Seite sieht er nur, wenn ihm eine Umsetzung zugewiesen ist,
+deren Frist verstrichen ist (GP-025).
 {% endcomment %}
 <h1>{% translate "Mein Gremium" %}</h1>
 <div class="hf-grid" style="margin-top:14px">
@@ -14,5 +15,13 @@ Umweg in seinem Bereich — diese Seite sieht er nie.
     <span class="meta">{% if b.antraege %}{% translate "für" %} {% for a in b.antraege %}„{{ a.titel }}“{% if not forloop.last %}, {% endif %}{% endfor %} · {% endif %}{% translate "bis" %} {{ b.endet_am|date:"d.m.Y" }}</span>
   </a>
   {% endfor %}
+  {% if ueberfaellig %}
+  <div class="bereich">
+    <span class="bk">{% translate "Umsetzung" %}</span>
+    {% for b in ueberfaellig %}
+    {% if not forloop.first %}<br>{% endif %}<span class="meta"><a href="{% url 'gremien:beschluss' b.nummer %}">{{ b.nummer }}</a> {{ b.gegenstand }} · <strong>{% blocktranslate with datum=b.umsetzung_ueberfaellig_seit|date:"d.m.Y" %}überfällig seit {{ datum }}{% endblocktranslate %}</strong></span>
+    {% endfor %}
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

@@ -30,7 +30,7 @@ def test_gast_und_mitglied_bleiben_draussen(client, name):
     audit = AuditEintrag.objects.count()
 
     antwort = senden(reverse(name), daten)
-    assert antwort.status_code == 302 and antwort.url == reverse("mitglieder:login")
+    assert antwort.status_code == 302 and antwort.url.startswith(reverse("mitglieder:login"))
 
     client.force_login(mitglied_anlegen("mitglied"))
     assert senden(reverse(name), daten).status_code == 403
@@ -62,7 +62,7 @@ def test_bestaetigen_und_beenden_sind_ebenso_gesperrt(client, aktion):
     audit = AuditEintrag.objects.count()
 
     antwort = client.post(reverse("gremien:rollen_aktion"), daten)
-    assert antwort.status_code == 302 and antwort.url == reverse("mitglieder:login")
+    assert antwort.status_code == 302 and antwort.url.startswith(reverse("mitglieder:login"))
     client.force_login(mitglied_anlegen("mitglied"))
     assert client.post(reverse("gremien:rollen_aktion"), daten).status_code == 403
 

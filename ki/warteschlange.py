@@ -336,7 +336,15 @@ def auftrag_ausfuehren(pk: int, jetzt=None) -> str:
             )
             ausgang = "verschoben"
     finally:
-        KIAuftrag.objects.filter(pk=pk, sperrcode=token).update(**stand)
+        with transaction.atomic():  # der Endzustand „gescheitert“ steht mit seinem Eintrag in der Kette (GP-045)
+            geschrieben = KIAuftrag.objects.filter(pk=pk, sperrcode=token).update(**stand)
+            if geschrieben and ausgang == "gescheitert":
+                from verfahren.models import AuditEintrag
+
+                # Nur Nummern: kein Fehlertext des Anbieters, keine Person (der steht am Auftrag).
+                AuditEintrag.anhaengen(
+                    {"typ": "ki_auftrag_gescheitert", "auftrag": pk, "zweck": auftrag.zweck, "antrag": auftrag.antrag_id}
+                )
     return ausgang
 
 

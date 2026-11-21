@@ -1310,12 +1310,13 @@ def vollzug_fortschreiben(antrag: Antrag, mitglied, status: str, vermerk: str = 
             "Der Vollzug dieses Beschlusses ist durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d) — "
             "solange die Aussetzung läuft, wird das Umsetzungsregister nicht fortgeschrieben."
         )
-    eintrag = Vollzugseintrag.objects.create(
-        antrag=antrag, status=Vollzugsstatus(status), vermerk=vermerk.strip(), durch=mitglied
-    )
-    AuditEintrag.anhaengen(
-        {"typ": "vollzug", "antrag": antrag.pk, "status": eintrag.status, "durch": mitglied.pk}
-    )
+    with transaction.atomic():  # Registereintrag und Audit-Eintrag gemeinsam oder gar nicht (GP-129)
+        eintrag = Vollzugseintrag.objects.create(
+            antrag=antrag, status=Vollzugsstatus(status), vermerk=vermerk.strip(), durch=mitglied
+        )
+        AuditEintrag.anhaengen(
+            {"typ": "vollzug", "antrag": antrag.pk, "status": eintrag.status, "durch": mitglied.pk}
+        )
     return eintrag
 
 
@@ -2043,23 +2044,26 @@ def bewerbung_einreichen(antrag: Antrag, mitglied, vorstellung: str, rueckgabezu
         raise BewerbungsFehler("Bewerben ist nur bis zum Beginn der Abstimmung möglich (§ 7 Abs 1).")
     text = (vorstellung or "").strip()[:2000]
     zusage = Rueckgabezusage(rueckgabezusage or "")
-    bewerbung, neu = Bewerbung.objects.get_or_create(
-        antrag=antrag, mitglied=mitglied, defaults={"vorstellung": text, "rueckgabezusage": zusage}
-    )
-    if not neu:
-        bewerbung.vorstellung = text or bewerbung.vorstellung
-        bewerbung.zurueckgezogen = False
-        if zusage != Rueckgabezusage.UNBEKANNT:
-            bewerbung.rueckgabezusage = zusage
-        bewerbung.save(update_fields=["vorstellung", "zurueckgezogen", "rueckgabezusage"])
-    AuditEintrag.anhaengen(
-        {
-            "typ": "bewerbung" if neu else "bewerbung_erneuert",
-            "antrag": antrag.pk,
-            "bewerbung": bewerbung.pk,
-            "rueckgabezusage": str(bewerbung.rueckgabezusage),
-        }
-    )
+    # Bewerbung und Audit-Eintrag gemeinsam oder gar nicht (GP-129). Die Fortschreibung davor bleibt
+    # außerhalb: Ein fälliger Phasenwechsel gilt auch, wenn die Bewerbung abgewiesen wird.
+    with transaction.atomic():
+        bewerbung, neu = Bewerbung.objects.get_or_create(
+            antrag=antrag, mitglied=mitglied, defaults={"vorstellung": text, "rueckgabezusage": zusage}
+        )
+        if not neu:
+            bewerbung.vorstellung = text or bewerbung.vorstellung
+            bewerbung.zurueckgezogen = False
+            if zusage != Rueckgabezusage.UNBEKANNT:
+                bewerbung.rueckgabezusage = zusage
+            bewerbung.save(update_fields=["vorstellung", "zurueckgezogen", "rueckgabezusage"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "bewerbung" if neu else "bewerbung_erneuert",
+                "antrag": antrag.pk,
+                "bewerbung": bewerbung.pk,
+                "rueckgabezusage": str(bewerbung.rueckgabezusage),
+            }
+        )
     return bewerbung
 
 
@@ -2453,13 +2457,14 @@ def kategorien_zuordnen(antrag: Antrag) -> list[Kategorie]:
     treffer = zuordnen(text, aktive, limit=zahl("kategorien-je-antrag", 3))
     kategorien = list(Kategorie.objects.filter(id__in=[kid for kid, _ in treffer]))
     kategorien.sort(key=lambda k: [kid for kid, _ in treffer].index(k.pk))
-    antrag.kategorien.set(kategorien)
-    AuditEintrag.anhaengen(
-        {
-            "typ": "kategorien_zugeordnet",
-            "antrag": antrag.pk,
-            "kategorien": [k.slug for k in kategorien],
-            "methode": "schlagworte-v1",
-        }
-    )
+    with transaction.atomic():  # Zuordnung und Audit-Eintrag gemeinsam oder gar nicht (GP-129)
+        antrag.kategorien.set(kategorien)
+        AuditEintrag.anhaengen(
+            {
+                "typ": "kategorien_zugeordnet",
+                "antrag": antrag.pk,
+                "kategorien": [k.slug for k in kategorien],
+                "methode": "schlagworte-v1",
+            }
+        )
     return kategorien

@@ -934,7 +934,7 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     Abstimmung werden zurückgezogen (Stempel, kein Löschen)."""
     from gremien.models import Fachliste, FachlistenEinwilligung
     from mandatare.models import Mandat
-    from mandatare.sitzung import mandatsende_folgen
+    from mandatare.sitzung import mandatsende_folgen, sitzungen_sperren
 
     # Guard VOR dem Leeren: `ist_fixer_admin` hängt an der E-Mail-Adresse — nach dem Leeren
     # wäre er es nicht mehr, und die Verwaltung stünde herrenlos da.
@@ -942,6 +942,13 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
         raise AustrittFehler(_("Der satzungsgebende Erstzugang kann nicht austreten."))
     jetzt = jetzt or timezone.now()
     heute = timezone.localdate(jetzt)
+
+    # Sperrfolge wie beim Mandatsende: Mandat und offene Sitzungen sperren, BEVOR diese Transaktion
+    # den ersten Audit-Eintrag schreibt (Widerruf des Adresswechsels, `mandat_beendet`). Eine
+    # gleichzeitige Livemeldung sperrt erst die Sitzung und hängt dann an die Kette an; umgekehrt
+    # gereiht warteten beide aufeinander (PostgreSQL: „deadlock detected“).
+    for mandat in Mandat.aktive_von(mitglied):
+        sitzungen_sperren(mandat)
 
     wechsel = Adresswechsel.offener(mitglied)
     if wechsel is not None:

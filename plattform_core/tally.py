@@ -388,8 +388,8 @@ EREIGNISSE_WEICHEN_AB = "stimmereignisse_weichen_ab"
 #: geltenden Regel stimmberechtigt (§ 4 Abs 4 lit a rechnet in Tagen), steht aber nicht im
 #: festgestellten Nenner. Stimmen dann alle, bestünde die Liste die Probe nie mehr — und niemand ist
 #: zuständig, sie zu klären. Die Überzahl wird deshalb mit dem Ergebnis ausgewiesen (Ereignis
-#: „phasenwechsel“, Feld „abweichungen“), und das Prüfskript endet an ihr mit FEHLER; ob auch sie
-#: die Feststellung anhalten soll, ist eine offene Entscheidung.
+#: „phasenwechsel“, Feld „abweichungen“), und das Prüfskript rechnet nach und nennt sie als Hinweis;
+#: ob auch sie die Feststellung anhalten soll, ist eine offene Entscheidung.
 HALTEGRUENDE = frozenset({OHNE_REGISTERZEILE, EREIGNISSE_WEICHEN_AB})
 
 

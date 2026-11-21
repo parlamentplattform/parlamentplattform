@@ -60,10 +60,12 @@ def _seite_zum_speichern(seite: str) -> str:
 
 @require_POST
 def senden(request):
-    seite = (request.POST.get("seite") or "/")[:300]
+    # Nullzeichen nimmt PostgreSQL in keinem Textwert an: ohne das Entfernen endete ein solcher
+    # Anstoß (öffentlich, ohne Anmeldung) in einem Serverfehler statt in einer Meldung.
+    seite = (request.POST.get("seite") or "/").replace("\x00", "")[:300]
     if not url_has_allowed_host_and_scheme(seite, allowed_hosts=None) or not seite.startswith("/"):
         seite = "/"
-    text = (request.POST.get("text") or "").strip()
+    text = (request.POST.get("text") or "").replace("\x00", "").strip()
     honig = (request.POST.get("webseite") or "").strip()  # Honigtopf: Menschen lassen das Feld leer
     jetzt = timezone.now()
     heute = jetzt.date().isoformat()

@@ -422,10 +422,15 @@ def test_anmeldung_nennt_das_ziel_am_link_und_das_einloesen_leert_es(client):
     assert EinmalToken.objects.get(mitglied=m).ziel == "/profil/"
     assert client.post(reverse("mitglieder:login_einloesen", args=[token]))["Location"] == "/profil/"
     assert EinmalToken.objects.get(mitglied=m).ziel == ""
+    # Der zweite Satz der Erklärung: Ein nie eingelöster Link behält die Adresse (es gibt keine Aufräumstelle).
+    anderes = mitglied_anlegen("yvonne")
+    EinmalToken.ausstellen(anderes, EinmalToken.Zweck.LOGIN, ziel="/profil/")
+    assert EinmalToken.objects.get(mitglied=anderes).ziel == "/profil/"
     assert (
         "<strong>Anmeldung:</strong> wann Ihr Konto angelegt wurde und wann Sie sich zuletzt angemeldet haben. "
         "Fordern Sie den Anmeldelink von einer geschützten Seite aus an, merkt sich die Plattform an diesem Link "
-        "die Adresse dieser Seite, bis Sie ihn einlösen, und führt Sie danach dorthin."
+        "die Adresse dieser Seite und führt Sie nach dem Einlösen dorthin. Mit dem Einlösen wird die Adresse "
+        "gelöscht; an einem nicht eingelösten Link bleibt sie längstens bis zum Austritt stehen."
     ) in _karte(client, "datenarten")
 
 

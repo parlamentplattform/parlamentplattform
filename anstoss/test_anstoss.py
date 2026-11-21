@@ -27,6 +27,16 @@ def test_gast_kann_anonym_anstoss_geben(client):
     assert a.status == "neu"
 
 
+def test_nullzeichen_im_anstoss_wird_entfernt_statt_die_datenbank_zu_brechen(client):
+    """PostgreSQL nimmt das Nullzeichen in keinem Textwert an; ohne das Entfernen endete der öffentliche
+    Anstoß dort in einem Serverfehler. Auf SQLite beweist der gespeicherte Text die Bereinigung."""
+    antwort = client.post(reverse("anstoss:senden"), {"text": "Bitte\x00 größere Schrift.", "seite": "/parla\x00ment/"})
+    assert antwort.status_code == 302
+    a = Anstoss.objects.get()
+    assert a.text == "Bitte größere Schrift."
+    assert "\x00" not in a.seite
+
+
 def test_mitglied_wird_zugeordnet(client, django_user_model):
     client.force_login(person(django_user_model))
     client.post(reverse("anstoss:senden"), {"text": "Wunsch: Dunkelmodus-Schalter.", "seite": "/"})

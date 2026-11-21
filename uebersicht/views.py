@@ -28,9 +28,6 @@ from verfahren.models import Antrag, Antragsart, Stimmabgabe
 OFFEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 ENTSCHIEDEN = [Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value]
 
-#: Laufende Abstimmungen je Seite der Übersicht (GP-191). Registerwert folgt; so groß gewählt, dass
-#: die Seite heute unverändert alle laufenden auf einmal zeigt.
-LAUFENDE_JE_SEITE = 50
 
 
 def _mitglieder_verlauf(heute) -> list[tuple[str, float]]:
@@ -96,8 +93,10 @@ def _abstimmungen(seite=None) -> tuple[list[dict], int, object]:
     damit die Antwort nicht mit dem Bestand wächst; die entschiedenen nur auf der ersten Seite.
     Rückgabe: (Zeilen, Zahl der nicht gezeigten Entscheidungen, Seite der laufenden).
     """
+    # GP-191: laufende Abstimmungen je Seite aus dem Register (1 bis 500; ein Wert darunter wirkt wie 1)
+    je_seite = max(1, zahl("uebersicht-laufende-je-seite", 50))
     blatt = Paginator(
-        Antrag.objects.filter(phase=Phase.ABSTIMMUNG.value).order_by("-phase_beginn", "-pk"), LAUFENDE_JE_SEITE
+        Antrag.objects.filter(phase=Phase.ABSTIMMUNG.value).order_by("-phase_beginn", "-pk"), je_seite
     ).get_page(seite)
     laufende = list(blatt.object_list)
     entschiedene, weitere = [], 0

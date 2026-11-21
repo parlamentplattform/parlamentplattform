@@ -18,7 +18,7 @@ import functools
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.30"
+SCHEMA_VERSION = "1.31"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -28,7 +28,10 @@ SCHEMA_KEY_MUSTER = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$")
 PARAMETER = {
     "faktenbasis-bestandsnachweis-hoechstzahl": (
         "sources.inventory_max_records", "snapshots",
-        "Maximum local snapshot rows in the complete source inventory; zero disables, hard maximum 10000; invalid values or excess produce no partial evidence",
+        "Maximum local snapshot rows in the complete source inventory, counted over all seven collections (norms, "
+        "document texts, promulgation records, staffing aggregates, ministry tables, Constitutional Court "
+        "metadata, RIS change pages); zero disables, hard maximum 10000; invalid values or excess produce no "
+        "partial evidence",
     ),
     "rechtsfolgen-eingabezeichen": ("legal_effects.total_input_chars", "characters", "Maximum complete public legal-effects input including frozen law and staffing sources, clamped to 1 to 100000; no truncation or procedure blockage"),
     "gegenueberstellung-je-stunde": ("comparison.requests_per_hour", "requests/hour", "Explicit private comparison requests per account and hour; zero disables the feature"),
@@ -156,7 +159,8 @@ PARAMETER = {
     ),
     "suche-treffer-hoechstzahl": (
         "areas_fan.max_search_hits", "hits",
-        "Maximum number of hits shown by the search in the areas-of-life fan; also the page size of the "
+        "Maximum number of hits shown by the search in the areas-of-life fan; also limits the motion hits of "
+        "the title search in the parliament view (with total count) and is the page size of the "
         "municipality search and of the public lists of municipal mandates (council initiatives, projects, "
         "budget links, session documents), where values below 1 act as 1",
     ),
@@ -332,6 +336,51 @@ PARAMETER = {
         "audit.full_check_days", "days",
         "After how many days the daily audit chain check recomputes the whole chain from the start "
         "(in between it checks new entries and that the last checked one is unchanged)",
+    ),
+    # Folgewelle 0.115.0 (Schema 1.31): bisherige Konstanten des Codes
+    "gremien-ki-je-stunde": (
+        "council.ai_requests_per_account_hour", "requests/hour",
+        "AI workshop requests per account and hour in the councils (draft assessment and parameter test "
+        "together); 0 = no limit",
+    ),
+    "beanstandung-je-stunde": (
+        "ai.objections_per_account_hour", "objections/hour",
+        "Objections to a published AI assessment per account and clock hour; 0 = no limit",
+    ),
+    "parlament-gruppe-hoechstzahl": (
+        "parliament.group_limit", "motions",
+        "Motions shown per neutral group of the parliament view (with total count); also the page size of an "
+        "opened group and of an area-of-life list; 0 = all",
+    ),
+    "umsetzung-seite-hoechstzahl": (
+        "implementation.entries_per_page", "entries",
+        "Entries per page of the public implementation register (with total count); 0 = all",
+    ),
+    "verwaltung-liste-seitengroesse": (
+        "administration.members_per_page", "accounts",
+        "Accounts per page of the administration's member list (10 to 1000)",
+    ),
+    "mandatare-liste-seite": (
+        "mandate.list_per_page", "mandates",
+        "Mandates per page of the public list of mandataries (10 to 500)",
+    ),
+    "uebersicht-laufende-je-seite": (
+        "overview.running_votes_per_page", "motions",
+        "Running votes per page of the public overview (1 to 500)",
+    ),
+    "faktenbasis-bestandsnachweis-warnanteil": (
+        "sources.inventory_warning_percent", "percent",
+        "Share of the source inventory maximum from which the administration is warned (1 to 100)",
+    ),
+    "aehnlichkeit-seite-zeilen": (
+        "similarity.rows_per_fetch", "rows",
+        "Rows per database fetch while the similarity check walks open motions and stored vectors; changes "
+        "memory use only, never the result (50 to 2000)",
+    ),
+    "audit-pruefstand-ueberfaellig-takte": (
+        "audit.check_overdue_days", "days",
+        "After how many daily check cycles without a new check result the public audit log shows the chain "
+        "check as overdue (2 to 31)",
     ),
 }
 
@@ -526,4 +575,7 @@ def offenes_format(ansicht):
     def huelle(request, *args, **kwargs):
         return oeffnen(ansicht(request, *args, **kwargs), request.method)
 
+    # Woran die URL-Konfiguration eine offene Ansicht erkennt (plattform_core/test_offen.py); weitere
+    # Dekoratoren mit functools.wraps tragen das Merkmal mit.
+    huelle.offenes_format = True
     return huelle

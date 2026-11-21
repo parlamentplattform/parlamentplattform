@@ -12,14 +12,11 @@ from faktenbasis.models import (
     RisAenderungsseite,
     VfghEntscheidungsstand,
 )
-from parameter.models import Parameter
+from parameter.models import Parameter, zahl
 from plattform_core.faktenbestand import TECHNISCHE_HOECHSTZAHL, BestandsFehler, nachweis
 
 REGISTER = "faktenbasis-bestandsnachweis-hoechstzahl"
 STANDARD = 2000
-#: Ab welchem Anteil der Nachweisgrenze (in Prozent) die Verwaltung gewarnt wird (GP-147).
-#: Registerwert folgt; 100 warnt erst, wenn der nächste Import den Nachweis ausfallen ließe.
-WARNANTEIL_PROZENT = 100
 
 
 def bestandsgrenze() -> int:
@@ -59,8 +56,11 @@ def grenzstand() -> dict:
         grenze = bestandsgrenze()
     except BestandsFehler:
         return {"bestand": bestand, "grenze": None, "warnung": False, "ausfall": True}
+    # Ab welchem Anteil der Nachweisgrenze (Prozent, 1 bis 100) die Verwaltung gewarnt wird (GP-147);
+    # 100 warnt erst, wenn der nächste Import den Nachweis ausfallen ließe.
+    anteil = min(100, max(1, zahl("faktenbasis-bestandsnachweis-warnanteil", 100)))
     return {"bestand": bestand, "grenze": grenze, "ausfall": bestand > grenze,
-            "warnung": bestand * 100 >= grenze * WARNANTEIL_PROZENT}
+            "warnung": bestand * 100 >= grenze * anteil}
 
 
 def bestandsnachweis() -> dict:

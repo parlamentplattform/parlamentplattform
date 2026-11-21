@@ -137,3 +137,24 @@ def test_die_seite_zeigt_alle_regeln_nach_wirkung(client):
         assert wirkung.value in inhalt
     assert str(zaehlung()["regeln"]) in inhalt
     assert str(VERSION) in inhalt
+
+
+def test_folgewelle_0115_verzeichnis_gegenprobe_und_parlamentlisten():
+    '''Fassung 32: Das Verzeichnis führt die Listen im Parlament; beide Auszählregeln nennen die Gegenprobe
+    vor der Feststellung, was sie anhält und was sie nur ausweist. Die Höchstzahl je Gruppe ist ein
+    Registerwert, keine Lücke mehr.'''
+    from plattform_core import tally
+
+    assert VERSION == 32
+    auszaehlung = [r for r in verzeichnis() if r.modul == 'tally.py']
+    assert len(auszaehlung) == 2
+    for regel in auszaehlung:
+        assert regel.fassung == tally.VERSION  # die Gegenprobe ändert kein Ergebnis
+        text = f'{regel.zweck} {regel.grund} {regel.nachrechenbar}'
+        assert 'plattform_core.tally.gegenprobe' in text, regel.titel
+        assert 'Stimmregister' in text and 'Stimm-Ereignisse' in text and 'Stimmberechtigte' in text
+        assert 'kein Weg der Stimmabgabe' in text and 'halten nicht an' in text
+    listen = next(r for r in verzeichnis() if r.modul == 'parlamentlisten.py')
+    assert not listen.luecke and listen.vollstaendig
+    assert 'parlament-gruppe-hoechstzahl' in listen.registerschluessel.split(' · ')
+    assert 'höchstens 60 Anträge' not in listen.nachrechenbar and 'je 60' not in listen.nachrechenbar

@@ -418,3 +418,26 @@ def test_e43_aehnlichkeitskarte_sagt_nach_dem_beratungsende_die_abstimmung_begin
     assert t["frist_abgelaufen"] and t["abstimmung_beginnt"]
     html = render_to_string("verfahren/_aehnliche_antraege.html", {"aehnliche": [t], "oertlich_gesperrte_treffer": []})
     assert "Die Abstimmung beginnt" in html and "wird ausgewertet" not in html
+
+
+def test_gp175_aehnlichkeitskarte_nennt_am_letzten_tag_die_uhrzeit(bestehend):
+    """GP-175 (Rest): Am letzten Tag nennt die Karte „Gibt es das schon?“ die Uhrzeit des Fristendes wie
+    Kachel und Zeile — mit derselben Frist und derselben Zählung (`resttage`), keiner dritten."""
+    from datetime import UTC, datetime, timedelta
+    from unittest import mock
+    from zoneinfo import ZoneInfo
+
+    from django.template.loader import render_to_string
+
+    wien = ZoneInfo("Europe/Vienna")
+    frist = datetime(2026, 11, 19, 12, 41, tzinfo=wien)
+    tage = bestehend.policy().unterstuetzung_frist_tage
+    # In UTC zurückgerechnet, wie die Frist vorwärts gerechnet wird: Mit der Wiener Uhr gerechnet läge der
+    # Beginn bei einer Frist über die Zeitumstellung hinweg eine Stunde daneben.
+    Antrag.objects.filter(pk=bestehend.pk).update(phase_beginn=frist.astimezone(UTC) - timedelta(days=tage))
+    with mock.patch("django.utils.timezone.now", return_value=datetime(2026, 11, 19, 8, 0, tzinfo=wien)):
+        gefunden = aehnliche_antraege(ANTRAG["titel"], ANTRAG["wortlaut"], None, bedeutung=False).treffer
+    t = next(t for t in gefunden if t["antrag"].pk == bestehend.pk)
+    assert t["rest_tage"] == 0 and t["frist"] == frist
+    html = render_to_string("verfahren/_aehnliche_antraege.html", {"aehnliche": [t], "oertlich_gesperrte_treffer": []})
+    assert "Frist endet heute um 12:41" in html

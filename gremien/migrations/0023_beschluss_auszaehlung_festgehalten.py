@@ -25,20 +25,23 @@ def auszaehlung_aus_dem_audit_nachtragen(apps, schema_editor):
         .order_by('lfd')
         .values_list('ereignis', flat=True)
     )
+    nachtrag = {}
     for ereignis in eintraege.iterator(chunk_size=500):
         kennung = ereignis.get('beschluss')
-        if kennung not in offen:
-            continue
+        if not _ganzzahl(kennung) or kennung not in offen or kennung in nachtrag:
+            continue  # der erste Eintrag je Beschluss gilt
         abgegeben, noetig, zaehlung = ereignis.get('abgegeben'), ereignis.get('noetig'), ereignis.get('zaehlung')
         if not (_ganzzahl(abgegeben) and _ganzzahl(noetig) and isinstance(zaehlung, dict)):
             continue
         fest = {'abgegeben': abgegeben, 'noetig': noetig, 'zaehlung': zaehlung, 'quelle': 'audit'}
         if _ganzzahl(ereignis.get('aktive')):
             fest['aktive'] = ereignis['aktive']
-        GremienBeschluss.objects.filter(pk=kennung, festgehalten__isnull=True).update(festgehalten=fest)
-        offen.discard(kennung)  # der erste Eintrag je Beschluss gilt
-        if not offen:
+        nachtrag[kennung] = fest
+        if len(nachtrag) == len(offen):
             break
+    # Erst lesen, dann schreiben: Der Durchlauf über die Kette bleibt von den Änderungen getrennt.
+    for kennung, fest in nachtrag.items():
+        GremienBeschluss.objects.filter(pk=kennung, festgehalten__isnull=True).update(festgehalten=fest)
 
 
 class Migration(migrations.Migration):

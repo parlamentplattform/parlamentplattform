@@ -1511,6 +1511,9 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
                         "rueckgabezusage": mandat.rueckgabezusage,
                     }
                 )
+                from mandatare.sitzung import mandatsende_folgen
+
+                mandatsende_folgen(mandat, "vertretung_beendet", jetzt)  # GP-116
             # (c) Mandatsvereinbarung endet (Z 5) — nur mit lit h, nach Frist UND Endgültigkeit
             if tue_c:
                 tag = max(frist_tag, timezone.localdate(endgueltig_ab))

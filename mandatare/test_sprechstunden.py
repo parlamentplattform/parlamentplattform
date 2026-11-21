@@ -81,3 +81,87 @@ def test_falsche_datumsfolgen_doppelung_und_csrf(client, mandat):
     abgesichert = Client(enforce_csrf_checks=True)
     abgesichert.force_login(mandat.mitglied)
     assert abgesichert.post(url, daten).status_code == 403
+
+
+# ── GP-116: Mandatsende, Vertretungsende und neue Zuordnung sagen kommende Termine ab ──────────
+
+
+def _termin(mandat, tage=2, treffpunkt="Öffentlicher Raum A"):
+    beginn = timezone.now() + timedelta(days=tage)
+    return Sprechstunde.objects.create(mandat=mandat, gemeinde=mandat.gemeinde, beginn=beginn,
+                                       ende=beginn + timedelta(hours=1), treffpunkt=treffpunkt)
+
+
+def _absagen_audit():
+    return [e.ereignis for e in AuditEintrag.objects.filter(ereignis__typ="sprechstunde_abgesagt")]
+
+
+def test_mandatsende_sagt_kommende_sprechstunden_ab_und_beendet_die_laufende_sitzung(client, mandat):
+    from mandatare.models import Sitzung
+    from mandatare.sitzung import sitzung_beginnen
+    from mandatare.test_mandatare import admin_anlegen
+    from mandatare.test_sitzung_modelle import sitzungstag
+
+    vorbei = Sprechstunde.objects.create(mandat=mandat, gemeinde=mandat.gemeinde, beginn=timezone.now() - timedelta(days=3),
+                                         ende=timezone.now() - timedelta(days=3, hours=-1), treffpunkt="Früher")
+    termin = _termin(mandat)
+    sitzung = sitzung_beginnen(mandat, sitzungstag(mandat), punkte=["Budget"])
+    client.force_login(admin_anlegen("gp116admin"))
+    assert client.post(reverse("mandatare:verwaltung_aktion"), {"aktion": "beenden", "mandat": mandat.pk}).status_code == 302
+    termin.refresh_from_db()
+    vorbei.refresh_from_db()
+    assert termin.abgesagt_am is not None and vorbei.abgesagt_am is None
+    (eintrag,) = _absagen_audit()
+    assert eintrag["termin"] == termin.pk and eintrag["anlass"] == "mandat_beendet"
+    seite = Client().get(reverse("gemeinde:ort", args=[mandat.gemeinde.kennziffer])).content.decode()
+    assert "Öffentlicher Raum A" in seite and "Abgesagt" in seite
+    assert not Sitzung.objects.get(pk=sitzung.pk).laeuft()
+    assert AuditEintrag.objects.filter(ereignis__typ="sitzung_beendet", ereignis__anlass="mandat_beendet").count() == 1
+
+
+def test_neue_zuordnung_sagt_die_termine_am_alten_ort_ab(client, mandat):
+    from mandatare.test_mandatare import admin_anlegen
+
+    alt = mandat.gemeinde
+    termin = _termin(mandat)
+    neu = Gemeinde.objects.create(kennziffer="40511", name="Neuort", bezirk="Eferding", bundesland="oberoesterreich")
+    Mandat.objects.filter(pk=mandat.pk).update(ebene="gemeinde")
+    client.force_login(admin_anlegen("gp116admin2"))
+    client.post(reverse("mandatare:verwaltung_aktion"),
+                {"aktion": "gemeinde_zuordnen", "mandat": mandat.pk, "gemeindekennziffer": neu.kennziffer})
+    mandat.refresh_from_db()
+    assert mandat.gemeinde_id == neu.pk
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is not None
+    assert [e["anlass"] for e in _absagen_audit()] == ["gemeinde_zuordnung"]
+    seite = Client().get(reverse("gemeinde:ort", args=[alt.kennziffer])).content.decode()
+    assert "Öffentlicher Raum A" in seite and "Abgesagt" in seite
+    assert "Öffentlicher Raum A" not in Client().get(reverse("gemeinde:ort", args=[neu.kennziffer])).content.decode()
+
+
+def test_ende_der_vertretung_sagt_kommende_sprechstunden_ab(mandat):
+    from mandatare import models as mm
+    from plattform_core import Phase
+    from verfahren.models import Antrag, Antragsart
+
+    termin = _termin(mandat, tage=5)
+    ende = timezone.now() - timedelta(days=40)
+    antrag = Antrag.objects.create(titel="Vertrauensfrage", art=Antragsart.VERTRAUENSFRAGE, eingebracht_von=mandat.mitglied,
+                                   eingebracht_am=ende - timedelta(days=20), phase=Phase.ANGENOMMEN.value, phase_beginn=ende,
+                                   policy_snapshot={})
+    vf = mm.Vertrauensfrage.objects.create(antrag=antrag, mandat=mandat)
+    mm.vertrauensfrage_wirkungen(vf, jetzt=ende)
+    mm.vertrauensfragen_fortschreiben()
+    mandat.refresh_from_db()
+    termin.refresh_from_db()
+    assert mandat.vertretung_beendet_am is not None
+    assert termin.abgesagt_am is not None
+    assert [e["anlass"] for e in _absagen_audit()] == ["vertretung_beendet"]
+
+
+def test_altbestand_abgesagter_termin_eines_beendeten_mandats_bleibt_bis_zum_ende_sichtbar(mandat):
+    termin = _termin(mandat)
+    Sprechstunde.objects.filter(pk=termin.pk).update(abgesagt_am=timezone.now())
+    Mandat.objects.filter(pk=mandat.pk).update(beendet=timezone.localdate())
+    seite = Client().get(reverse("gemeinde:ort", args=[mandat.gemeinde.kennziffer])).content.decode()
+    assert "Öffentlicher Raum A" in seite and "Abgesagt" in seite

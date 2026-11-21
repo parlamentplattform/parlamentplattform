@@ -655,7 +655,7 @@ def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
         "`council.ai_requests_per_account_hour`", "`ai.objections_per_account_hour`", "`parliament.group_limit`",
         "`implementation.entries_per_page`", "`administration.members_per_page`", "`mandate.list_per_page`",
         "`overview.running_votes_per_page`", "`sources.inventory_warning_percent`", "`similarity.rows_per_fetch`",
-        "`audit.check_overdue_days`", "`zurueckgezogen`", "`stichtag`", "`stimmliste_sha256`", "`wortlaut_sha256`",
+        "`audit.check_overdue_days`", "`ai.archive_runs_per_page`", "`zurueckgezogen`", "`stichtag`", "`stimmliste_sha256`", "`wortlaut_sha256`",
         "`regeln_sha256`", "`auszaehlung_angehalten`", "`gremienbeschluss_vermerkt`", "`fachliste_einwilligung`",
         "`fachliste_wieder_aufgenommen`", "`mandat_berichtigt`", "`anstoss_status`", "`anstoss_ausfuhr`",
         "`eintraege[].beschluss_quelle`", "`umsetzungsvermerke`", "`register[].rechenschaft`", "`beanstandungen`",

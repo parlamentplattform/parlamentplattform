@@ -191,9 +191,9 @@ GEPRUEFT_TESTBAR = frozenset({
     # Umsetzungsregister, Mandatarliste, Übersicht, Mitgliederliste der Verwaltung), der Warnanteil des
     # Bestandsnachweises, die Zeilen je Abruf des Ähnlichkeitsvergleichs (nur Speicher, nie das Ergebnis), die
     # Überfälligkeit des Prüfstands im Audit-Log und die beiden Drosseln je Konto (Rats-KI, Beanstandungen).
-    # Keine davon liest ein laufendes Verfahren.
+    # Keine davon liest ein laufendes Verfahren. Dazu die Seitengröße des öffentlichen Lauf-Archivs.
     'aehnlichkeit-seite-zeilen', 'audit-pruefstand-ueberfaellig-takte', 'beanstandung-je-stunde',
-    'faktenbasis-bestandsnachweis-warnanteil', 'gremien-ki-je-stunde', 'mandatare-liste-seite',
+    'faktenbasis-bestandsnachweis-warnanteil', 'gremien-ki-je-stunde', 'ki-laeufe-je-seite', 'mandatare-liste-seite',
     'parlament-gruppe-hoechstzahl', 'uebersicht-laufende-je-seite', 'umsetzung-seite-hoechstzahl',
     'verwaltung-liste-seitengroesse',
 })

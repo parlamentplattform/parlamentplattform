@@ -107,6 +107,39 @@ def test_die_stundengrenze_kommt_aus_dem_register_und_0_heisst_keine_grenze():
     assert views._ki_je_stunde() == 0  # ein Wert unter 0 sperrt nicht — er schaltet die Drossel aus
 
 
+def test_mit_angelegtem_erstbestand_fragen_die_raete_mehrmals_je_stunde(client, ordnung, attrappe):  # noqa: F811
+    '''Schlusspflege (E-13.4 offen): Mit dem ausgelieferten Startwert ist ein Konto nicht auf eine
+    Anfrage je Stunde begrenzt — weder im Entwurfsfenster noch beim Parametertest.'''
+    from gremien.models import EntwurfsFassung
+    from parameter.models import Parameter, erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    assert Parameter.objects.get(schluessel='gremien-ki-je-stunde').wert == '0'
+    antrag, er, aktion = _fenster(client, ordnung)
+    for nummer in (2, 3, 4):
+        EntwurfsFassung.objects.create(entwurf=antrag.entwurf, nummer=nummer, wortlaut=f'Fassung {nummer}.', verfasst_von=er[0])
+        antwort = client.post(aktion, {'aktion': 'ki_einschaetzung'}, follow=True)
+        assert 'Stundengrenze' not in antwort.content.decode()
+    assert KILauf.objects.filter(antrag=antrag).count() == 3
+
+
+def test_mit_angelegtem_erstbestand_fragt_der_koordinationsrat_mehrmals_je_stunde(client, attrappe):
+    from parameter.models import Parameter, erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    assert Parameter.objects.get(schluessel='gremien-ki-je-stunde').wert == '0'
+    leute = korat()
+    test, _beschluss = _ausgewerteter_test(client, leute)
+    client.force_login(leute[0])
+    ziel = reverse('gremien:koordination_test', args=[test.pk])
+    vorher = KILauf.objects.count()
+    client.post(ziel, {'aktion': 'zukunftswerkstatt'})
+    type(test).objects.filter(pk=test.pk).update(hypothese='Eine neue Hypothese.')
+    antwort = client.post(ziel, {'aktion': 'zukunftswerkstatt'}, follow=True)
+    assert KILauf.objects.count() == vorher + 2
+    assert 'Stundengrenze' not in antwort.content.decode()
+
+
 def test_bei_grenze_0_greift_die_drossel_nie(client, ordnung, attrappe):  # noqa: F811
     from gremien.models import EntwurfsFassung
     from mitglieder.models import Drosselzaehler

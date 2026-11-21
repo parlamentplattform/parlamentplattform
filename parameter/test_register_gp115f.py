@@ -1,4 +1,4 @@
-'''Registerwerte der Folgewelle 0.115.0: zehn bisherige Modulkonstanten stehen im Register, mit
+'''Registerwerte der Folgewelle 0.115.0: elf bisherige Modulkonstanten stehen im Register, mit
 Startwert, Wertbereich und Schema-Kennung; die beiden Drosseln werden ausgeschaltet ausgeliefert.'''
 
 import pytest
@@ -24,6 +24,7 @@ NEU = {
     'faktenbasis-bestandsnachweis-warnanteil': ('100', (1, 100)),
     'aehnlichkeit-seite-zeilen': ('200', (50, 2000)),
     'audit-pruefstand-ueberfaellig-takte': ('2', (2, 31)),
+    'ki-laeufe-je-seite': ('50', (10, 500)),
 }
 
 
@@ -32,7 +33,25 @@ def _register(schluessel, wert):
     Parameter.objects.filter(schluessel=schluessel).update(wert=str(wert))
 
 
-def test_die_zehn_werte_stehen_mit_startwert_bereich_und_kennung_im_register():
+def test_startwert_und_rueckfallwert_der_lesestelle_stimmen_ueberein():
+    '''Schlusspflege: Fehlt der Eintrag, gilt der Rückfallwert im Aufruf der Lesestelle — er ist derselbe
+    wie der Startwert des Erstbestands. Jeder der neuen Schlüssel hat mindestens eine Lesestelle.'''
+    import pathlib
+    import re
+
+    wurzel = pathlib.Path(__file__).resolve().parent.parent
+    muster = re.compile(r'''(?:\bzahl|_register)\(\s*["']([a-z0-9-]+)["']\s*,\s*(-?\d+)\s*\)''')
+    rueckfall: dict[str, set[str]] = {}
+    for datei in wurzel.rglob('*.py'):
+        if set(datei.parts) & {'.venv', 'venv', 'migrations', 'tests', 'docs'} or datei.name.startswith('test_'):
+            continue
+        for schluessel, wert in muster.findall(datei.read_text(encoding='utf-8')):
+            rueckfall.setdefault(schluessel, set()).add(wert)
+    for schluessel, (start, _bereich) in NEU.items():
+        assert rueckfall.get(schluessel) == {start}, (schluessel, rueckfall.get(schluessel))
+
+
+def test_die_neuen_werte_stehen_mit_startwert_bereich_und_kennung_im_register():
     werte = {e['schluessel']: e for e in ERSTBESTAND}
     for schluessel, (start, bereich) in NEU.items():
         eintrag = werte[schluessel]

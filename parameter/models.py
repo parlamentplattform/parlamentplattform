@@ -265,6 +265,7 @@ WERTBEREICHE: dict[str, tuple[int, int | None]] = {
     "faktenbasis-bestandsnachweis-warnanteil": (1, 100),
     "aehnlichkeit-seite-zeilen": (50, 2000),
     "audit-pruefstand-ueberfaellig-takte": (2, 31),
+    "ki-laeufe-je-seite": (10, 500),
 }
 
 #: Bereich, den die Einheit selbst festlegt.
@@ -1144,6 +1145,16 @@ ERSTBESTAND = [
         "beschreibung": gettext_noop("Nach wie vielen täglichen Prüftakten ohne neuen Prüfstand das öffentliche "
         "Audit-Log die Prüfung der Audit-Kette als überfällig ausweist. Zwischen 2 und 31. Wirkt sofort."),
         "quelle": "§ 3 Abs 1 lit c · § 5 Abs 8",
+    },
+    {
+        "schluessel": "ki-laeufe-je-seite",
+        "wert": "50",
+        "einheit": gettext_noop("Läufe"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Wie viele Läufe das öffentliche Lauf-Archiv der Zukunftswerkstatt je Seite "
+        "zeigt, neueste Nummer zuerst; jeder Lauf bleibt unter seiner Nummer erreichbar. Zwischen 10 und 500. "
+        "Wirkt sofort."),
+        "quelle": "Zukunftswerkstatt / öffentliche Nachlese",
     },
 ]
 

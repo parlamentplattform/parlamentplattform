@@ -381,6 +381,20 @@ def test_ohne_grenze_sperrt_die_beanstandung_nie(client, ordnung, monkeypatch, w
     assert Beanstandung.objects.count() == 12
 
 
+def test_mit_angelegtem_erstbestand_gehen_zwoelf_beanstandungen_durch(client, ordnung, monkeypatch):  # noqa: F811
+    '''Schlusspflege (E-13.4 offen): Der ausgelieferte Startwert sperrt nichts.'''
+    from parameter.models import Parameter, erstbestand_sicherstellen
+    from verfahren.models import Beanstandung
+
+    erstbestand_sicherstellen()
+    assert Parameter.objects.get(schluessel='beanstandung-je-stunde').wert == '0'
+    url = _beanstanden_lage(client, ordnung, monkeypatch)
+    for i in range(12):
+        antwort = client.post(url, {'text': f'Angabe {i} stimmt nicht.'}, follow=True)
+        assert 'Höchstens' not in antwort.content.decode()
+    assert Beanstandung.objects.count() == 12
+
+
 def test_ab_eins_drosselt_der_registerwert_die_beanstandung(client, ordnung, monkeypatch):  # noqa: F811
     from verfahren import views_aktionen
     from verfahren.models import Beanstandung

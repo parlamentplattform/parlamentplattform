@@ -382,6 +382,11 @@ PARAMETER = {
         "After how many daily check cycles without a new check result the public audit log shows the chain "
         "check as overdue (2 to 31)",
     ),
+    "ki-laeufe-je-seite": (
+        "ai.archive_runs_per_page", "runs",
+        "Runs per page of the future workshop's public run archive, newest number first; every run stays "
+        "reachable under its number (10 to 500)",
+    ),
 }
 
 # Felder der Verfahrensordnung (Policy) → (Schema-Kennung, Einheit)

@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 
 from django.db import transaction
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from plattform_core.hashchain import GENESIS, bruchstellen, ereignis_hash, kette_nachrechnen
 from verfahren.models import AuditEintrag, Hintergrundlauf
@@ -27,6 +28,18 @@ log = logging.getLogger(__name__)
 LAUF = "audit"
 #: Rückfallwert; der gültige steht im Register unter „audit-vollpruefung-tage“ (FB-J2).
 VOLLPRUEFUNG_TAGE = 7
+#: Nach wie vielen Prüftakten (verfahren/hintergrund.AUDIT_TAKT_MINUTEN, ein Tag) ohne neuen Prüfstand
+#: `/audit/` die Prüfung als überfällig ausweist (GP-157): ein ausgefallener Tag ist Verzug, zwei sind
+#: ein Stillstand. Registerwert folgt.
+PRUEFSTAND_UEBERFAELLIG_TAKTE = 2
+
+#: Die Bruchgründe in Worten — für den Prüfbefehl und jeden, der den Stand vorliest (GP-158).
+GRUENDE = {
+    "hash": _("Inhalt passt nicht zum Hash — der Eintrag wurde verändert"),
+    "vorgaenger": _("hängt nicht am Hash des Vorgängers — ein Eintrag wurde entfernt, eingeschoben oder umgehängt"),
+    "anker": _("der zuletzt geprüfte Eintrag ist verändert oder fehlt"),
+    "zeit": _("die Zeitspalte weicht von der versiegelten Zeit im Eintrag ab — der Zeitpunkt wurde verändert"),
+}
 
 
 def vollpruefung_tage() -> int:
@@ -53,6 +66,25 @@ def oeffentlicher_stand() -> dict:
         if not hash_oeffentlich(ereignis):
             stand["kopf"] = None
     return stand
+
+
+def pruefstand_ueberfaellig(stand: dict, jetzt=None) -> bool:
+    """Liegt der letzte Prüfstand mehr als `PRUEFSTAND_UEBERFAELLIG_TAKTE` Prüftakte zurück (GP-157)?
+    Der Prüfzeitpunkt ändert sich nur, wenn ein Lauf durchläuft — scheitert er oder steht der Faden, bleibt
+    er alt. Ein Stand ohne lesbaren Prüfzeitpunkt (Altbestand) gilt nicht als überfällig."""
+    from verfahren.hintergrund import AUDIT_TAKT_MINUTEN
+
+    jetzt = jetzt or timezone.now()
+    try:
+        am = datetime.fromisoformat(stand.get("geprueft_am"))
+        return jetzt - am > timedelta(minutes=PRUEFSTAND_UEBERFAELLIG_TAKTE * AUDIT_TAKT_MINUTEN)
+    except (TypeError, ValueError):
+        return False
+
+
+def ungeprueft(stand: dict) -> int:
+    """Wie viele Einträge nach dem zuletzt geprüften stehen."""
+    return AuditEintrag.objects.filter(lfd__gt=int(stand.get("geprueft_bis") or 0)).count()
 
 
 def _zeilen(ab_nummer: int | None):

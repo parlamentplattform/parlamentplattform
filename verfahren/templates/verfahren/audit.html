@@ -9,7 +9,7 @@ Blättern sind Links und ein GET-Formular — ohne JavaScript vollständig bedie
 {% block inhalt %}
 <h1>{% translate "Audit-Log" %}</h1>
 
-<p class="audit-pruefung{% if pruefung and not pruefung.intakt %} gebrochen{% endif %}" id="pruefung">
+<p class="audit-pruefung{% if pruefung and not pruefung.intakt %} gebrochen{% endif %}{% if ueberfaellig %} ueberfaellig{% endif %}" id="pruefung">
   {% if not pruefung %}{% translate "Die Kette wurde noch nicht geprüft." %}
   {% elif pruefung.intakt %}{% blocktranslate with am=pruefung.geprueft_am|ortszeit count n=pruefung.eintraege %}Kette geprüft am {{ am }}: intakt, {{ n }} Eintrag{% plural %}Kette geprüft am {{ am }}: intakt, {{ n }} Einträge{% endblocktranslate %}
     · {% blocktranslate with nr=pruefung.geprueft_bis %}bis Eintrag {{ nr }}{% endblocktranslate %}
@@ -18,6 +18,7 @@ Blättern sind Links und ein GET-Formular — ohne JavaScript vollständig bedie
     — {% if pruefung.grund == "hash" %}{% translate "Inhalt passt nicht zum Hash" %}{% elif pruefung.grund == "vorgaenger" %}{% translate "hängt nicht am Vorgänger" %}{% elif pruefung.grund == "zeit" %}{% translate "Zeitspalte weicht von der versiegelten Zeit ab" %}{% else %}{% translate "der zuletzt geprüfte Eintrag wurde verändert oder entfernt" %}{% endif %}
     · <a href="{% url 'verfahren:audit' %}?seite={{ bruch_seite }}#e-{{ pruefung.bruch }}">{% translate "zur Stelle" %}</a>
   {% endif %}
+  {% if ueberfaellig %}<span class="badge badge-warn">{% if pruefung.intakt %}{% blocktranslate count n=ungeprueft %}Prüfung überfällig · {{ n }} Eintrag ungeprüft{% plural %}Prüfung überfällig · {{ n }} Einträge ungeprüft{% endblocktranslate %}{% else %}{% translate "Prüfung überfällig" %}{% endif %}</span>{% endif %}
 </p>
 
 <form method="get" action="{% url 'verfahren:audit' %}" class="audit-filter">

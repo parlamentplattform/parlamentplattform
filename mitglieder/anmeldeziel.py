@@ -1,7 +1,7 @@
 """Ziel der Anmeldung (GP-100): Wer eine geschützte Seite öffnet, landet nach dem Anmeldelink dort.
 
 Das Ziel kommt als `?next=` (so erzeugt es `login_required`) auf die Anmeldeseite, steht dort als
-verborgenes Feld `ziel` im Formular und wird am Anmeldelink gemerkt (`EinmalToken.ziel`) — der Link
+verborgenes Feld `ziel` im Formular und wird am Anmeldelink gemerkt (`EinmalToken.ziel`, beim Einlösen geleert) — der Link
 wird oft auf einem anderen Gerät geöffnet als dem, das ihn angefordert hat, eine Sitzung trüge ihn
 nicht. Bei jedem Schritt wird es neu geprüft: nur ein Pfad dieser Seite, der auflösbar ist und GET
 annimmt. Fremde Hosts, schreibende Adressen (`require_POST`) und die Anmeldewege selbst fallen weg.

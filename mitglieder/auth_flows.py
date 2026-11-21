@@ -69,12 +69,6 @@ class EinmalToken(models.Model):
         return klar
 
     @classmethod
-    def ziel_von(cls, klartext: str) -> str:
-        """Das am Token gemerkte Ziel (GP-100) — auch nach dem Einlösen lesbar."""
-        gehasht = hashlib.sha256(klartext.encode()).hexdigest()
-        return cls.objects.filter(token_hash=gehasht).values_list("ziel", flat=True).first() or ""
-
-    @classmethod
     def pruefen(cls, klartext: str, zweck: str):
         """Wie `einloesen`, aber ohne zu entwerten: Der Abruf eines Links (GET, HEAD — auch durch
         Linkprüfer von Mailanbietern) zeigt nur die Bestätigungsseite (GP-018)."""
@@ -90,19 +84,27 @@ class EinmalToken(models.Model):
     def einloesen(cls, klartext: str, zweck: str):
         """Gibt das Mitglied zurück, wenn das Token gültig ist, und entwertet es.
         Sonst None. Konstantzeitvergleich ist hier unnötig (Hash-Lookup)."""
+        return cls.einloesen_mit_ziel(klartext, zweck)[0]
+
+    @classmethod
+    def einloesen_mit_ziel(cls, klartext: str, zweck: str):
+        """Wie `einloesen`, dazu das gemerkte Ziel (GP-100): (Mitglied, Ziel) oder (None, "").
+
+        Das Ziel wird gelesen, bevor dieselbe Anweisung den Link entwertet und das Ziel leert — die
+        Adresse samt Abfrageteil bleibt nach dem Einlösen nicht am Konto stehen."""
         gehasht = hashlib.sha256(klartext.encode()).hexdigest()
         try:
             t = cls.objects.select_related("mitglied").get(token_hash=gehasht, zweck=zweck)
         except cls.DoesNotExist:
-            return None
+            return None, ""
         if t.verbraucht_am is not None or timezone.now() > t.gueltig_bis:
-            return None
+            return None, ""
         # Ein bedingtes UPDATE lässt auch bei zwei parallelen Klicks nur einen zu.
         if not cls.objects.filter(pk=t.pk, verbraucht_am=None, gueltig_bis__gte=timezone.now()).update(
-            verbraucht_am=timezone.now()
+            verbraucht_am=timezone.now(), ziel=""
         ):
-            return None
-        return t.mitglied
+            return None, ""
+        return t.mitglied, t.ziel
 
     @classmethod
     def entwerten(cls, mitglied, zweck: str | None = None) -> int:
@@ -111,7 +113,7 @@ class EinmalToken(models.Model):
         offen = cls.objects.filter(mitglied=mitglied, verbraucht_am=None)
         if zweck is not None:
             offen = offen.filter(zweck=zweck)
-        return offen.update(verbraucht_am=timezone.now())
+        return offen.update(verbraucht_am=timezone.now(), ziel="")
 
 
 def referenzstamm_ableiten(pk: int, username: str) -> str:

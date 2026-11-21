@@ -1497,3 +1497,32 @@ def test_austritt_widerruft_die_offene_einwilligung_zur_fachliste_in_derselben_t
     assert not FachlistenEinwilligung.liegt_vor(anna)
     assert FachlistenEinwilligung.objects.filter(mitglied=anna).count() == 1  # nur angefügt, nichts gelöscht
     assert FachlistenEinwilligung.offene().filter(mitglied__username='bert').exists()  # fremde bleibt
+
+
+# --- Austritt: Folgen des Mandatsendes (GP-116) -------------------------------
+
+
+def test_austritt_sagt_kommende_sprechstunden_ab_und_beendet_die_laufende_sitzung_ohne_austritt_als_anlass():
+    from mandatare.models import Mandat, Sitzung, Sprechstunde
+    from mandatare.sitzung import sitzung_beginnen
+    from mandatare.test_sitzung_modelle import sitzungstag
+
+    anna = mitglied_anlegen('anna')
+    ort = Gemeinde.objects.filter(bundesland='oberoesterreich').order_by('kennziffer').first()
+    mandat = Mandat.objects.create(mitglied=anna, bezeichnung='Gemeinderätin', gemeinde=ort)
+    jetzt = timezone.now()
+    termin = Sprechstunde.objects.create(mandat=mandat, gemeinde=ort, beginn=jetzt + timedelta(days=2),
+                                         ende=jetzt + timedelta(days=2, hours=1), treffpunkt='Raum A')
+    sitzung = sitzung_beginnen(mandat, sitzungstag(mandat), punkte=['Budget'])
+    assert Sitzung.objects.get(pk=sitzung.pk).laeuft()
+
+    austreten(Mitglied.objects.get(pk=anna.pk))
+
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is not None
+    assert not Sitzung.objects.get(pk=sitzung.pk).laeuft()
+    (absage,) = audit('sprechstunde_abgesagt', mandat=mandat.pk)
+    (ende,) = audit('sitzung_beendet', mandat=mandat.pk)
+    assert absage['anlass'] == ende['anlass'] == 'mandat_beendet'
+    zum_mandat = [e for e in AuditEintrag.objects.all() if e.ereignis.get('mandat') == mandat.pk]
+    assert zum_mandat and all('austritt' not in json.dumps(e.ereignis).lower() for e in zum_mandat)

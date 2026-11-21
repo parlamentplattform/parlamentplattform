@@ -930,6 +930,7 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     Abstimmung werden zurückgezogen (Stempel, kein Löschen)."""
     from gremien.models import Fachliste, FachlistenEinwilligung
     from mandatare.models import Mandat
+    from mandatare.sitzung import mandatsende_folgen
 
     # Guard VOR dem Leeren: `ist_fixer_admin` hängt an der E-Mail-Adresse — nach dem Leeren
     # wäre er es nicht mehr, und die Verwaltung stünde herrenlos da.
@@ -953,6 +954,9 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
         mandat.beendet = heute
         mandat.save(update_fields=["beendet"])
         AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk})
+        # GP-116: kommende Sprechstunden absagen, eine laufende Sitzung beenden. Anlass ist das neutrale
+        # Mandatsende — das öffentliche Protokoll nennt Mandatsnummer und Anlass, nicht den Austritt.
+        mandatsende_folgen(mandat, "mandat_beendet", jetzt)
     # Das Lichtbild ist ein rein persönliches Datum, kein Verfahrensinhalt — es geht mit dem
     # Menschen (§ 8 Abs 4), auch an längst beendeten Mandaten; Berichte und Rechenschaft bleiben.
     for mandat in mitglied.mandate.exclude(foto_typ=""):

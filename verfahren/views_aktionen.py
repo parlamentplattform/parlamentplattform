@@ -792,15 +792,16 @@ def melden(request, pk, beitrag_pk):
     grund = request.POST.get("grund", "")
     if grund not in Meldung.Grund.values:
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(_("Bitte einen Grund wählen.")))
-    meldung, neu = Meldung.objects.get_or_create(
-        kommentar=beitrag,
-        mitglied=request.user,
-        defaults={"grund": grund, "erlaeuterung": (request.POST.get("erlaeuterung") or "").strip()[:500]},
-    )
-    if neu:
-        AuditEintrag.anhaengen(
-            {"typ": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
+    with transaction.atomic():  # GP-129: Meldung und Eintrag gemeinsam oder gar nicht
+        meldung, neu = Meldung.objects.get_or_create(
+            kommentar=beitrag,
+            mitglied=request.user,
+            defaults={"grund": grund, "erlaeuterung": (request.POST.get("erlaeuterung") or "").strip()[:500]},
         )
+        if neu:
+            AuditEintrag.anhaengen(
+                {"typ": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
+            )
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}", erfolg=_("Danke — die Meldung liegt der Verwaltung vor."))
 
 
@@ -1257,13 +1258,14 @@ def bewerbung_zurueckziehen(request, pk):
         return redirect("verfahren:antrag", pk=pk)
     bewerbung = antrag.bewerbungen.filter(mitglied=request.user, zurueckgezogen=False).first()
     if bewerbung:
-        bewerbung.zurueckgezogen = True
-        bewerbung.save(update_fields=["zurueckgezogen"])
         from verfahren.models import AuditEintrag
 
-        AuditEintrag.anhaengen(
-            {"typ": "bewerbung_zurueckgezogen", "antrag": antrag.pk, "bewerbung": bewerbung.pk}
-        )
+        with transaction.atomic():  # GP-129: Rückzug und Eintrag gemeinsam oder gar nicht
+            bewerbung.zurueckgezogen = True
+            bewerbung.save(update_fields=["zurueckgezogen"])
+            AuditEintrag.anhaengen(
+                {"typ": "bewerbung_zurueckgezogen", "antrag": antrag.pk, "bewerbung": bewerbung.pk}
+            )
         messages.info(request, _("Ihre Bewerbung ist zurückgezogen — das bleibt öffentlich dokumentiert."))
     return redirect("verfahren:antrag", pk=pk)
 

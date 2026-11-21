@@ -223,3 +223,44 @@ def test_in_verfahren_bleibt_keine_umleitung_ohne_ziel():
     for datei in ('views.py', 'views_aktionen.py'):
         text = (Path(__file__).parent / datei).read_text(encoding='utf-8')
         assert 'redirect("mitglieder:login")' not in text and "redirect('mitglieder:login')" not in text
+
+
+# --- GP-129: Speichern und Audit-Eintrag in einer Transaktion ----------------------------------------
+
+
+def _eintrag_scheitert(monkeypatch):
+    from verfahren.models import AuditEintrag
+
+    def scheitern(*_a, **_k):
+        raise RuntimeError('Kette nicht erreichbar')
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', scheitern)
+
+
+def test_scheitert_der_eintrag_bleibt_keine_meldung_stehen(client, ordnung, monkeypatch):  # noqa: F811
+    from verfahren import chat as chatkern
+    from verfahren.models import Meldung
+
+    anna, bernd = mitglied_anlegen('anna'), mitglied_anlegen('bernd')
+    antrag = antrag_einbringen(anna, **ANTRAG, ordnung=ordnung)
+    beitrag = chatkern.beitrag_schreiben(antrag, anna, 'Ein Beitrag.')
+    client.force_login(bernd)
+    _eintrag_scheitert(monkeypatch)
+    with pytest.raises(RuntimeError):
+        client.post(reverse('verfahren:melden', args=[antrag.pk, beitrag.pk]), {'grund': 'thema'})
+    assert Meldung.objects.count() == 0
+
+
+def test_scheitert_der_eintrag_bleibt_die_bewerbung_stehen(client, ordnung, monkeypatch):  # noqa: F811
+    from verfahren.models import bewerbung_einreichen
+    from verfahren.test_kandidatur import _kandidatur
+
+    autor, anna = mitglied_anlegen('autor'), mitglied_anlegen('anna')
+    antrag = _kandidatur(ordnung, autor)
+    bewerbung = bewerbung_einreichen(antrag, anna, 'Vorstellung')
+    client.force_login(anna)
+    _eintrag_scheitert(monkeypatch)
+    with pytest.raises(RuntimeError):
+        client.post(reverse('verfahren:bewerbung_zurueckziehen', args=[antrag.pk]))
+    bewerbung.refresh_from_db()
+    assert bewerbung.zurueckgezogen is False

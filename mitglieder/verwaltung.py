@@ -62,10 +62,14 @@ LISTE_SEITENGROESSE = 200  # Konten je Seite der Mitgliederliste (GP-103) — Re
 
 
 def nur_admins(ansicht):
+    # GP-100: Die Umleitung zur Anmeldung trägt die aufgerufene Seite als Ziel. Vorerst nur für die
+    # Verwaltung selbst; anstoss, faktenbasis und gremien folgen, sobald ihre Tests das Ziel erwarten.
+    mit_ziel = ansicht.__module__.startswith("mitglieder.")
+
     @wraps(ansicht)
     def innen(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return zur_anmeldung(request)
+            return zur_anmeldung(request) if mit_ziel else redirect("mitglieder:login")
         if not request.user.hat_adminrechte:
             return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
         return ansicht(request, *args, **kwargs)

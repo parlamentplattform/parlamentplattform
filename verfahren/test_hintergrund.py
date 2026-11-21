@@ -86,7 +86,8 @@ def test_ein_kaputter_antrag_haelt_die_uebrigen_und_die_nachlaeufe_nicht_an(lieg
     from gremien.models import GremienBeschluss, Gremium
 
     kaputt = liegengeblieben  # die kleinere Kennung — kommt im Lauf zuerst
-    Antrag.objects.filter(pk=kaputt.pk).update(policy_snapshot={**kaputt.policy_snapshot, "feld_aus_der_zukunft": 1})
+    # am Riegel der eingefrorenen Regeln vorbei (GP-067): ein Schnappschuss, den dieser Stand nicht lesen kann
+    Antrag._base_manager.filter(pk=kaputt.pk).update(policy_snapshot={**kaputt.policy_snapshot, "feld_aus_der_zukunft": 1})
     demo1 = Mitglied.objects.get(username="demo1")
     spaeter = antrag_einbringen(demo1, "Später", "Wortlaut", "Grund", Verfahrensordnung.objects.get(aktiv=True))
     Antrag.objects.filter(pk=spaeter.pk).update(

@@ -50,6 +50,8 @@ Export damit. Stimmt etwas nicht überein, endet es mit `FEHLER`.
 |---|---|
 | `nenner_versiegelt` | Zahl der Stimmberechtigten (`stimmberechtigte`) und ihr Stichtag (`stichtag`) im Export gegen das Ereignis `phasenwechsel`, mit dem die Abstimmung begann (`neue_phase`: `abstimmung`, Felder `stimmberechtigte` und `stichtag`) |
 | `stimmliste_versiegelt` | Die Stimmliste des Exports gegen den Abschluss im Ereignis `phasenwechsel`, das das Ergebnis feststellt: Prüfsumme der Liste (`stimmliste_sha256`), Zahl der Stimmzettel (`stimmzettel`) und Zahl der Stimm-Ereignisse in der Spur (`stimmereignisse`) |
+| `regeln_versiegelt` | Die eingefrorenen Regeln (`policy`) gegen `regeln_sha256` im Ereignis der Einbringung (`antrag_eingebracht`, `mandatsfrage_eroeffnet`, `vertrauensfrage_eingebracht`): SHA-256 über den Block als JSON mit sortierten Schlüsseln, ohne Leerzeichen |
+| `wortlaut_versiegelt` | Der Wortlaut (`fassungen`) gegen `wortlaut_sha256`: die erste Fassung gegen das Ereignis der Einbringung, die abgestimmte Fassung (`fassung`) gegen das Ereignis `phasenwechsel` des Abstimmungsbeginns; SHA-256 über den Text, Zeichen für Zeichen |
 
 Die Prüfsumme der Stimmliste von Hand: je Stimme eine Zeile `[Pseudonym, Stimme]`, die Zeilen sortiert,
 als JSON ohne Leerzeichen (UTF-8), darüber SHA-256. Bei der Zustimmungswahl je Bewerbung

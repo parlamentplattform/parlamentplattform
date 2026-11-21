@@ -18,6 +18,8 @@ Zwei bewusste Designentscheidungen:
 from __future__ import annotations
 
 import dataclasses
+import hashlib
+import json
 import logging
 import math
 import secrets
@@ -229,6 +231,28 @@ def _nenner_fest():
     return ValidationError(_("Die festgestellte Zahl der Stimmberechtigten und ihr Stichtag bleiben unverändert."))
 
 
+def _regeln_fest():
+    return ValidationError(_("Die beim Einbringen eingefrorenen Regeln eines Antrags bleiben unverändert."))
+
+
+def _regeln_kanonisch(regeln) -> str:
+    """Die eingefrorenen Regeln in der Schreibweise der Audit-Kette: JSON mit sortierten Schlüsseln,
+    ohne Leerzeichen."""
+    return json.dumps(regeln, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def regeln_pruefsumme(regeln) -> str:
+    """SHA-256 über die eingefrorenen Regeln eines Antrags (GP-067) — über `_regeln_kanonisch`, UTF-8.
+    Von Hand: den Block `policy` des Exports mit sortierten Schlüsseln und ohne Leerzeichen als JSON
+    schreiben, darüber SHA-256 (verify/nachrechnen.py tut genau das)."""
+    return hashlib.sha256(_regeln_kanonisch(regeln).encode("utf-8")).hexdigest()
+
+
+def wortlaut_pruefsumme(wortlaut: str) -> str:
+    """SHA-256 über den Wortlaut einer Fassung, Zeichen für Zeichen (UTF-8) (GP-067)."""
+    return hashlib.sha256(wortlaut.encode("utf-8")).hexdigest()
+
+
 class AntragsQuerySet(models.QuerySet):
     def _kreisfelder_schuetzen(self, felder):
         if set(felder) & {"teilnahmegebiet", "teilnehmerkreis_am"} or (
@@ -238,6 +262,8 @@ class AntragsQuerySet(models.QuerySet):
         for feld in sorted(NENNERFELDER & set(felder)):
             if self.filter(**{f"{feld}__isnull": False}).exists():
                 raise _nenner_fest()
+        if "policy_snapshot" in felder:
+            raise _regeln_fest()  # § 5 Abs 5: eingefroren beim Einbringen (GP-067)
 
     def update(self, **kwargs):
         self._kreisfelder_schuetzen(kwargs)
@@ -335,13 +361,19 @@ class Antrag(models.Model):
 
     def save(self, *args, **kwargs):
         kreisfelder = {"teilnahmegebiet", "teilnehmerkreis_am", "ebene", "gebiet"}
-        fest = kreisfelder | NENNERFELDER
+        fest = kreisfelder | NENNERFELDER | {"policy_snapshot"}
         felder = kwargs.get("update_fields")
         if not self._state.adding and (felder is None or fest & set(felder)):
             alt = type(self).objects.only(*fest).get(pk=self.pk)
             pruefen = fest if felder is None else fest & set(felder)
             if any(getattr(alt, f) is not None and getattr(self, f) != getattr(alt, f) for f in pruefen & NENNERFELDER):
                 raise _nenner_fest()
+            # Verglichen wird der Inhalt, nicht das Objekt: Gleich nach dem Einbringen stehen die Regeln
+            # noch als Python-Werte im Speicher, in der Datenbank als JSON (GP-067).
+            if "policy_snapshot" in pruefen and _regeln_kanonisch(self.policy_snapshot) != _regeln_kanonisch(
+                alt.policy_snapshot
+            ):
+                raise _regeln_fest()
             pruefen = pruefen & kreisfelder
             if alt.teilnahmegebiet is None:
                 veraendert = any(getattr(self, f) != getattr(alt, f) for f in pruefen & {"teilnahmegebiet", "teilnehmerkreis_am"})
@@ -375,14 +407,26 @@ class Antrag(models.Model):
         2 Uhr läge es einen Tag vor dem, was die Seite als Abstimmungsbeginn zeigt (Befund #32)."""
         return self.stimmberechtigung_stichtag or timezone.localdate(self.phase_beginn)
 
-    def nenner_versiegelung(self) -> dict:
-        """Was das Ereignis des Abstimmungsbeginns unter die Kette legt (GP-028): die festgestellte Zahl
-        der Stimmberechtigten und ihr Stichtag. Alle drei Wege in die Abstimmung hängen es an ihr
+    def abstimmungsbeginn_versiegelung(self) -> dict:
+        """Was das Ereignis des Abstimmungsbeginns unter die Kette legt: die festgestellte Zahl der
+        Stimmberechtigten und ihr Stichtag (GP-028) sowie Nummer und Prüfsumme der Fassung, über die
+        abgestimmt wird (GP-067, § 5 Abs 3 lit d). Alle drei Wege in die Abstimmung hängen es an ihr
         Ereignis `phasenwechsel`; Ereignisse von vor dieser Fassung tragen die Felder nicht."""
         stichtag = self.stimmberechtigung_stichtag
+        fassung = self.aktueller_text()
         return {
             "stimmberechtigte": self.stimmberechtigte_anzahl,
             "stichtag": stichtag.isoformat() if stichtag else None,
+            "fassung": fassung.nummer if fassung else None,
+            "wortlaut_sha256": wortlaut_pruefsumme(fassung.wortlaut) if fassung else None,
+        }
+
+    def einbringung_versiegelung(self, wortlaut: str) -> dict:
+        """Was das Ereignis der Einbringung unter die Kette legt (GP-067): die Prüfsummen des Wortlauts
+        der ersten Fassung und der eingefrorenen Regeln (§ 5 Abs 5)."""
+        return {
+            "wortlaut_sha256": wortlaut_pruefsumme(wortlaut),
+            "regeln_sha256": regeln_pruefsumme(self.policy_snapshot),
         }
 
     def aktueller_text(self) -> AntragsFassung | None:
@@ -588,7 +632,7 @@ class Antrag(models.Model):
                 "wirksam_ab": uebergang.wirksam_ab.isoformat(),
                 "grund": uebergang.grund,
                 "chat_archiviert": archiviert,
-                **(self.nenner_versiegelung() if uebergang.neue_phase is Phase.ABSTIMMUNG else {}),
+                **(self.abstimmungsbeginn_versiegelung() if uebergang.neue_phase is Phase.ABSTIMMUNG else {}),
                 **siegel,
             }
         )
@@ -888,15 +932,39 @@ class OertlicheTeilnahme(models.Model):
         raise ValidationError(_("Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."))
 
 
+def _fassung_fest():
+    return ValidationError(_("Eine veröffentlichte Fassung bleibt unverändert; geändert wird durch eine neue Fassung."))
+
+
+class FassungsQuerySet(models.QuerySet):
+    """Schreibriegel der Antragsfassungen (Gesamtprüfung GP-067): anhängen ja, ändern und löschen nie."""
+
+    def update(self, **kwargs):
+        raise _fassung_fest()
+
+    def delete(self):
+        raise _fassung_fest()
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise _fassung_fest()
+
+    def bulk_create(self, objs, *args, **kwargs):
+        if kwargs.get("update_conflicts"):
+            raise _fassung_fest()
+        return super().bulk_create(objs, *args, **kwargs)
+
+
 class AntragsFassung(models.Model):
     """Vollständige Versionshistorie des Wortlauts (§ 5 Abs 3 — abgestimmt wird
-    über die zuletzt veröffentlichte Fassung)."""
+    über die zuletzt veröffentlichte Fassung). Append-only: Eine Fassung wird angelegt und bleibt
+    dann, wie sie ist — `save` schreibt nur neue Zeilen, `delete` gibt es nicht (GP-067)."""
 
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="fassungen")
     nummer = models.PositiveIntegerField()
     wortlaut = models.TextField()
     begruendung = models.TextField(blank=True)
     erstellt_am = models.DateTimeField(default=timezone.now)
+    objects = FassungsQuerySet.as_manager()
 
     class Meta:
         unique_together = [("antrag", "nummer")]
@@ -905,6 +973,15 @@ class AntragsFassung(models.Model):
 
     def __str__(self) -> str:
         return f"Antrag {self.antrag_id}, Fassung {self.nummer}"
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise _fassung_fest()
+        kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise _fassung_fest()
 
 
 class AntragsEinbettung(models.Model):
@@ -1381,6 +1458,7 @@ def antrag_einbringen(
         "art": str(antrag.art),
         "policy": f"{policy.id} v{policy.version}",
         "uebergangsregel": policy.uebergangsregel,
+        **antrag.einbringung_versiegelung(wortlaut),
     }
     if stimmberechtigte is not None:
         ereignis["unterstuetzung_schwelle"] = policy.unterstuetzung_schwelle
@@ -1484,6 +1562,7 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
             "frist_ende": (jetzt + timedelta(days=dauer)).isoformat(),
             "policy": f"{policy.id} v{policy.version}",
             "uebergangsregel": policy.uebergangsregel,
+            **antrag.einbringung_versiegelung(wortlaut),
         }
     )
     AuditEintrag.anhaengen(
@@ -1493,7 +1572,7 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
             "neue_phase": Phase.ABSTIMMUNG.value,
             "wirksam_ab": jetzt.isoformat(),
             "grund": "Mandatsfrage nach § 7 Abs 9 — ohne Unterstützungs- und Beratungsphase",
-            **antrag.nenner_versiegelung(),
+            **antrag.abstimmungsbeginn_versiegelung(),
         }
     )
     return antrag
@@ -1707,6 +1786,7 @@ def vertrauensfrage_einbringen(
             "sperrhinweis": bool(sperrhinweis),
             "policy": f"{policy.id} v{policy.version}",
             "uebergangsregel": uebergang,
+            **antrag.einbringung_versiegelung(wortlaut),
         }
     )
     if not bestaetigung:

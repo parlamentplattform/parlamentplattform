@@ -887,7 +887,7 @@ def test_alte_ordnungen_laufen_unveraendert(ordnung):  # noqa: F811
     antrag = antrag_einbringen(anna, **ANTRAG, ordnung=ordnung)
     for feld in ("beratung_entfaellt", "abstimmung_fruehestens_tage", "abstimmung_spaetestens_tage_nach_schwelle"):
         antrag.policy_snapshot.pop(feld, None)
-    antrag.save(update_fields=["policy_snapshot"])
+    Antrag._base_manager.filter(pk=antrag.pk).update(policy_snapshot=antrag.policy_snapshot)  # Altbestand (GP-067)
     for m in (anna, mitglied_anlegen("bert")):
         antrag.unterstuetzungen.create(mitglied=m)
     assert antrag.fortschreiben() is True

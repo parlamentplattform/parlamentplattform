@@ -406,11 +406,19 @@ def nachweis_felder(antrag) -> dict:
 
     `stimmliste_sha256` (GP-138): die Prüfsumme der Stimmliste dieses Exports, wie
     `plattform_core.tally.stimmliste_pruefsumme` sie bildet. Dieselbe Zahl steht seit dieser Fassung im
-    Ereignis `phasenwechsel`, mit dem das Ergebnis festgestellt wurde."""
+    Ereignis `phasenwechsel`, mit dem das Ergebnis festgestellt wurde.
+
+    `fassungen` (GP-067): Nummer und Wortlaut jeder Fassung. Das Ereignis der Einbringung trägt seit
+    dieser Fassung die Prüfsummen des ersten Wortlauts und der eingefrorenen Regeln (Block `policy`),
+    das Ereignis des Abstimmungsbeginns die der Fassung, über die abgestimmt wurde."""
     stichtag = antrag.stimmberechtigung_stichtag
     return {
         "stichtag": stichtag.isoformat() if stichtag else None,
         "stimmliste_sha256": antrag.stimmliste_pruefsumme(),
+        "fassungen": [
+            {"nummer": nummer, "wortlaut": wortlaut}
+            for nummer, wortlaut in antrag.fassungen.order_by("nummer").values_list("nummer", "wortlaut")
+        ],
     }
 
 
@@ -423,12 +431,17 @@ def archiv(antrag) -> dict:
     """Das ganze Archiv eines Antrags als schlichte Abbildung — Grundlage für Anzeige und Export."""
     from ki.nachlese import antrag_export
     from verfahren.einbringwahl import einstufungen
+    from verfahren.models import wortlaut_pruefsumme
+
     fassungen = [
         {
             "nummer": f.nummer,
             "wortlaut": f.wortlaut,
             "begruendung": f.begruendung,
             "erstellt_am": f.erstellt_am.isoformat(),
+            # Zum Vergleich mit der Audit-Spur (GP-067): Einbringung und Abstimmungsbeginn nennen
+            # dieselbe Zahl, wenn der Wortlaut seither unverändert ist.
+            "wortlaut_sha256": wortlaut_pruefsumme(f.wortlaut),
         }
         for f in antrag.fassungen.order_by("nummer")
     ]

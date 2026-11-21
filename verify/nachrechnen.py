@@ -65,9 +65,10 @@ er mindestens eine Zustimmung hat.
 
 Abgleich mit der Audit-Spur: Jeder Export nennt zusätzlich "stichtag" (der Tag, an dem die Zahl der
 Stimmberechtigten festgestellt wurde) und im Block "audit" die Audit-Einträge des Antrags. Das Skript
-vergleicht den Export damit (siehe nenner_gegen_kette und stimmliste_gegen_kette). Ältere Exporte ohne
-diese Angaben rechnet es wie bisher und weist aus, was nicht versiegelt ist. Mehr Stimmen als
-Stimmberechtigte sind in jedem Export ein Fehler.
+vergleicht den Export damit (siehe nenner_gegen_kette, stimmliste_gegen_kette und
+regeln_und_wortlaut_gegen_kette; für den Wortlaut nennt der Export unter "fassungen" jede Fassung mit
+Nummer und Text). Ältere Exporte ohne diese Angaben rechnet es wie bisher und weist aus, was nicht
+versiegelt ist. Mehr Stimmen als Stimmberechtigte sind in jedem Export ein Fehler.
 """
 
 import hashlib
@@ -306,11 +307,53 @@ def stimmliste_gegen_kette(daten: dict) -> dict:
     return {"stimmliste_versiegelt": True}
 
 
+def regeln_und_wortlaut_gegen_kette(daten: dict) -> dict:
+    """Vergleicht die Regeln und den Wortlaut des Exports mit den Prüfsummen in der Audit-Spur.
+
+    Beim Einbringen friert die Plattform die Regeln des Antrags ein (Block "policy") und schreibt in das
+    Ereignis der Einbringung ("antrag_eingebracht", bei Mandats- und Vertrauensfragen
+    "mandatsfrage_eroeffnet" und "vertrauensfrage_eingebracht") zwei Prüfsummen:
+    - "regeln_sha256": SHA-256 über den Block "policy" als JSON mit sortierten Schlüsseln, ohne Leerzeichen;
+    - "wortlaut_sha256": SHA-256 über den Wortlaut der ersten Fassung, Zeichen für Zeichen.
+    Das Ereignis "phasenwechsel", mit dem die Abstimmung beginnt, nennt außerdem die Nummer ("fassung")
+    und die Prüfsumme ("wortlaut_sha256") der Fassung, über die abgestimmt wird.
+
+    Passt der Export nicht zu einer dieser Prüfsummen, wurden Regeln oder Wortlaut nachträglich
+    verändert — das Skript bricht ab. Ereignisse aus der Zeit vor dieser Prüfung tragen keine
+    Prüfsummen; dann gilt "nicht versiegelt" (False), kein Fehler."""
+    regeln_versiegelt = False
+    geprueft = []  # (Nummer der Fassung, erwartete Prüfsumme, Nummer des Audit-Eintrags)
+    for eintrag in daten.get("audit") or []:
+        ereignis = eintrag.get("ereignis") or {}
+        if "regeln_sha256" in ereignis:
+            regeln_versiegelt = True
+            inhalt = json.dumps(daten["policy"], sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            if hashlib.sha256(inhalt.encode("utf-8")).hexdigest() != ereignis["regeln_sha256"]:
+                raise SystemExit(
+                    f"FEHLER: Die Regeln im Export (policy) passen nicht zur Prüfsumme der Einbringung "
+                    f"(Audit-Eintrag {eintrag.get('lfd')})."
+                )
+            if ereignis.get("wortlaut_sha256"):
+                geprueft.append((1, ereignis["wortlaut_sha256"], eintrag.get("lfd")))
+        elif eintrag.get("typ") == "phasenwechsel" and ereignis.get("wortlaut_sha256") and ereignis.get("fassung"):
+            geprueft.append((ereignis["fassung"], ereignis["wortlaut_sha256"], eintrag.get("lfd")))
+    fassungen = {f["nummer"]: f["wortlaut"] for f in daten.get("fassungen") or []}
+    for nummer, erwartet, lfd in geprueft:
+        if nummer not in fassungen:
+            raise SystemExit(f"FEHLER: Fassung {nummer} fehlt im Export, die Audit-Spur versiegelt sie (Eintrag {lfd}).")
+        if hashlib.sha256(fassungen[nummer].encode("utf-8")).hexdigest() != erwartet:
+            raise SystemExit(
+                f"FEHLER: Der Wortlaut der Fassung {nummer} passt nicht zur Prüfsumme in der Audit-Spur (Eintrag {lfd})."
+            )
+    return {"regeln_versiegelt": regeln_versiegelt, "wortlaut_versiegelt": bool(geprueft)}
+
+
 def nachrechnen(daten: dict) -> dict:
     """Zählt aus und vergleicht danach den Export mit seiner Audit-Spur."""
     ergebnis = auszaehlung_nachrechnen(daten)
     ergebnis.update(nenner_gegen_kette(daten))
     ergebnis.update(stimmliste_gegen_kette(daten))
+    ergebnis.update(regeln_und_wortlaut_gegen_kette(daten))
     return ergebnis
 
 

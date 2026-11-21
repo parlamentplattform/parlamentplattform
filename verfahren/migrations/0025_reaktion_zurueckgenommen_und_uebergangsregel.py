@@ -51,8 +51,11 @@ def uebergangsregel_nachtragen(apps, schema_editor) -> int:
         schnappschuss = antrag.policy_snapshot or {}
         if "uebergangsregel" in schnappschuss:
             continue
-        antrag.policy_snapshot = {**schnappschuss, "uebergangsregel": False}
-        antrag.save(update_fields=["policy_snapshot"])
+        # Über den Basis-Manager: Mit den historischen Modellen einer Migration dasselbe wie `save`; mit den
+        # heutigen (Tests rufen diese Funktion direkt) sperrt der Riegel der eingefrorenen Regeln `save` (GP-067).
+        Antrag._base_manager.using(db).filter(pk=antrag.pk).update(
+            policy_snapshot={**schnappschuss, "uebergangsregel": False}
+        )
         audit_anhaengen(
             apps,
             db,

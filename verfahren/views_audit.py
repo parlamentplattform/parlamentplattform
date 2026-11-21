@@ -16,7 +16,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 
 from verfahren.audit_oeffentlich import eintrag_oeffentlich, mit_vorgaenger
-from verfahren.audit_pruefung import oeffentlicher_stand
+from verfahren.audit_pruefung import oeffentlicher_stand, pruefstand_ueberfaellig, ungeprueft
 from verfahren.models import AuditEintrag
 
 #: Rückfallwert; der gültige steht im Register unter „audit-seite-eintraege“ (FB-J2).
@@ -90,6 +90,7 @@ def audit(request):
         # Auf welcher ungefilterten Seite die Bruchstelle steht (neueste zuerst)
         davor = AuditEintrag.objects.filter(lfd__gt=pruefung["bruch"]).count()
         bruch_seite = davor // seite_eintraege() + 1
+    ueberfaellig = bool(pruefung) and pruefstand_ueberfaellig(pruefung)
     return render(
         request,
         "verfahren/audit.html",
@@ -101,6 +102,8 @@ def audit(request):
             "abfrage": abfrage,
             "pruefung": pruefung,
             "bruch_seite": bruch_seite,
+            "ueberfaellig": ueberfaellig,
+            "ungeprueft": ungeprueft(pruefung) if ueberfaellig else 0,
         },
     )
 

@@ -18,7 +18,7 @@ import functools
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.30"
+SCHEMA_VERSION = "1.31"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -575,4 +575,7 @@ def offenes_format(ansicht):
     def huelle(request, *args, **kwargs):
         return oeffnen(ansicht(request, *args, **kwargs), request.method)
 
+    # Woran die URL-Konfiguration eine offene Ansicht erkennt (plattform_core/test_offen.py); weitere
+    # Dekoratoren mit functools.wraps tragen das Merkmal mit.
+    huelle.offenes_format = True
     return huelle

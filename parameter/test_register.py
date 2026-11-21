@@ -638,7 +638,7 @@ def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
 
     zeilen = _schema_dokument().splitlines()
     assert f"Schema-Version **{SCHEMA_VERSION}**" in zeilen[2]
-    eintrag = next(z for z in zeilen if z.startswith(f"| {SCHEMA_VERSION} |"))
+    eintrag = next(z for z in zeilen if z.startswith("| 1.30 |"))
     for wort in (
         "`status`", "`test_bis`", "`test_hypothese`", "`wert_vor_test`", "`nur_tag`", "`zurueckgenommen`",
         "`gremienbeschluss_geschlossen`", "`vollzugsbezug_gesetzt`", "`interessenbindung_erklaert`",
@@ -653,6 +653,20 @@ def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
         assert f"| `{schluessel}` |" in tabelle, schluessel
     audit = next(z for z in zeilen if z.startswith("| `/audit.json`"))
     assert "`nur_tag`" in audit
+    # Folgewelle 0.115.0 (Schema 1.31): neue Kennungen, Export- und Audit-Felder stehen in ihrer Verlaufszeile
+    eintrag = next(z for z in zeilen if z.startswith(f"| {SCHEMA_VERSION} |"))
+    assert SCHEMA_VERSION == "1.31" and "| 0.115.0 |" in eintrag
+    for wort in (
+        "`council.ai_requests_per_account_hour`", "`ai.objections_per_account_hour`", "`parliament.group_limit`",
+        "`implementation.entries_per_page`", "`administration.members_per_page`", "`mandate.list_per_page`",
+        "`overview.running_votes_per_page`", "`sources.inventory_warning_percent`", "`similarity.rows_per_fetch`",
+        "`audit.check_overdue_days`", "`zurueckgezogen`", "`stichtag`", "`stimmliste_sha256`", "`wortlaut_sha256`",
+        "`regeln_sha256`", "`auszaehlung_angehalten`", "`gremienbeschluss_vermerkt`", "`fachliste_einwilligung`",
+        "`fachliste_wieder_aufgenommen`", "`mandat_berichtigt`", "`anstoss_status`", "`anstoss_ausfuhr`",
+        "`eintraege[].beschluss_quelle`", "`umsetzungsvermerke`", "`register[].rechenschaft`", "`beanstandungen`",
+        "`ergebnislos`",
+    ):
+        assert wort in eintrag, wort
 
 
 def test_schema_kopfbeispiel_und_verlauf_reichen_bis_zur_aktuellen_version():

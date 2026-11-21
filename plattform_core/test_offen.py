@@ -1,5 +1,7 @@
 """Die Hülle der offenen Austauschformate (docs/SCHEMA.md Abschnitt 1, „Offen“; GP-199)."""
 
+import pytest
+
 from plattform_core.schema import KOPFZEILEN, oeffnen, offenes_format
 
 
@@ -33,3 +35,58 @@ def test_der_dekorator_oeffnet_die_antwort_der_ansicht():
     assert antwort['zahl'] == 7 and antwort['Access-Control-Allow-Origin'] == '*'
     assert 'Access-Control-Allow-Origin' not in ansicht(_Anfrage('POST'), 7)
     assert ansicht.__name__ == 'ansicht' and ansicht.__doc__ == 'Eine öffentliche Ansicht.'
+
+
+# ── Folgewelle 0.115.0: welche Adressen offen sind, steht in der URL-Konfiguration ───────────────
+
+#: Die offenen Austauschformate (docs/SCHEMA.md Abschnitte 3 bis 5): URL-Name und Beispielargumente.
+OFFENE_ADRESSEN = {
+    'parameter:export': {},
+    'parameter:kennzahlen': {},
+    'verfahren:audit_json': {},
+    'verfahren:export': {'pk': 1},
+    'verfahren:umsetzung_json': {},
+    'gremien:protokoll': {'gremium': 'koordinationsrat', 'jahr': 2026},
+    'mandatare:rechenschaft_json': {},
+}
+
+#: Ansichten, die den Dekorator in diesem Zweig noch nicht tragen — die anderen Pakete der Folgewelle
+#: bringen ihn an. Die Schlusspflege leert diese Menge nach der Zusammenführung.
+NOCH_OHNE_DEKORATOR = {
+    'verfahren:audit_json', 'verfahren:export', 'verfahren:umsetzung_json', 'gremien:protokoll',
+    'mandatare:rechenschaft_json',
+}
+
+
+@pytest.mark.parametrize('name', [
+    pytest.param(name, marks=pytest.mark.xfail(strict=False, reason='Dekorator folgt mit der Zusammenführung'))
+    if name in NOCH_OHNE_DEKORATOR else name
+    for name in sorted(OFFENE_ADRESSEN)
+])
+def test_jede_offene_adresse_traegt_den_dekorator(name):
+    from django.urls import resolve, reverse
+
+    ansicht = resolve(reverse(name, kwargs=OFFENE_ADRESSEN[name])).func
+    assert getattr(ansicht, 'offenes_format', False) is True, name
+
+
+def test_der_dekorator_kennzeichnet_die_ansicht():
+    @offenes_format
+    def ansicht(anfrage):
+        return _Antwort()
+
+    assert ansicht.offenes_format is True
+
+
+def test_schema_dokument_nennt_jede_offene_adresse():
+    import pathlib
+
+    from django.urls import reverse
+
+    dokument = (pathlib.Path(__file__).resolve().parent.parent / 'docs' / 'SCHEMA.md').read_text(encoding='utf-8')
+    offen = next(z for z in dokument.splitlines() if z.startswith('| **Offen** |'))
+    for name, argumente in OFFENE_ADRESSEN.items():
+        pfad = reverse(name, kwargs=argumente)
+        muster = {'verfahren:export': '/antrag/<id>/export.json',
+                  'gremien:protokoll': '/gremien/protokoll/<gremium>/<jahr>.json'}.get(name, pfad)
+        assert f'`{muster}`' in offen, muster

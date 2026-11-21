@@ -37,6 +37,7 @@ def test_bestandskonten_bleiben_ohne_historienumbau_parteikonten():
         nachher = Neu.objects.filter(pk=m.pk).values().get()
         assert nachher.pop("parteikonto") is True
         assert nachher.pop("wiener_bezirk") == ""
+        assert nachher.pop("ausweis_schluessel") is None  # GP-091: der Bestand behält seinen Code, ohne Schlüssel
         assert nachher == vorher
         assert apps.get_model("mitglieder", "Gemeindezugang").objects.count() == 0
         assert EinmalToken.objects.get(pk=token.pk).mitglied_id == m.pk

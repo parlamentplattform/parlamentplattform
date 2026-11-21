@@ -5,6 +5,8 @@
 <h1>{% translate "Anmelden" %}</h1>
 <p>{% blocktranslate %}Kein Passwort — Sie erhalten einen Anmeldelink per E-Mail (gültig 30 Minuten).
 Sobald die ID Austria angebunden ist, ersetzt sie diesen Schritt.{% endblocktranslate %}</p>
+{% if request.gemeindekonto %}{% include "mitglieder/_gemeindekonto_auskunft.html" %}{% endif %}
+{% if ziel %}<p>{% translate "Die angefragte Seite setzt eine Anmeldung voraus. Der Anmeldelink führt Sie danach dorthin." %}</p>{% endif %}
 <div class="karte" style="margin-top:20px">
 <form method="post">{% csrf_token %}
   {% for h in form.hidden_fields %}{{ h }}{% endfor %}

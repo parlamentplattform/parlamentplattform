@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
-from mitglieder.models import Bundesland, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus, Wohnsitzart
+from mitglieder.models import Bundesland, Gemeinde, Mitglied, Wohnsitzart
 from plattform_core.teilnehmerkreis import Gebiet, GebietsFehler, Gemeindestand, gebiet_fuer
 from verfahren.models import Antrag, AuditEintrag, OertlicheTeilnahme, gegenstand_fuer, uebergangsregel_fuer
 
@@ -184,11 +184,11 @@ def stimmrecht_im_neuen_kreis(antrag, mitglied, *, frisch=False):
 
 
 def berechtigte_zaehlen(antrag, gegenstand, stichtag, uebergang=False):
-    """Genau dieselben allgemeinen Voraussetzungen wie die parteiweite Zählung."""
-    konten = mitglieder_im_kreis(antrag).filter(
-        is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False,
-    ).exclude(beitritt=None).exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
-    return sum(aktive_berechtigung(m, gegenstand, stichtag, uebergang) for m in konten)
+    """Genau dieselben allgemeinen Voraussetzungen wie die parteiweite Zählung — der Stand am
+    Stichtag, gleich an welchem Tag gezählt wird (GP-094)."""
+    from mitglieder.models import im_nenner_zaehlen
+
+    return im_nenner_zaehlen(mitglieder_im_kreis(antrag), gegenstand, stichtag, uebergang=uebergang)
 
 
 def stimmbasis(antrag, gegenstand, stichtag, uebergang=False):

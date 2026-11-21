@@ -4,10 +4,12 @@ Die Grenze gilt auch für neue, künftig ergänzte Parteiseiten. Auf Gemeinde- u
 Anmeldewegen bleibt dieselbe authentifizierte Identität verfügbar (ADR-016).
 """
 
+from urllib.parse import urlsplit
+
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpResponseForbidden
+from django.shortcuts import render, resolve_url
 from django.utils.deprecation import MiddlewareMixin
-from django.utils.translation import gettext as _
 
 
 class GemeindezugangBegrenzen(MiddlewareMixin):
@@ -26,8 +28,23 @@ class GemeindezugangBegrenzen(MiddlewareMixin):
         request.user = AnonymousUser()
         request._cached_user = request.user
         request._acached_user = request.user
+        request.gemeindekonto_als_gast = True  # nur dann wird eine Umleitung zur Anmeldung zur Auskunft
         if name == "anstoss:senden":
             return None  # dieselbe öffentliche Rückmeldung wie ohne Konto
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
-            return HttpResponseForbidden(_("Dieser Vorgang gehört zur Parteimitgliedschaft."))
+            # GP-095: eine ganze Seite mit Grund und Weg zurück zum Gemeindekonto statt eines nackten Satzes
+            return render(request, "mitglieder/gemeinde_gesperrt.html", status=403)
         return None
+
+    def process_response(self, request, response):
+        # GP-078: Eine geschützte Parteiseite schickte das angemeldete Gemeindekonto zur Anmeldung —
+        # ein Kreis ohne Ausgang. Statt der Umleitung kommt dieselbe Auskunft wie bei Schreibwegen.
+        # Nur wo das Konto als Gast behandelt wurde: Auf den erlaubten Wegen (Sprachwechsel auf der
+        # Anmeldeseite, Gemeinde- und Anmeldewege) bleibt eine Umleitung nach /anmelden/, was sie ist.
+        if (
+            getattr(request, "gemeindekonto_als_gast", False)
+            and response.status_code == 302
+            and urlsplit(response.get("Location", "")).path == resolve_url(settings.LOGIN_URL)
+        ):
+            return render(request, "mitglieder/gemeinde_gesperrt.html", status=403)
+        return response

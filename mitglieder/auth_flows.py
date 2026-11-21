@@ -43,6 +43,8 @@ class EinmalToken(models.Model):
     erstellt_am = models.DateTimeField(default=timezone.now)
     gueltig_bis = models.DateTimeField()
     verbraucht_am = models.DateTimeField(null=True, blank=True)
+    # GP-100: die Seite, zu der ein Anmeldelink nach dem Einlösen führt (geprüft in `anmeldeziel`).
+    ziel = models.CharField(max_length=500, blank=True, default="")
 
     class Meta:
         verbose_name = "Einmal-Token"
@@ -52,7 +54,7 @@ class EinmalToken(models.Model):
         return f"{self.zweck} für Mitglied {self.mitglied_id}"
 
     @classmethod
-    def ausstellen(cls, mitglied, zweck: str) -> str:
+    def ausstellen(cls, mitglied, zweck: str, ziel: str = "") -> str:
         """Erzeugt ein Token, speichert nur den Hash, gibt den Klartext zurück."""
         klar, gehasht = _neues_token()
         dauer = LOGIN_GUELTIG if zweck == cls.Zweck.LOGIN else BESTAETIGUNG_GUELTIG
@@ -61,8 +63,15 @@ class EinmalToken(models.Model):
             zweck=zweck,
             token_hash=gehasht,
             gueltig_bis=timezone.now() + dauer,
+            ziel=ziel,
         )
         return klar
+
+    @classmethod
+    def ziel_von(cls, klartext: str) -> str:
+        """Das am Token gemerkte Ziel (GP-100) — auch nach dem Einlösen lesbar."""
+        gehasht = hashlib.sha256(klartext.encode()).hexdigest()
+        return cls.objects.filter(token_hash=gehasht).values_list("ziel", flat=True).first() or ""
 
     @classmethod
     def pruefen(cls, klartext: str, zweck: str):

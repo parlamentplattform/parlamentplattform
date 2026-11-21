@@ -291,7 +291,11 @@ def test_export_enthaelt_eigene_daten_und_eigene_stimme_aber_nichts_fremdes(clie
     assert daten["mitglied"] == anna.pk and daten["system_id"] and daten["exportiert_am"]
     assert daten["stammdaten"]["email"] == anna.email and daten["stammdaten"]["nachname"] == "Adler"
     assert daten["wohnsitz"]["name"] == anna.gemeinde
-    assert daten["beitraege"] == [{"betrag": "12.50", "gebucht_am": str(timezone.localdate()), "namens_hinweis": False}]
+    assert daten["beitraege"] == [{
+        "betrag": "12.50", "gebucht_am": str(timezone.localdate()), "namens_hinweis": False,
+        "erfasst_am": daten["beitraege"][0]["erfasst_am"],
+    }]
+    assert daten["beitraege"][0]["erfasst_am"]
     assert [u["antrag"] for u in daten["unterstuetzungen"]] == [antrag.pk]
     eigene = StimmRegister.objects.get(antrag=antrag, mitglied=anna)
     assert daten["stimmen"] == [
@@ -847,49 +851,55 @@ def test_nebenwohnsitz_satz_liest_den_registerwert_bei_0_und_1(client):
     assert "(heute: 1)" in inhalt and "(heute: 0)" not in inhalt
 
 
+#: Direkte Rückbeziehungen des Mitglieds mit eigenem Ordner im Export: „Modell.feld“ → Schlüssel.
+#: Der Feld-Wächter (`test_export_felder.py`) liest dieselbe Liste.
+DIREKT_ORDNER = {
+    "Gemeindezugang.konto": "gemeindezugang",
+    "OertlicheTeilnahme.mitglied": "oertliche_verfahrenskreise",
+    "Postauftrag.mitglied": "postauftraege",
+    "Statusverlauf.mitglied": "statusverlauf",
+    "Adresswechsel.mitglied": "adresswechsel",
+    "Beitragseingang.mitglied": "beitraege",
+    "Antrag.eingebracht_von": "antraege",
+    "Unterstuetzung.mitglied": "unterstuetzungen",
+    "StimmRegister.mitglied": "stimmen",
+    "KategorieAbo.mitglied": "abos",
+    "Favorit.mitglied": "favoriten",
+    "FilterProfil.mitglied": "filterprofile",
+    "Bewerbung.mitglied": "bewerbungen",
+    "Kommentar.mitglied": "kommentare",
+    "Reaktion.mitglied": "reaktionen",
+    "Meldung.mitglied": "meldungen",
+    "Beanstandung.mitglied": "beanstandungen",
+    "Anstoss.nutzer": "anstoesse",
+    "Mandat.mitglied": "mandate",
+    "Rolle.mitglied": "rollen",
+    "EntwurfsFassung.verfasst_von": "entwurfsfassungen",
+    "EntwurfsBeitrag.mitglied": "entwurfsbeitraege",
+    "EinreichStimme.mitglied": "einreichstimmen",
+    "Pruefung.durch": "pruefungen",
+    "UnterstuetzerVotum.mitglied": "unterstuetzer_voten",
+    "GremienBeschluss.umsetzung_durch": "zugewiesene_umsetzungen",
+    "GremienBeschluss.angelegt_von": "angelegte_beschluesse",
+    "GremienStimme.mitglied": "gremienstimmen",
+    "Fachliste.mitglied": "fachliste",
+    "KILauf.angefordert_von": "ki_laeufe",
+    "KIAuftrag.angefordert_von": "ki_auftraege",
+    "Vergleichsanfrage.angefordert_von": "private_textvergleiche",
+    "Interessenbindung.mitglied": "interessenbindungen",
+    "Ueberlastungsmeldung.gemeldet_von": "ueberlastungsmeldungen",
+    "Vollzugseintrag.durch": "vollzug",
+    "ParameterTest.angeordnet_von": "parametertests",
+}
+
+
 def test_export_deckt_jede_rueckbeziehung_des_mitglieds_ab(client, ordnung):  # noqa: F811
     """Wächter zu Befund FP-14: Für jede Rückbeziehung von `Mitglied` (auch die mit
     `related_name="+"`) liefert der Export einen Schlüssel — oder sie steht hier mit Grund als
     Ausnahme. Wer ein Modell mit Mitgliedsbezug ergänzt, muss den Export mitziehen."""
     from mitglieder.auth_flows import EinmalToken  # noqa: F401 — das Modell muss geladen sein
 
-    ORDNER = {
-        "Gemeindezugang.konto": "gemeindezugang",
-        "OertlicheTeilnahme.mitglied": "oertliche_verfahrenskreise",
-        "Postauftrag.mitglied": "postauftraege",
-        "Adresswechsel.mitglied": "adresswechsel",
-        "Beitragseingang.mitglied": "beitraege",
-        "Antrag.eingebracht_von": "antraege",
-        "Unterstuetzung.mitglied": "unterstuetzungen",
-        "StimmRegister.mitglied": "stimmen",
-        "KategorieAbo.mitglied": "abos",
-        "Favorit.mitglied": "favoriten",
-        "FilterProfil.mitglied": "filterprofile",
-        "Bewerbung.mitglied": "bewerbungen",
-        "Kommentar.mitglied": "kommentare",
-        "Reaktion.mitglied": "reaktionen",
-        "Meldung.mitglied": "meldungen",
-        "Beanstandung.mitglied": "beanstandungen",
-        "Anstoss.nutzer": "anstoesse",
-        "Mandat.mitglied": "mandate",
-        "Rolle.mitglied": "rollen",
-        "EntwurfsFassung.verfasst_von": "entwurfsfassungen",
-        "EntwurfsBeitrag.mitglied": "entwurfsbeitraege",
-        "EinreichStimme.mitglied": "einreichstimmen",
-        "Pruefung.durch": "pruefungen",
-        "UnterstuetzerVotum.mitglied": "unterstuetzer_voten",
-        "GremienBeschluss.umsetzung_durch": "zugewiesene_umsetzungen",
-        "GremienBeschluss.angelegt_von": "angelegte_beschluesse",
-        "GremienStimme.mitglied": "gremienstimmen",
-        "Fachliste.mitglied": "fachliste",
-        "KILauf.angefordert_von": "ki_laeufe",
-        "KIAuftrag.angefordert_von": "ki_auftraege",
-        "Vergleichsanfrage.angefordert_von": "private_textvergleiche",
-        "Interessenbindung.mitglied": "interessenbindungen",
-        "Ueberlastungsmeldung.gemeldet_von": "ueberlastungsmeldungen",
-        "Vollzugseintrag.durch": "vollzug",
-        "ParameterTest.angeordnet_von": "parametertests",
-    }
+    ORDNER = DIREKT_ORDNER
     AUSNAHMEN = {
         "EinmalToken.mitglied": "Anmelde-Token: nur Hashes mit Ablauf, Schlüssel und kein Datum über den Menschen",
         "Adresswechsel.beantragt_von": "fremde Vorgänge: Adressen anderer Mitglieder, die dieses Konto als Verwaltung beantragt hat",
@@ -1235,12 +1245,18 @@ MITTELBAR_ORDNER = {
     "Mandat > Bericht.mandat": "mandate.berichte",
     "Mandat > Rechenschaft.mandat": "mandate.rechenschaft",
     "Mandat > Sitzung.mandat": "mandate.sitzungen",
+    "Mandat > Vertrauensfrage.mandat": "mandate.vertrauensfragen",
+    "Vertrauensfrage > Stellungnahme.vertrauensfrage": "mandate.vertrauensfragen.stellungnahmen",
+    "Vertrauensfrage > Vertrauensfrage_anlaesse.vertrauensfrage": "mandate.vertrauensfragen.anlaesse",
+    "Rechenschaft > Vertrauensfrage.anlaesse": "mandate.vertrauensfragen.anlaesse",
+    "Rechenschaft > Vertrauensfrage_anlaesse.rechenschaft": "mandate.vertrauensfragen.anlaesse",
+    "Antrag > AntragsFassung.antrag": "antraege.fassungen",
     "Mandat > Sprechstunde.mandat": "mandate.gemeindearbeit.sprechstunden",
     "Mandat > Ratsinitiative.mandat": "mandate.gemeindearbeit.ratsinitiativen",
     "Mandat > Gemeindeprojekt.mandat": "mandate.gemeindearbeit.projekte",
     "Mandat > Gemeindehaushaltsquelle.mandat": "mandate.gemeindearbeit.haushaltsquellen",
-    "Aufgabe > Bericht.aufgabe": "mandate.berichte",
-    "Aufgabe > Rechenschaft.aufgabe": "mandate.rechenschaft",
+    "Aufgabe > Bericht.aufgabe": "mandate.berichte.aufgabe",
+    "Aufgabe > Rechenschaft.aufgabe": "mandate.rechenschaft.aufgabe",
     "Aufgabe > Sitzung.aufgabe": "mandate.sitzungen.aufgabe",
     "Aufgabe > Gemeindesitzungsquelle.aufgabe": "mandate.gemeindearbeit.sitzungsquellen",
     "Sitzung > Tagesordnungspunkt.sitzung": "mandate.sitzungen.punkte",
@@ -1297,11 +1313,6 @@ MITTELBAR_AUSNAHMEN = {
     "Sitzung > Kommentar.sitzung": "Beiträge anderer in der Live-Sitzung; eigene stehen unter kommentare",
     "Sitzung > Lesestand.sitzung": "Lesestände: technischer Zeiger, kein Inhalt",
     "ParameterTest > Hinweis.parametertest": "Hinweis der Zukunftswerkstatt zum Test — Verfahrensprotokoll",
-    # Bekannte Lücken, offen in GP-089 (zweite Runde) — ausdrücklich benannt, damit nichts still dazukommt.
-    "Mandat > Vertrauensfrage.mandat": "offen in GP-089: Vertrauensfragen samt eigener Stellungnahme fehlen im Export",
-    "Rechenschaft > Vertrauensfrage.anlaesse": "offen in GP-089: Anlass einer Vertrauensfrage",
-    "Rechenschaft > Vertrauensfrage_anlaesse.rechenschaft": "offen in GP-089: Anlass einer Vertrauensfrage",
-    "Antrag > AntragsFassung.antrag": "offen in GP-089: Fassungen des eigenen Antrags fehlen im Export",
 }
 #: Direkte Rückbeziehungen ohne eigenen Ordner (siehe AUSNAHMEN oben) — dort steigt der Wächter nicht ab.
 DIREKT_OHNE_ORDNER = {
@@ -1360,3 +1371,42 @@ def test_export_deckt_jede_mittelbare_rueckbeziehung_ab(client, ordnung):  # noq
                 break
             assert teil in knoten, (schluessel, pfad, teil)
             knoten = knoten[teil]
+
+
+# --- Eigene Anträge im Profil (GP-066, AF-13) ---------------------------------
+
+
+def test_profil_nennt_die_eigenen_antraege_mit_phase(client, ordnung):  # noqa: F811
+    anna = mitglied_anlegen('anna')
+    bert = mitglied_anlegen('bert')
+    eigener = antrag_einbringen(anna, titel='Annas Antrag', wortlaut='W', begruendung='B', ordnung=ordnung)
+    Antrag.objects.filter(pk=eigener.pk).update(phase='verfallen')
+    antrag_einbringen(bert, titel='Berts Antrag', wortlaut='W', begruendung='B', ordnung=ordnung)
+    client.force_login(anna)
+    html = client.get(reverse('mitglieder:profil')).content.decode()
+    karte = html.split('id="meine-antraege"', 1)[1].split('</div>', 1)[0]
+    assert f'href="{reverse("verfahren:antrag", args=[eigener.pk])}"' in karte
+    assert 'Annas Antrag' in karte and 'verfallen' in karte
+    assert 'Berts Antrag' not in karte
+
+
+def test_profil_ohne_eigene_antraege_bleibt_ruhig(client):
+    client.force_login(mitglied_anlegen('anna'))
+    html = client.get(reverse('mitglieder:profil')).content.decode()
+    karte = html.split('id="meine-antraege"', 1)[1].split('</div>', 1)[0]
+    assert 'Noch keine eigenen Anträge.' in karte
+
+
+# --- Formularfehler oben im Hauptteil (GP-060, ZB-02) -------------------------
+
+
+def test_profilfehler_steht_oben_als_alert_mit_sprungverweis(client):
+    client.force_login(mitglied_anlegen('anna'))
+    antwort = profil_speichern(client, wohnsitz_art='oesterreich', gemeinde='Entenhausen an der Gans')
+    assert antwort.status_code == 200
+    html = antwort.content.decode()
+    assert html.split('<title>', 1)[1].startswith('Fehler:')
+    hauptteil = html.split('<main id="inhalt"', 1)[1]
+    alarm = hauptteil.split('role="alert"', 1)
+    assert len(alarm) == 2 and '<form' not in alarm[0]  # vor dem ersten Formular
+    assert 'href="#id_gemeinde"' in alarm[1].split('</div>', 1)[0]

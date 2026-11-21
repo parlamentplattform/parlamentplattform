@@ -1,6 +1,6 @@
 {% extends "verfahren/base.html" %}
-{% load i18n static %}
-{% block titel %}{% translate "Profil" %}{% endblock %}
+{% load i18n static phasen %}
+{% block titel %}{% if form.errors %}{% translate "Fehler:" %} {% endif %}{% translate "Profil" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
 Das eigene Profil (FB-K5): Anzeigename, Einwilligung zum Klarnamen, Wohnsitz und Nebenwohnsitz in einem Formular,
@@ -22,6 +22,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   .ausweis-vorschau svg{border-radius:3.7%/5.9%;box-shadow:var(--shadow)}
 </style>
 <h1>{% translate "Profil" %}</h1>
+{% include "mitglieder/_formularfehler.html" %}
 <p class="erk">{% blocktranslate with name=user.anzeigename pk=user.mitgliedsnummer_text %}Angemeldet als <strong>{{ name }}</strong> · Mitglied #{{ pk }}{% endblocktranslate %}</p>
 
 <form method="post" action="{% url 'mitglieder:profil' %}" class="pf-form">{% csrf_token %}
@@ -71,6 +72,17 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
 </form>
 
 <div class="pf-grid">
+
+{# ── Eigene Anträge (GP-066) ─────────────────────────────────────────── #}
+<div class="karte" id="meine-antraege">
+  <p class="phasen-titel">{% translate "Meine Anträge" %}</p>
+  {% if eigene_antraege %}
+  <p class="meta">{% translate "zuletzt eingebracht zuerst" %}</p>
+  <ul>
+    {% for a in eigene_antraege %}<li><a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a> <span class="meta">· {{ a.phase|phase_name }} · {{ a.eingebracht_am|date:"d.m.Y" }}</span></li>{% endfor %}
+  </ul>
+  {% else %}<p class="leer">{% translate "Noch keine eigenen Anträge." %}</p>{% endif %}
+</div>
 
 {# ── Sprache ─────────────────────────────────────────────────────────── #}
 <div class="karte" id="sprache">

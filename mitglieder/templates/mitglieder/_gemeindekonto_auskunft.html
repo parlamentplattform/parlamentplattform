@@ -1,0 +1,8 @@
+{% load i18n %}
+<div class="karte">
+<p>{% blocktranslate trimmed %}Sie sind mit Ihrem Gemeindekonto angemeldet. Dieser Zugang liest auf den Seiten der Partei
+mit; Einbringen, Unterstützen, Mitberaten, Abstimmen und der Beitritt zur Partei laufen nicht über das
+Gemeindekonto.{% endblocktranslate %}</p>
+<p><a href="{% url 'gemeinde:konto' %}">{% translate "Zu Ihrem Gemeindekonto" %}</a>
+· <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Was die Mitgliedschaft bedeutet →" %}</a></p>
+</div>

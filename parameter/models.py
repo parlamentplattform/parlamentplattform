@@ -13,6 +13,7 @@ Experimente)."""
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import DatabaseError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext, gettext_noop
@@ -82,14 +83,38 @@ class Parameter(models.Model):
         return f"{self.schluessel} = {self.wert}{(' ' + self.einheit) if self.einheit else ''}"
 
 
+def _aenderung_fest():
+    return ValidationError(_("Eine Änderung im Register bleibt, wie sie geschrieben wurde; die Historie wird nur fortgeschrieben."))
+
+
+class AenderungsQuerySet(models.QuerySet):
+    """Schreibriegel der Registerhistorie (Gesamtprüfung GP-130): anhängen ja, ändern und löschen nie."""
+
+    def update(self, **kwargs):
+        raise _aenderung_fest()
+
+    def delete(self):
+        raise _aenderung_fest()
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise _aenderung_fest()
+
+    def bulk_create(self, objs, *args, **kwargs):
+        if kwargs.get("update_conflicts"):
+            raise _aenderung_fest()
+        return super().bulk_create(objs, *args, **kwargs)
+
+
 class Aenderung(models.Model):
     """Eine Wertänderung im Register (FB-J2) — append-only, öffentlich nachlesbar.
 
     Die Historie stand bisher nur im Audit-Log. Dort ist sie fälschungssicher, aber niemand
     findet sie: Wer wissen will, warum eine Frist heute 21 Tage beträgt, soll das am Parameter
-    selbst sehen. Gelöscht wird hier nichts (Grundregel 7)."""
+    selbst sehen. Gelöscht wird hier nichts (Grundregel 7) — seit GP-130 mit Riegel: `save` schreibt
+    nur neue Zeilen, `delete` gibt es nicht, und der Parameter lässt sich nicht löschen, solange er
+    eine Historie hat (PROTECT)."""
 
-    parameter = models.ForeignKey(Parameter, on_delete=models.CASCADE, related_name="historie")
+    parameter = models.ForeignKey(Parameter, on_delete=models.PROTECT, related_name="historie")
     alter_wert = models.CharField(max_length=100)
     neuer_wert = models.CharField(max_length=100)
     grund = models.TextField(max_length=1000)
@@ -99,6 +124,8 @@ class Aenderung(models.Model):
         help_text="Wer die Änderung veranlasst hat — Rolle oder Organ, nie eine Person.",
     )
 
+    objects = AenderungsQuerySet.as_manager()
+
     class Meta:
         ordering = ["-geaendert_am"]
         verbose_name = "Änderung"
@@ -106,6 +133,15 @@ class Aenderung(models.Model):
 
     def __str__(self) -> str:
         return f"{self.parameter_id}: {self.alter_wert} → {self.neuer_wert}"
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise _aenderung_fest()
+        kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise _aenderung_fest()
 
 
 class TestStatus(models.TextChoices):
@@ -130,7 +166,8 @@ class ParameterTest(models.Model):
     beginnen (§ 5 Abs 5). Laufende Verfahren behalten ihre eingefrorene Ordnung — ein Test,
     der sie erreichte, wäre keiner, sondern ein Eingriff."""
 
-    parameter = models.ForeignKey(Parameter, on_delete=models.CASCADE, related_name="tests")
+    # PROTECT (GP-130): Ein gelöschter Parameter nähme sonst die Geschichte seiner Tests still mit.
+    parameter = models.ForeignKey(Parameter, on_delete=models.PROTECT, related_name="tests")
     testwert = models.CharField(max_length=100)
     alter_wert = models.CharField(
         max_length=100, blank=True, help_text="Der Wert vor dem Test — der Rückweg führt hierher."

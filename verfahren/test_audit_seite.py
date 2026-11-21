@@ -129,7 +129,7 @@ def test_die_arten_kommen_mit_einer_kleinen_abfrage(client, django_assert_max_nu
 
 def test_ein_bruch_nennt_grund_und_fuehrt_zur_stelle(client):
     eintraege = [AuditEintrag.anhaengen({"typ": "probe", "nr": i}) for i in range(3)]
-    AuditEintrag.objects.filter(pk=eintraege[1].pk).update(ereignis={**eintraege[1].ereignis, "nr": 99})
+    AuditEintrag._base_manager.filter(pk=eintraege[1].pk).update(ereignis={**eintraege[1].ereignis, "nr": 99})
     ausfuehren(next(la for la in LAEUFE if la.name == LAUF))
     inhalt = _seite(client)
     assert f"gebrochen bei Eintrag {eintraege[1].lfd}" in inhalt

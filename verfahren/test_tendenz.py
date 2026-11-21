@@ -143,7 +143,8 @@ def test_ohne_gespeicherten_nenner_nennt_die_karte_keinen_erfundenen(client, ord
     from verfahren.views import _beteiligung_lesbar
 
     antrag = _abstimmung(ordnung, stimmen=["ja"], waehler=5)
-    Antrag.objects.filter(pk=antrag.pk).update(stimmberechtigte_anzahl=nenner)
+    # Altbestand herstellen: Der Riegel am festgestellten Nenner (GP-028) lässt das über `objects` nicht mehr zu.
+    Antrag._base_manager.filter(pk=antrag.pk).update(stimmberechtigte_anzahl=nenner)
     antrag.refresh_from_db()
     lage = _beteiligung_lesbar(antrag)
     assert lage["berechtigte"] is None and lage["prozent"] is None and lage["abgegeben"] == 1

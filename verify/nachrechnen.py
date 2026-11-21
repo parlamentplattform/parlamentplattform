@@ -62,6 +62,17 @@ gereiht wird nach Zustimmungen, bei Gleichstand nach Einreichreihenfolge; die
 Beteiligung ist die Zahl der Pseudonyme mit mindestens einer zählenden Zustimmung;
 die Mindestbeteiligung gilt wie bei Sachfragen; gewählt ist der erste Platz, wenn
 er mindestens eine Zustimmung hat.
+
+Abgleich mit der Audit-Spur: Jeder Export nennt zusätzlich "stichtag" (der Tag, an dem die Zahl der
+Stimmberechtigten festgestellt wurde) und im Block "audit" die Audit-Einträge des Antrags. Das Skript
+vergleicht den Export damit (siehe nenner_gegen_kette, stimmliste_gegen_kette und
+regeln_und_wortlaut_gegen_kette; für den Wortlaut nennt der Export unter "fassungen" jede Fassung mit
+Nummer und Text). Ältere Exporte ohne diese Angaben rechnet es wie bisher und weist aus, was nicht
+versiegelt ist. Mehr Stimmen als Stimmberechtigte sind in jedem Export ein Fehler.
+
+Das Ergebniswort: Das Skript gibt unter "ergebnis" aus, wie der Ausgang heißt — "angenommen",
+"abgelehnt" oder "kein_beschluss" (es gab keinen einzigen Stimmberechtigten; das kommt nur im leeren
+örtlichen Kreis vor). Der Export nennt sein Wort ebenfalls unter "ergebnis"; beide müssen gleich lauten.
 """
 
 import hashlib
@@ -78,7 +89,22 @@ def _beteiligung_erreicht(daten, abgegeben, berechtigte, schwelle):
         raise SystemExit("FEHLER: Nenner 0 ohne gültigen leeren örtlichen Kreis.")
     if berechtigte < 0:
         raise SystemExit("FEHLER: Negativer Nenner.")
+    if abgegeben > berechtigte:
+        # Es können nicht mehr Menschen stimmen, als bei Abstimmungsbeginn als stimmberechtigt
+        # festgestellt wurden — eine solche Liste wird nicht ausgezählt.
+        raise SystemExit(f"FEHLER: mehr Stimmen als Stimmberechtigte ({abgegeben} bei {berechtigte}).")
     return Fraction(abgegeben, berechtigte) >= schwelle
+
+
+def _ergebnis_wort(angenommen, berechtigte):
+    """Wie der Ausgang heißt: „angenommen“, „abgelehnt“ — oder „kein_beschluss“, wenn es keinen
+    einzigen Stimmberechtigten gab (leerer örtlicher Kreis). Der Export nennt dasselbe Wort unter
+    "ergebnis"; ältere Exporte nennen keines."""
+    if angenommen:
+        return "angenommen"
+    if berechtigte == 0:
+        return "kein_beschluss"
+    return "abgelehnt"
 
 
 def sachfrage_nachrechnen(daten: dict) -> dict:
@@ -110,6 +136,7 @@ def sachfrage_nachrechnen(daten: dict) -> dict:
         "stimmberechtigte": berechtigte,
         "beteiligung_erreicht": beteiligung_ok,
         "angenommen": beteiligung_ok and mehrheit,
+        "ergebnis": _ergebnis_wort(beteiligung_ok and mehrheit, berechtigte),
     }
 
 
@@ -161,6 +188,7 @@ def personenwahl_nachrechnen(daten: dict) -> dict:
         "stimmberechtigte": berechtigte,
         "beteiligung_erreicht": beteiligung_ok,
         "angenommen": gewaehlt is not None,
+        "ergebnis": _ergebnis_wort(gewaehlt is not None, berechtigte),
         "gewaehlt": gewaehlt,
         "gewaehlt_name": namen.get(gewaehlt) if gewaehlt is not None else None,
     }
@@ -191,7 +219,162 @@ def audit_nachrechnen(eintraege: list) -> dict:
     return {"audit_nachgerechnet": geprueft, "audit_geschwaerzt": geschwaerzt}
 
 
+def nenner_gegen_kette(daten: dict) -> dict:
+    """Vergleicht die Zahl der Stimmberechtigten und ihren Stichtag mit der Audit-Spur des Exports.
+
+    Die Zahl der Stimmberechtigten entscheidet über die Mindestbeteiligung. Die Plattform stellt sie
+    bei Abstimmungsbeginn fest und schreibt sie samt Stichtag in das Audit-Ereignis "phasenwechsel",
+    mit dem die Abstimmung beginnt ("neue_phase": "abstimmung", Felder "stimmberechtigte" und
+    "stichtag"). Nennt der Export eine andere Zahl oder einen anderen Stichtag als dieses Ereignis,
+    wurde eines von beiden nachträglich verändert — das Skript bricht ab.
+
+    Abstimmungen, die vor dieser Prüfung begonnen haben, tragen die Felder im Ereignis nicht. Dann ist
+    der Nenner nicht versiegelt ("nenner_versiegelt": False); das ist kein Fehler, nur weniger Nachweis."""
+    versiegelt = False
+    for eintrag in daten.get("audit") or []:
+        ereignis = eintrag.get("ereignis") or {}
+        if eintrag.get("typ") != "phasenwechsel" or ereignis.get("neue_phase") != "abstimmung":
+            continue
+        if "stimmberechtigte" not in ereignis:
+            continue  # Ereignis von vor dieser Prüfung: nicht versiegelt
+        versiegelt = True
+        if ereignis["stimmberechtigte"] != daten.get("stimmberechtigte"):
+            raise SystemExit(
+                f"FEHLER: Stimmberechtigte im Export ({daten.get('stimmberechtigte')}) weichen vom "
+                f"Audit-Ereignis des Abstimmungsbeginns ab ({ereignis['stimmberechtigte']}, Eintrag {eintrag.get('lfd')})."
+            )
+        if ereignis.get("stichtag") != daten.get("stichtag"):
+            raise SystemExit(
+                f"FEHLER: Stichtag im Export ({daten.get('stichtag')}) weicht vom "
+                f"Audit-Ereignis des Abstimmungsbeginns ab ({ereignis.get('stichtag')}, Eintrag {eintrag.get('lfd')})."
+            )
+    return {"nenner_versiegelt": versiegelt}
+
+
+def stimmliste_pruefsumme(daten: dict) -> str:
+    """Die Prüfsumme der Stimmliste, wie die Plattform sie bildet (plattform_core/tally.py):
+    je Stimmzettel eine Zeile, die Zeilen sortiert, als JSON ohne Leerzeichen, darüber SHA-256.
+
+    Sachfragen: je Stimme [Pseudonym, Stimme]. Zustimmungswahl: je Bewerbung
+    ["bewerbung", Platz in der Einreichreihenfolge, Nummer, zurückgezogen] und je Zustimmung
+    ["zustimmung", Pseudonym, Bewerbung, zurückgenommen] — dort entscheiden Reihenfolge und Rückzüge
+    mit über das Ergebnis."""
+    if daten.get("art", "sache") == "mandat":
+        zeilen = [
+            ["bewerbung", platz, int(b["bewerbung"]), bool(b.get("zurueckgezogen", False))]
+            for platz, b in enumerate(daten["bewerbungen"], start=1)
+        ]
+        zeilen += [
+            ["zustimmung", z["pseudonym"], int(z["bewerbung"]), bool(z.get("zurueckgenommen") or z.get("zurueckgenommen_am"))]
+            for z in daten["zustimmungen"]
+        ]
+    else:
+        zeilen = [[s["pseudonym"], s["stimme"]] for s in daten["stimmen"]]
+    text = json.dumps(sorted(zeilen), separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def stimmliste_gegen_kette(daten: dict) -> dict:
+    """Vergleicht die Stimmliste des Exports mit dem, was die Audit-Spur über sie festhält.
+
+    Mit dem Ergebnis schreibt die Plattform einen Abschluss in die Kette: Das Ereignis "phasenwechsel",
+    das das Ergebnis feststellt, nennt die Zahl der gezählten Stimmzettel ("stimmzettel"), die Prüfsumme
+    der Stimmliste ("stimmliste_sha256") und die Zahl der Stimm-Ereignisse, die die Kette bis dahin
+    führte ("stimmereignisse"). Das Skript bricht ab, wenn
+    - die Prüfsumme der Liste im Export nicht zu diesem Abschluss passt (ein Stimmzettel wurde
+      geändert, hinzugefügt oder entfernt),
+    - die Zahl der Stimmzettel eine andere ist als im Abschluss, oder
+    - die Audit-Spur nicht so viele Stimm-Ereignisse zeigt, wie Stimmzettel gezählt wurden. Bei
+      Sachfragen sind das die Ereignisse "stimme"; bei der Zustimmungswahl die Ereignisse
+      "personenwahl_stimme" abzüglich "personenwahl_stimme_zurueckgenommen".
+
+    Abstimmungen, die vor dieser Prüfung endeten, haben keinen Abschluss mit Prüfsumme. Dann ist die
+    Stimmliste nicht versiegelt ("stimmliste_versiegelt": False) — kein Fehler, nur weniger Nachweis."""
+    audit = daten.get("audit") or []
+    abschluesse = [
+        e for e in audit if e.get("typ") == "phasenwechsel" and "stimmliste_sha256" in (e.get("ereignis") or {})
+    ]
+    if not abschluesse:
+        return {"stimmliste_versiegelt": False}
+    abschluss = abschluesse[-1]["ereignis"]
+    nummer = abschluesse[-1].get("lfd")
+    if stimmliste_pruefsumme(daten) != abschluss["stimmliste_sha256"]:
+        raise SystemExit(
+            f"FEHLER: Die Prüfsumme der Stimmliste passt nicht zum Abschluss in der Audit-Spur (Eintrag {nummer})."
+        )
+    if daten.get("art", "sache") == "mandat":
+        zettel = sum(
+            1 for z in daten["zustimmungen"] if not (z.get("zurueckgenommen") or z.get("zurueckgenommen_am"))
+        )
+        ereignisse = sum(1 for e in audit if e.get("typ") == "personenwahl_stimme") - sum(
+            1 for e in audit if e.get("typ") == "personenwahl_stimme_zurueckgenommen"
+        )
+    else:
+        zettel = len(daten["stimmen"])
+        ereignisse = sum(1 for e in audit if e.get("typ") == "stimme")
+    if zettel != abschluss.get("stimmzettel"):
+        raise SystemExit(
+            f"FEHLER: {zettel} Stimmzettel im Export, der Abschluss in der Audit-Spur nennt {abschluss.get('stimmzettel')}."
+        )
+    if "stimmereignisse" in abschluss and not (ereignisse == abschluss["stimmereignisse"] == zettel):
+        raise SystemExit(
+            f"FEHLER: {zettel} Stimmzettel, aber {ereignisse} Stimm-Ereignisse in der Audit-Spur "
+            f"(der Abschluss nennt {abschluss['stimmereignisse']})."
+        )
+    return {"stimmliste_versiegelt": True}
+
+
+def regeln_und_wortlaut_gegen_kette(daten: dict) -> dict:
+    """Vergleicht die Regeln und den Wortlaut des Exports mit den Prüfsummen in der Audit-Spur.
+
+    Beim Einbringen friert die Plattform die Regeln des Antrags ein (Block "policy") und schreibt in das
+    Ereignis der Einbringung ("antrag_eingebracht", bei Mandats- und Vertrauensfragen
+    "mandatsfrage_eroeffnet" und "vertrauensfrage_eingebracht") zwei Prüfsummen:
+    - "regeln_sha256": SHA-256 über den Block "policy" als JSON mit sortierten Schlüsseln, ohne Leerzeichen;
+    - "wortlaut_sha256": SHA-256 über den Wortlaut der ersten Fassung, Zeichen für Zeichen.
+    Das Ereignis "phasenwechsel", mit dem die Abstimmung beginnt, nennt außerdem die Nummer ("fassung")
+    und die Prüfsumme ("wortlaut_sha256") der Fassung, über die abgestimmt wird.
+
+    Passt der Export nicht zu einer dieser Prüfsummen, wurden Regeln oder Wortlaut nachträglich
+    verändert — das Skript bricht ab. Ereignisse aus der Zeit vor dieser Prüfung tragen keine
+    Prüfsummen; dann gilt "nicht versiegelt" (False), kein Fehler."""
+    regeln_versiegelt = False
+    geprueft = []  # (Nummer der Fassung, erwartete Prüfsumme, Nummer des Audit-Eintrags)
+    for eintrag in daten.get("audit") or []:
+        ereignis = eintrag.get("ereignis") or {}
+        if "regeln_sha256" in ereignis:
+            regeln_versiegelt = True
+            inhalt = json.dumps(daten["policy"], sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+            if hashlib.sha256(inhalt.encode("utf-8")).hexdigest() != ereignis["regeln_sha256"]:
+                raise SystemExit(
+                    f"FEHLER: Die Regeln im Export (policy) passen nicht zur Prüfsumme der Einbringung "
+                    f"(Audit-Eintrag {eintrag.get('lfd')})."
+                )
+            if ereignis.get("wortlaut_sha256"):
+                geprueft.append((1, ereignis["wortlaut_sha256"], eintrag.get("lfd")))
+        elif eintrag.get("typ") == "phasenwechsel" and ereignis.get("wortlaut_sha256") and ereignis.get("fassung"):
+            geprueft.append((ereignis["fassung"], ereignis["wortlaut_sha256"], eintrag.get("lfd")))
+    fassungen = {f["nummer"]: f["wortlaut"] for f in daten.get("fassungen") or []}
+    for nummer, erwartet, lfd in geprueft:
+        if nummer not in fassungen:
+            raise SystemExit(f"FEHLER: Fassung {nummer} fehlt im Export, die Audit-Spur versiegelt sie (Eintrag {lfd}).")
+        if hashlib.sha256(fassungen[nummer].encode("utf-8")).hexdigest() != erwartet:
+            raise SystemExit(
+                f"FEHLER: Der Wortlaut der Fassung {nummer} passt nicht zur Prüfsumme in der Audit-Spur (Eintrag {lfd})."
+            )
+    return {"regeln_versiegelt": regeln_versiegelt, "wortlaut_versiegelt": bool(geprueft)}
+
+
 def nachrechnen(daten: dict) -> dict:
+    """Zählt aus und vergleicht danach den Export mit seiner Audit-Spur."""
+    ergebnis = auszaehlung_nachrechnen(daten)
+    ergebnis.update(nenner_gegen_kette(daten))
+    ergebnis.update(stimmliste_gegen_kette(daten))
+    ergebnis.update(regeln_und_wortlaut_gegen_kette(daten))
+    return ergebnis
+
+
+def auszaehlung_nachrechnen(daten: dict) -> dict:
     """Verzweigt nach der Antragsart des Exports. Eine unbekannte Art wird abgewiesen —
     ein Skript, das etwas anderes still als Sachfrage mit 0 Stimmen rechnet, wäre
     schlimmer als eines, das nicht rechnet (§ 5 Abs 8)."""

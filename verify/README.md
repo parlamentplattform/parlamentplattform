@@ -9,6 +9,10 @@ bleibt“. Dafür gibt es hier ein Skript, das **nur die Python-Standardbiblioth
 2. `python3 verify/nachrechnen.py antrag-<nummer>-export.json`
 3. Die ausgegebenen Zahlen mit der Ergebnisseite vergleichen.
 
+Unter `ergebnis` nennt das Skript den Ausgang in einem Wort: `angenommen`, `abgelehnt` oder
+`kein_beschluss` — Letzteres, wenn der festgehaltene örtliche Kreis keinen einzigen Stimmberechtigten
+hatte. Der Export nennt sein Wort im Feld `ergebnis`; beide müssen gleich lauten.
+
 Das Skript zählt die Stimmen unter Pseudonym zweitens und unabhängig von der Plattform aus
 (`plattform_core/tally.py` ist die erste Zählung). Die eigene Stimme findet man in der Liste über das
 Pseudonym, das die Plattform einem nach der Anmeldung zeigt.
@@ -39,3 +43,36 @@ zwischen denen anderer Anträge. Die ganze Kette rechnet die Plattform täglich 
 (`manage.py audit_pruefen`); das Ergebnis und der Hash des letzten geprüften Eintrags (`audit.head`)
 stehen öffentlich in `/kennzahlen.json`. Wer sich diesen Kopf notiert, erkennt später, ob jemand die
 Kette von dort an neu gerechnet hat.
+
+## Der Abgleich des Exports mit der Audit-Spur
+
+Die Audit-Spur beweist, dass etwas geschah. Damit sie auch beweist, **was** gezählt wurde, legt die
+Plattform die Größen, die über ein Ergebnis entscheiden, unter die Kette, und das Skript vergleicht den
+Export damit. Stimmt etwas nicht überein, endet es mit `FEHLER`.
+
+| Ausgabe | Was verglichen wird |
+|---|---|
+| `nenner_versiegelt` | Zahl der Stimmberechtigten (`stimmberechtigte`) und ihr Stichtag (`stichtag`) im Export gegen das Ereignis `phasenwechsel`, mit dem die Abstimmung begann (`neue_phase`: `abstimmung`, Felder `stimmberechtigte` und `stichtag`) |
+| `stimmliste_versiegelt` | Die Stimmliste des Exports gegen den Abschluss im Ereignis `phasenwechsel`, das das Ergebnis feststellt: Prüfsumme der Liste (`stimmliste_sha256`), Zahl der Stimmzettel (`stimmzettel`) und Zahl der Stimm-Ereignisse in der Spur (`stimmereignisse`) |
+| `regeln_versiegelt` | Die eingefrorenen Regeln (`policy`) gegen `regeln_sha256` im Ereignis der Einbringung (`antrag_eingebracht`, `mandatsfrage_eroeffnet`, `vertrauensfrage_eingebracht`): SHA-256 über den Block als JSON mit sortierten Schlüsseln, ohne Leerzeichen |
+| `wortlaut_versiegelt` | Der Wortlaut (`fassungen`) gegen `wortlaut_sha256`: die erste Fassung gegen das Ereignis der Einbringung, die abgestimmte Fassung (`fassung`) gegen das Ereignis `phasenwechsel` des Abstimmungsbeginns; SHA-256 über den Text, Zeichen für Zeichen |
+
+Die Prüfsumme der Stimmliste von Hand: je Stimme eine Zeile `[Pseudonym, Stimme]`, die Zeilen sortiert,
+als JSON ohne Leerzeichen (UTF-8), darüber SHA-256. Bei der Zustimmungswahl je Bewerbung
+`["bewerbung", Platz in der Einreichreihenfolge, Nummer, zurückgezogen]` und je Zustimmung
+`["zustimmung", Pseudonym, Bewerbung, zurückgenommen]`.
+
+Unabhängig von jedem Siegel gilt: Mehr Stimmen als Stimmberechtigte zählt das Skript nicht aus, es
+endet mit `FEHLER`.
+
+Die Plattform macht dieselbe Gegenprobe, bevor sie ein Ergebnis feststellt: Stimmzettel gegen
+Stimmregister, Zahl der Stimmberechtigten und Stimm-Ereignisse. Fehlt zu einem Stimmzettel die Zeile
+im Stimmregister oder führt die Audit-Spur nicht so viele Stimm-Ereignisse wie Stimmzettel, stellt
+die Plattform kein Ergebnis fest; der Antrag bleibt in der Abstimmung stehen, und der Befund steht als
+Ereignis `auszaehlung_angehalten` in der Audit-Spur (nur Zahlen, keine Pseudonyme). Mehr Stimmen als
+Stimmberechtigte halten die Feststellung nicht an: Die Plattform stellt das Ergebnis fest und weist die
+Abweichung im Ereignis `phasenwechsel` des Ergebnisses aus (`abweichungen`:
+`mehr_stimmen_als_stimmberechtigte`); das Skript endet an einem solchen Export mit `FEHLER`.
+
+Abstimmungen aus der Zeit vor einem dieser Siegel tragen die Felder im Ereignis nicht. Das Skript
+rechnet sie wie bisher und gibt `False` aus: nicht versiegelt, kein Fehler.

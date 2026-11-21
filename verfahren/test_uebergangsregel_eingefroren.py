@@ -144,7 +144,7 @@ def test_die_migration_schreibt_nur_auf_einer_instanz_ohne_uebergangsregel(ordnu
     antrag = antrag_einbringen(mitglied_anlegen("alt"), **ANTRAG, ordnung=ordnung)
     alt = dict(antrag.policy_snapshot)
     alt.pop("uebergangsregel")
-    Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=alt)
+    Antrag._base_manager.filter(pk=antrag.pk).update(policy_snapshot=alt)  # Altbestand, am Riegel vorbei (GP-067)
 
     class Editor:
         pass
@@ -193,7 +193,7 @@ def test_die_migration_laesst_abgeschlossene_verfahren_unberuehrt(ordnung, setti
         antrag = antrag_einbringen(stellerin, **{**ANTRAG, "titel": f"{ANTRAG['titel']} {phase}"}, ordnung=ordnung)
         alt = dict(antrag.policy_snapshot)
         alt.pop("uebergangsregel")
-        Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=alt, phase=phase)
+        Antrag._base_manager.filter(pk=antrag.pk).update(policy_snapshot=alt, phase=phase)  # Altbestand (GP-067)
         ids[phase] = antrag.pk
     settings.DDOE_UEBERGANGSREGEL = False
     assert migration.uebergangsregel_nachtragen(echte_apps, _editor()) == 1

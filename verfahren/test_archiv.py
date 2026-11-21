@@ -246,7 +246,7 @@ def test_eine_alte_ordnung_ohne_annahmeanteil_zeigt_die_vorgabe(ordnung):  # noq
     antrag, _audit = _abgeschlossene_runde(ordnung)
     alt = dict(antrag.policy_snapshot)
     alt.pop("vorschlag_annahme_anteil", None)
-    Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=alt)
+    Antrag._base_manager.filter(pk=antrag.pk).update(policy_snapshot=alt)  # Altbestand, am Riegel vorbei (GP-067)
     antrag.refresh_from_db()
     _register("vorschlag-annahme-prozent", 70)
     assert antrag.annahme_schwelle() == (0.5, True)

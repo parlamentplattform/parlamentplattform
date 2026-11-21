@@ -165,3 +165,151 @@ def test_eigenschaft_mindeststimmen_gilt_fuer_jeden_anteil(berechtigte, anteil):
     n = mindeststimmen(berechtigte, anteil)
     assert mindestbeteiligung_erreicht(n, berechtigte, anteil)
     assert n == 0 or not mindestbeteiligung_erreicht(n - 1, berechtigte, anteil)
+
+
+# --- Gegenprobe und Prüfsumme der Stimmliste (Gesamtprüfung GP-138) -----------------------------------
+
+
+class TestGegenprobe:
+    def test_eine_stimmige_liste_hat_keine_abweichung(self):
+        from plattform_core.tally import gegenprobe
+
+        assert gegenprobe(stimmzettel=5, waehler=5, ohne_registerzeile=0, stimmberechtigte=5, stimmereignisse=5) == ()
+        assert gegenprobe(stimmzettel=0, waehler=0, ohne_registerzeile=0, stimmberechtigte=0, stimmereignisse=0) == ()
+
+    def test_stimmzettel_ohne_registerzeile(self):
+        from plattform_core.tally import OHNE_REGISTERZEILE, gegenprobe
+
+        assert gegenprobe(stimmzettel=6, waehler=6, ohne_registerzeile=1, stimmberechtigte=10, stimmereignisse=6) == (
+            OHNE_REGISTERZEILE,
+        )
+
+    def test_mehr_stimmen_als_stimmberechtigte(self):
+        from plattform_core.tally import UEBERZAHL, gegenprobe
+
+        assert gegenprobe(stimmzettel=9, waehler=9, ohne_registerzeile=0, stimmberechtigte=5, stimmereignisse=9) == (UEBERZAHL,)
+        # Zustimmungswahl: mehrere Zustimmungen je Person sind keine Überzahl — es zählen die Menschen.
+        assert gegenprobe(stimmzettel=9, waehler=3, ohne_registerzeile=0, stimmberechtigte=5, stimmereignisse=9) == ()
+
+    def test_zahl_der_stimmereignisse_weicht_ab(self):
+        from plattform_core.tally import EREIGNISSE_WEICHEN_AB, gegenprobe
+
+        assert gegenprobe(stimmzettel=7, waehler=7, ohne_registerzeile=0, stimmberechtigte=20, stimmereignisse=5) == (
+            EREIGNISSE_WEICHEN_AB,
+        )
+
+    def test_altbestand_ohne_nenner_und_ohne_versiegelten_beginn_wird_nur_gegen_das_register_geprueft(self):
+        from plattform_core.tally import OHNE_REGISTERZEILE, gegenprobe
+
+        assert gegenprobe(stimmzettel=3, waehler=3, ohne_registerzeile=0, stimmberechtigte=None, stimmereignisse=None) == ()
+        assert gegenprobe(stimmzettel=3, waehler=3, ohne_registerzeile=2, stimmberechtigte=None, stimmereignisse=None) == (
+            OHNE_REGISTERZEILE,
+        )
+
+    def test_alle_abweichungen_in_fester_reihenfolge(self):
+        from plattform_core.tally import EREIGNISSE_WEICHEN_AB, OHNE_REGISTERZEILE, UEBERZAHL, gegenprobe
+
+        assert gegenprobe(stimmzettel=9, waehler=9, ohne_registerzeile=4, stimmberechtigte=5, stimmereignisse=5) == (
+            OHNE_REGISTERZEILE, UEBERZAHL, EREIGNISSE_WEICHEN_AB,
+        )
+
+    def test_angehalten_wird_nur_bei_dem_was_kein_regulaerer_weg_erzeugt(self):
+        """Die Überzahl ist auf einem regulären Weg erreichbar (am Stichtag nach der Zählung
+        freigeschaltet) — sie wird ausgewiesen, hält die Feststellung aber nicht an."""
+        from plattform_core.tally import EREIGNISSE_WEICHEN_AB, HALTEGRUENDE, OHNE_REGISTERZEILE, UEBERZAHL
+
+        assert HALTEGRUENDE == {OHNE_REGISTERZEILE, EREIGNISSE_WEICHEN_AB}
+        assert UEBERZAHL not in HALTEGRUENDE
+
+
+class TestPruefsummeDerStimmliste:
+    def test_von_hand_nachrechenbar(self):
+        import hashlib
+
+        from plattform_core.tally import stimmliste_pruefsumme
+
+        zeilen = [['b2', 'nein'], ['a1', 'ja']]
+        text = '[["a1","ja"],["b2","nein"]]'
+        assert stimmliste_pruefsumme(zeilen) == hashlib.sha256(text.encode('utf-8')).hexdigest()
+
+    def test_reihenfolge_ist_gleichgueltig_und_jede_aenderung_sichtbar(self):
+        from plattform_core.tally import stimmliste_pruefsumme
+
+        liste = [('a1', 'ja'), ('b2', 'nein'), ('c3', 'enthaltung')]
+        summe = stimmliste_pruefsumme(liste)
+        assert stimmliste_pruefsumme(list(reversed(liste))) == summe
+        assert stimmliste_pruefsumme([('a1', 'ja'), ('b2', 'ja'), ('c3', 'enthaltung')]) != summe
+        assert stimmliste_pruefsumme(liste[:2]) != summe
+        assert stimmliste_pruefsumme([*liste, ('d4', 'ja')]) != summe
+        assert len(summe) == 64
+
+    def test_die_leere_liste_hat_eine_pruefsumme(self):
+        import hashlib
+
+        from plattform_core.tally import stimmliste_pruefsumme
+
+        assert stimmliste_pruefsumme([]) == hashlib.sha256(b'[]').hexdigest()
+
+
+@given(
+    ja=st.integers(0, 40), nein=st.integers(0, 40), enthaltung=st.integers(0, 40),
+    berechtigte=st.integers(1, 200),
+)
+def test_eigenschaft_die_gegenprobe_aendert_kein_ergebnis(ja, nein, enthaltung, berechtigte):
+    """Die Gegenprobe steht neben der Auszählung, nicht in ihr: `auszaehlen` rechnet für jede Liste,
+    wie es immer gerechnet hat — auch für eine mit mehr Stimmen als Stimmberechtigten."""
+    from plattform_core.tally import UEBERZAHL, gegenprobe
+
+    r = auszaehlen(stimmen(ja=ja, nein=nein, enthaltung=enthaltung), stimmberechtigte=berechtigte, policy=POLICY)
+    abgegeben = ja + nein + enthaltung
+    assert (r.ja, r.nein, r.enthaltung) == (ja, nein, enthaltung)
+    assert r.beteiligung_erreicht == (abgegeben * 100 >= 5 * berechtigte)
+    assert r.angenommen == (r.beteiligung_erreicht and ja > nein)
+    befund = gegenprobe(
+        stimmzettel=abgegeben, waehler=abgegeben, ohne_registerzeile=0, stimmberechtigte=berechtigte, stimmereignisse=abgegeben
+    )
+    assert (UEBERZAHL in befund) == (abgegeben > berechtigte)
+
+
+# --- GP-049: das Ergebniswort der Auszählung ---------------------------------------------------------
+
+
+class TestErgebniswort:
+    def test_leerer_oertlicher_kreis_heisst_kein_beschluss_und_bleibt_nicht_angenommen(self):
+        r = auszaehlen([], stimmberechtigte=0, policy=POLICY, leerer_oertlicher_kreis=True)
+        assert r.ergebnis == 'kein_beschluss'
+        assert not r.angenommen and 'kein Beschluss' in r.begruendung  # Rechtsfolge und Satz unverändert
+
+    def test_angenommen_und_abgelehnt_heissen_wie_bisher(self):
+        assert auszaehlen(stimmen(ja=6, nein=3), stimmberechtigte=100, policy=POLICY).ergebnis == 'angenommen'
+        assert auszaehlen(stimmen(ja=3, nein=6), stimmberechtigte=100, policy=POLICY).ergebnis == 'abgelehnt'
+        # Verfehlte Mindestbeteiligung bleibt „abgelehnt“ — ob sie ein eigenes Wort bekommt, ist nicht entschieden.
+        assert auszaehlen(stimmen(ja=4), stimmberechtigte=100, policy=POLICY).ergebnis == 'abgelehnt'
+
+    def test_personenwahl_im_leeren_kreis_heisst_kein_beschluss(self):
+        from plattform_core.tally import personenwahl_auszaehlen
+
+        leer = personenwahl_auszaehlen([], [7], 0, POLICY, leerer_oertlicher_kreis=True)
+        assert leer.ergebnis == 'kein_beschluss' and not leer.angenommen and leer.gewonnen_id is None
+        assert personenwahl_auszaehlen([('p1', 7)], [7], 10, POLICY).ergebnis == 'angenommen'
+        assert personenwahl_auszaehlen([], [7], 10, POLICY).ergebnis == 'abgelehnt'
+
+    def test_die_phasenfolge_bleibt_abgelehnt(self):
+        from datetime import UTC, datetime, timedelta
+
+        from plattform_core.phases import Phase, naechster_uebergang
+
+        beginn = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
+        r = auszaehlen([], stimmberechtigte=0, policy=POLICY, leerer_oertlicher_kreis=True)
+        uebergang = naechster_uebergang(
+            Phase.ABSTIMMUNG, beginn, beginn + timedelta(days=8), POLICY, unterstuetzungen=0, auszaehlung=r
+        )
+        assert uebergang.neue_phase is Phase.ABGELEHNT
+
+
+@given(ja=st.integers(0, 40), nein=st.integers(0, 40), enthaltung=st.integers(0, 40), berechtigte=st.integers(1, 200))
+def test_eigenschaft_das_ergebniswort_folgt_allein_aus_annahme_und_nenner(ja, nein, enthaltung, berechtigte):
+    from plattform_core.tally import ergebnis_wort
+
+    r = auszaehlen(stimmen(ja=ja, nein=nein, enthaltung=enthaltung), stimmberechtigte=berechtigte, policy=POLICY)
+    assert r.ergebnis == ('angenommen' if r.angenommen else 'abgelehnt') == ergebnis_wort(r.angenommen, berechtigte)

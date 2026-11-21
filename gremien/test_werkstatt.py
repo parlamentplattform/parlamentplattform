@@ -934,7 +934,7 @@ def test_bei_erreichter_hoechstzahl_der_runden_steht_zur_endabstimmung(client, o
     auch wenn „Passt alles“ nicht getragen hat. Der Block sagt, wohin er ging."""
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
     regeln = dict(antrag.policy_snapshot, hoechstrunden=1)
-    Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=regeln)
+    Antrag._base_manager.filter(pk=antrag.pk).update(policy_snapshot=regeln)  # am Riegel vorbei (GP-067)
     entwurf = einreichen(client, antrag, er)
     kritik = schreiben(
         client, antrag, unterstuetzer[0],
@@ -1217,7 +1217,7 @@ def test_erreichte_hoechstrunden_stehen_nicht_als_annahme_im_audit(client, ordnu
     """GP-026: Die Unterstützer lehnen ab, die Höchstzahl der Runden ist erreicht — der Vorschlag geht
     nach § 5 Abs 12 zur Endabstimmung, aber „angenommen“ hat ihn niemand."""
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
-    Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=dict(antrag.policy_snapshot, hoechstrunden=1))
+    Antrag._base_manager.filter(pk=antrag.pk).update(policy_snapshot=dict(antrag.policy_snapshot, hoechstrunden=1))
     antrag.refresh_from_db()
     entwurf = einreichen(client, antrag, er)
     passt = systembeitrag(antrag)
@@ -1321,7 +1321,7 @@ def test_in_der_wartezeit_nennt_die_antragsseite_erreichte_hoechstrunden_nicht_a
     """GP-003, Rest (und GP-026): Lehnen die Unterstützer ab und ist die Höchstzahl der Runden erreicht, geht der
     Vorschlag zur Endabstimmung — „angenommen“ hat ihn niemand, und die Seite behauptet es nicht."""
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
-    Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=dict(antrag.policy_snapshot, hoechstrunden=1))
+    Antrag._base_manager.filter(pk=antrag.pk).update(policy_snapshot=dict(antrag.policy_snapshot, hoechstrunden=1))
     antrag.refresh_from_db()
     entwurf = einreichen(client, antrag, er)
     passt = systembeitrag(antrag)

@@ -1325,8 +1325,9 @@ def export_json(request, pk):
         ]
     # Die Audit-Spur des Antrags mit vollem Hash und Vorgänger — verify/nachrechnen.py rechnet jeden
     # ungekürzten Eintrag nach (Bestandsaufnahme A7).
-    from verfahren.archiv import audit_spur
+    from verfahren.archiv import audit_spur, nachweis_felder
 
+    daten.update(nachweis_felder(antrag))  # Stichtag und Prüfsummen zum Abgleich mit der Kette (GP-028)
     daten["audit"] = audit_spur(antrag)
     antwort = JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 1})
     antwort["Content-Disposition"] = f'attachment; filename="antrag-{antrag.pk}-export.json"'

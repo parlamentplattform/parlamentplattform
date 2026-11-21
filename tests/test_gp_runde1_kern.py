@@ -164,9 +164,22 @@ def test_eigenschaft_pruefskript_und_kern_zaehlen_jede_kandidatur_gleich(zurueck
     zustimmungen = [
         (f'p{p}', nummer, ruecknahme) for (p, nummer), ruecknahme in zeilen.items() if nummer <= len(bewerbungen)
     ]
+    kern = _kern(bewerbungen, zustimmungen, berechtigte, prozent)
+    if kern.beteiligung > berechtigte:
+        _ueberzahl_ist_ein_fehler(_kandidatur_export(bewerbungen, zustimmungen, berechtigte, prozent))
+        return
     skript = nachrechnen(_kandidatur_export(bewerbungen, zustimmungen, berechtigte, prozent))
-    _gleich(skript, _kern(bewerbungen, zustimmungen, berechtigte, prozent))
+    _gleich(skript, kern)
     assert skript['zurueckgenommen'] == sum(1 for z in zustimmungen if z[2] in ('wert', 'zeit'))
+
+
+def _ueberzahl_ist_ein_fehler(export):
+    """GP-138: Mehr Stimmen als Stimmberechtigte zählt das Prüfskript nicht aus — es endet mit FEHLER.
+    Der Kern rechnet weiter jede Liste; ob sie gezählt werden darf, entscheidet die Gegenprobe davor."""
+    import pytest
+
+    with pytest.raises(SystemExit, match='mehr Stimmen als Stimmberechtigte'):
+        nachrechnen(export)
 
 
 @given(
@@ -182,14 +195,16 @@ def test_eigenschaft_pruefskript_und_kern_zaehlen_jede_sachfrage_gleich(ja, nein
     werte = ['ja'] * ja + ['nein'] * nein + ['enthaltung'] * enthaltung
     stimmen = [(f'p{i}', wert) for i, wert in enumerate(werte)]
     kern = auszaehlen(stimmen, berechtigte, _policy(prozent, basis))
-    skript = nachrechnen(
-        {
-            'art': 'sache',
-            'policy': {'mindestbeteiligung': prozent / 100, 'mehrheitsbasis': basis},
-            'stimmberechtigte': berechtigte,
-            'stimmen': [{'pseudonym': p, 'stimme': wert} for p, wert in stimmen],
-        }
-    )
+    export = {
+        'art': 'sache',
+        'policy': {'mindestbeteiligung': prozent / 100, 'mehrheitsbasis': basis},
+        'stimmberechtigte': berechtigte,
+        'stimmen': [{'pseudonym': p, 'stimme': wert} for p, wert in stimmen],
+    }
+    if len(stimmen) > berechtigte:
+        _ueberzahl_ist_ein_fehler(export)
+        return
+    skript = nachrechnen(export)
     assert (skript['ja'], skript['nein'], skript['enthaltung']) == (kern.ja, kern.nein, kern.enthaltung)
     assert skript['beteiligung_erreicht'] is kern.beteiligung_erreicht
     assert skript['angenommen'] is kern.angenommen

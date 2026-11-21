@@ -98,11 +98,6 @@ F-50) braucht gar keinen Zugang.
   aus (`verfahren/hintergrund.py`, `manage.py verfahren_fortschreiben`), unter einer Datenbanksperre, sodass
   zwei Worker nie dasselbe tun; Seitenaufrufe schreiben zusätzlich bis zum Stand fort. **Kein Render-Cron
   nötig.** Beim Hosting ohne Gunicorn ist `python manage.py verfahren_fortschreiben` regelmäßig auszuführen.
-  Seinen Stand meldet `/gesund/fristen.json` (seit GP-155): 200 mit `"status": "ok"`, sonst 503 mit
-  `ueberfaellig` (der letzte Beginn liegt mehr als drei Takte zurück — der Faden steht oder ein Lauf hängt),
-  `fehler` (Zahl der Verfahren, die im letzten Lauf scheiterten) oder `abgebrochen` (der Lauf selbst brach ab;
-  der Fehlertext steht nur im Log). Ohne Gunicorn-Faden schreibt der Befehl diese Zeile nicht; die Adresse
-  sagt dann `noch_nicht_gelaufen`.
 - **Logs:** Dashboard → Logs. Jeder Serverfehler (Status 500) steht dort mit vollem Traceback
   (`LOGGING` in `config/settings.py`, Logger `django.request` → stderr, unabhängig von DEBUG);
   ebenso abgewiesene Hosts und CSRF-Verstöße (`django.security`) und der SMTP-Versand.

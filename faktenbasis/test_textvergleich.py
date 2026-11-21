@@ -54,7 +54,7 @@ def test_pruefsumme_und_gespeicherten_wortlaut_getrennt_ausweisen(client, gleich
     assert "<script>Beispiel</script>" not in html
     for t in (alt, neu):
         assert reverse("faktenbasis:textxml", args=[t.pk]) in html
-        assert f'{reverse("faktenbasis:norm", args=[t.norm_id])}#dokumenttext-{t.pk}' in html
+        assert f'{reverse("faktenbasis:norm", args=[t.norm_id])}?text={t.pk}#dokumenttext-{t.pk}' in html
     assert client.post(ziel, {"text": "anderer Text"}).status_code == 405
     assert AuditEintrag.objects.count() == vorher and NormText.objects.count() == 2
 

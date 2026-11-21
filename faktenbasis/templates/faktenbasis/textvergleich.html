@@ -1,7 +1,7 @@
 {% extends "verfahren/base.html" %}{% load i18n %}
 {% block titel %}{% translate "Dokumenttexte vergleichen" %} · {{ basis.norm.ris_id }}{% endblock %}
 {% block inhalt %}
-<p><a href="{% url 'faktenbasis:norm' basis.norm_id %}#dokumenttext-{{ basis.pk }}">{{ basis.norm.kurztitel }} · {{ basis.norm.ris_id }}</a></p>
+<p><a href="{% url 'faktenbasis:norm' basis.norm_id %}?text={{ basis.pk }}#dokumenttext-{{ basis.pk }}">{{ basis.norm.kurztitel }} · {{ basis.norm.ris_id }}</a></p>
 <h1>{% translate "Dokumenttexte vergleichen" %}</h1>
 {% if vergleich %}
 <p>{% if wortlaut_gleich %}{% translate "Der gespeicherte Wortlaut ist identisch." %}{% else %}{% translate "Der gespeicherte Wortlaut unterscheidet sich." %}{% endif %}
@@ -13,7 +13,7 @@
     <h2 id="vergleich-text-{{ t.pk }}">{% if forloop.first %}{% translate "Ausgangstext" %}{% else %}{% translate "Vergleichstext" %}{% endif %}</h2>
     <p>{% translate "Stichtag" %} {{ t.norm.stand|date:"DATE_FORMAT" }} · {% translate "Erstmals erfasst" %} {{ t.erfasst_am|date:"DATETIME_FORMAT" }}</p>
     <p class="meta">{% translate "Textauswertung, Fassung" %} {{ t.parser_fassung }} · {% translate "XML-Prüfsumme (SHA-256 der Originalbytes)" %} <code class="fakten-hash">{{ t.xml_hash }}</code></p>
-    <p><a href="{% url 'faktenbasis:norm' t.norm_id %}#dokumenttext-{{ t.pk }}">{% translate "Herkunft und Prüfsumme" %}</a> · <a href="{% url 'faktenbasis:textxml' t.pk %}">{% translate "Gespeichertes Original-XML herunterladen" %}</a></p>
+    <p><a href="{% url 'faktenbasis:norm' t.norm_id %}?text={{ t.pk }}#dokumenttext-{{ t.pk }}">{% translate "Herkunft und Prüfsumme" %}</a> · <a href="{% url 'faktenbasis:textxml' t.pk %}">{% translate "Gespeichertes Original-XML herunterladen" %}</a></p>
     <pre class="fakten-rohdaten fakten-wortlaut">{{ t.text }}</pre>
   </section>
   {% endfor %}

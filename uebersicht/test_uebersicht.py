@@ -215,3 +215,19 @@ def test_z3_die_seite_liest_reihung_und_hoechstzahl_aus_der_kernregel(client, or
     assert gezeigt() == [9, 7]
     monkeypatch.setattr(meistgelesen, "REIHUNG", ("gesamt",))
     assert gezeigt() == [1, 4]
+
+
+def test_gp134_gleichstand_steht_nach_antragsnummer_und_die_liste_verlinkt_die_regel(client, ordnung):  # noqa: F811
+    """GP-134 (RVA-24, RVB-12): Bei gleicher Summe stand vorn, was die Datenbank lieferte. Jetzt
+    steht der Antrag mit der kleineren Nummer vorn — auch wenn seine Tageszahlen später angelegt
+    wurden —, und die Liste nennt ihre Regel."""
+    autor = mitglied_anlegen("autor")
+    heute = timezone.localdate()
+    antraege = [antrag_einbringen(autor, **{**ANTRAG, "titel": f"Antrag {n}"}, ordnung=ordnung) for n in range(4)]
+    # Tageszahlen in umgekehrter Reihenfolge anlegen: Die Einfügereihenfolge darf nicht entscheiden.
+    for antrag, aufrufe in reversed(list(zip(antraege, [6, 6, 9, 6], strict=True))):
+        AntragAufruf.objects.create(antrag=antrag, datum=heute, aufrufe=aufrufe)
+    seite = client.get(reverse("uebersicht:index"))
+    gezeigt = [(z["antrag"].pk, z["aufrufe"]) for z in seite.context["meistgelesen"]]
+    assert gezeigt == [(antraege[2].pk, 9), (antraege[0].pk, 6), (antraege[1].pk, 6), (antraege[3].pk, 6)]
+    assert f'href="{reverse("parameter:regeln")}#regel-meistgelesen"' in seite.content.decode()

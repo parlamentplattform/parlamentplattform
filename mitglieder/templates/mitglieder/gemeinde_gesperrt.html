@@ -1,0 +1,7 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Mit dem Gemeindekonto nicht möglich" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Mit dem Gemeindekonto nicht möglich" %}</h1>
+{% include "mitglieder/_gemeindekonto_auskunft.html" %}
+{% endblock %}

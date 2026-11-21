@@ -8,6 +8,9 @@ den Grundsätzen des § 3 bekennt. Die Aufnahme ist nicht an Staatsbürgerschaft
 gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgabe der Satzung.{% endblocktranslate %}
 <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Was die Mitgliedschaft bedeutet →" %}</a></p>
 
+{% if request.gemeindekonto %}
+{% include "mitglieder/_gemeindekonto_auskunft.html" %}
+{% else %}
 <div class="karte" style="margin-top:20px">
 <form method="post">{% csrf_token %}
   <datalist id="gemeinden">{% for g in gemeinden %}<option value="{{ g }}">{% endfor %}</datalist>
@@ -32,6 +35,7 @@ gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgab
   bewusst nicht: Sie melden sich künftig per E-Mail-Link an, später per ID Austria.{% endblocktranslate %}</p>
 </form>
 </div>
+{% endif %}
 
 <div class="karte">
 <p><strong>{% translate "Was mit Ihren Daten geschieht:" %}</strong> {% url 'verfahren:datenschutz' as datenschutz_url %}{% blocktranslate %}Name und Gemeinde dienen der

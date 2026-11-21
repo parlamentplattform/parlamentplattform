@@ -5,9 +5,8 @@ Anmeldewegen bleibt dieselbe authentifizierte Identität verfügbar (ADR-016).
 """
 
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpResponseForbidden
+from django.shortcuts import render
 from django.utils.deprecation import MiddlewareMixin
-from django.utils.translation import gettext as _
 
 
 class GemeindezugangBegrenzen(MiddlewareMixin):
@@ -29,5 +28,6 @@ class GemeindezugangBegrenzen(MiddlewareMixin):
         if name == "anstoss:senden":
             return None  # dieselbe öffentliche Rückmeldung wie ohne Konto
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
-            return HttpResponseForbidden(_("Dieser Vorgang gehört zur Parteimitgliedschaft."))
+            # GP-095: eine ganze Seite mit Grund und Weg zurück zum Gemeindekonto statt eines nackten Satzes
+            return render(request, "mitglieder/gemeinde_gesperrt.html", status=403)
         return None

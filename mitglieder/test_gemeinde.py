@@ -593,3 +593,31 @@ def test_datenschutzerklaerung_verweist_nicht_auf_sich_selbst(client, ort):
     assert f'href="{url}"' not in hauptteil
     formular = client.get(reverse("gemeinde:anmelden")).content.decode()
     assert f'href="{url}"' in formular.split('<main id="inhalt"', 1)[1].split("</main>", 1)[0]
+
+
+# --- 403 des Gemeindekontos als ganze Seite (GP-095, GE-04/GE-06) -----------
+
+
+@pytest.mark.parametrize("sprache", ["de", "en"])
+def test_gemeindekonto_bekommt_beim_parteischreibweg_eine_ganze_seite(client, buerger, sprache):
+    from django.utils import translation
+
+    client.force_login(buerger)
+    with translation.override(sprache):
+        antwort = client.post("/antrag/999/unterstuetzen/", HTTP_ACCEPT_LANGUAGE=sprache)
+    assert antwort.status_code == 403
+    html = antwort.content.decode()
+    assert '<html' in html and f'lang="{sprache}"' in html
+    hauptteil = html.split('<main id="inhalt"', 1)[1].split('</main>', 1)[0]
+    assert 'href="/gemeinde/konto/"' in hauptteil
+    if sprache == 'de':
+        assert 'Gemeindekonto' in hauptteil
+
+
+def test_beitrittsformular_nennt_dem_gemeindekonto_den_naechsten_schritt(client, buerger):
+    client.force_login(buerger)
+    html = client.get(reverse('mitglieder:registrieren')).content.decode()
+    hauptteil = html.split('<main id="inhalt"', 1)[1].split('</main>', 1)[0]
+    assert 'Gemeindekonto' in hauptteil and 'href="/gemeinde/konto/"' in hauptteil
+    assert 'Gemeindekonto' not in Client().get(reverse('mitglieder:registrieren')).content.decode().split(
+        '<main id="inhalt"', 1)[1].split('</main>', 1)[0]

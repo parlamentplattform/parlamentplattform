@@ -16,8 +16,10 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime
 
 from django.db.models import Count
+from django.utils import timezone
 from django.utils.text import capfirst
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -111,8 +113,26 @@ def _anzahl_je_phase(antrag) -> dict[str, int]:
     }
 
 
+def _pruefbegruendung(pruefung) -> str:
+    """Die Begründung eines Urteils der Gruppe 2 ohne Namen (GP-011).
+
+    Bis 0.112 wurde sie mit den Namen der Prüfenden gespeichert; ein solcher Text überlebte Widerruf
+    und Austritt. Gibt es zum Urteil einen Beschluss mit Ergebnis, kommt die Begründung deshalb aus
+    dessen Stimmen — Option und Text, ohne Namen, so wie neue Urteile sie speichern. Ohne solche
+    Stimmen (Prüfung ohne Ergebnis, Urteil ohne Beschluss) steht der gespeicherte Vermerk."""
+    stimmen = pruefung.stimmbegruendungen()
+    if stimmen:
+        return "\n\n".join(f"{s['option']} — {s['text']}" for s in stimmen)
+    return pruefung.begruendung
+
+
 def entwurf_bloecke(antrag) -> list[dict]:
-    """Der Weg durch die Werkstatt: Fassungen, Prüfungen und die Auswertung je Runde."""
+    """Der Weg durch die Werkstatt: Fassungen, Prüfungen und die Auswertung je Runde.
+
+    Der Status heißt, wie die Werkstatt ihn nennt (`status_anzeige`, GP-008): Ein Entwurf, den eine
+    Zurückweisung stillgelegt hat, „ruht“ — übergeben wurde nichts. Je Prüfung steht, wie lange die
+    Frist des Koordinationsrats über einen Austauschantrag gehemmt war (`frist_gehemmt_sekunden`,
+    0 im Regelfall), und bei einem Austauschantrag, wann sie damit endet (`austausch_frist`)."""
     entwurf = getattr(antrag, "entwurf", None)
     if entwurf is None:
         return []
@@ -130,16 +150,18 @@ def entwurf_bloecke(antrag) -> list[dict]:
         {
             "runde": p.runde,
             "ergebnis": p.get_ergebnis_display(),
-            "begruendung": p.begruendung,
+            "begruendung": _pruefbegruendung(p),
             "korat_entscheid": p.korat_entscheid,
             "erstellt_am": p.erstellt_am.isoformat(),
+            "frist_gehemmt_sekunden": int(p.frist_gehemmt.total_seconds()),
+            "austausch_frist": p.austausch_frist.isoformat() if p.ergebnis == p.Ergebnis.AUSTAUSCH else None,
         }
-        for p in entwurf.pruefungen.order_by("erstellt_am")
+        for p in entwurf.pruefungen.select_related("beschluss").order_by("erstellt_am")
     ]
     return [
         {
             "runde": entwurf.runde,
-            "status": entwurf.get_status_display(),
+            "status": str(entwurf.status_anzeige()),
             "vollzugsbezug": entwurf.vollzugsbezug,
             "fassungen": fassungen,
             "pruefungen": pruefungen,
@@ -179,8 +201,6 @@ def _beendendes_ereignis(antrag, runde: int, ereignisse: list[dict] | None = Non
 def _stichzeit(beendet: dict | None):
     """Das Fristende, zu dem eine abgeschlossene Runde gezählt wurde — `wirksam_ab` des Ereignisses,
     das sie beendet hat (seit 0.45 in beiden Ereignistypen). None ohne Ereignis oder ohne Feld."""
-    from datetime import datetime
-
     wann = (beendet or {}).get("wirksam_ab")
     try:
         return datetime.fromisoformat(wann) if wann else None
@@ -619,7 +639,19 @@ def als_markdown(antrag) -> str:
         for f in e["fassungen"]:
             zeilen += [f"### {_('Entwurfsfassung')} {f['nummer']} · {f['verfasst_von']}", "", f["wortlaut"], ""]
         for p in e["pruefungen"]:
-            zeilen += [f"- {_('Prüfung')} ({p['ergebnis']}): {p['begruendung']}", ""]
+            zeilen.append(f"- {_('Prüfung')} ({p['ergebnis']}): {p['begruendung']}")
+            if p["frist_gehemmt_sekunden"] and p["austausch_frist"]:
+                # GP-008: Die Frist ruhte während einer aufgehobenen Zurückweisung — in Ortszeit genannt.
+                frist = timezone.localtime(datetime.fromisoformat(p["austausch_frist"]))
+                zeilen.append(
+                    "  "
+                    + _(
+                        "Frist des Koordinationsrats über den Austauschantrag: %(frist)s "
+                        "(gehemmt, solange der Antrag zurückgewiesen war)"
+                    )
+                    % {"frist": f"{frist:%d.%m.%Y %H:%M}"}
+                )
+            zeilen.append("")
     if d["rechtsbezug"]["laeufe"]:
         zeilen += [f"## {_('Einschätzungen und Textstände')}", ""]
         for lauf in d["rechtsbezug"]["laeufe"]:

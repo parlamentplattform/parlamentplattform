@@ -189,3 +189,131 @@ def test_gp073_hervorhebungen_nach_fristende_mit_regel_und_gesamtzahl(client, or
     assert "3 von 5" in kopf
     assert f'href="{reverse("parameter:regeln")}#regel-parlamentlisten"' in kopf
     assert "nach Fristende" in kopf
+
+
+# ── GP-075: Vom Lebensbereich zu seinen Anträgen, Suche über den Titel ─────────────────────────
+
+
+def _ast():
+    from verfahren.models import Kategorie
+
+    wurzel = Kategorie.objects.filter(eltern__isnull=True).first() or Kategorie.objects.create(slug="gp-wurzel", name="W")
+    oben = Kategorie.objects.create(slug="gp-verkehr", name="Verkehrswesen", eltern=wurzel)
+    unten = Kategorie.objects.create(slug="gp-radwege", name="Radwegenetz", eltern=oben)
+    fremd = Kategorie.objects.create(slug="gp-kultur", name="Kulturförderung", eltern=wurzel)
+    return oben, unten, fremd
+
+
+def test_gp075_lebensbereich_verlinkt_jeden_laufenden_antrag_des_astes(client, ordnung):  # noqa: F811
+    person, vorlage = _bestand(ordnung, 0)
+    oben, unten, fremd = _ast()
+    jetzt = timezone.now()
+    im_ast = _kopien(vorlage, 3, "beratung", jetzt, titel="Ast") + _kopien(vorlage, 2, "abstimmung", jetzt, titel="Ast")
+    for i, a in enumerate(im_ast):
+        a.kategorien.add(unten if i % 2 else oben)
+    daneben = _kopien(vorlage, 1, "beratung", jetzt, titel="Daneben")[0]
+    daneben.kategorien.add(fremd)
+    beendet = _kopien(vorlage, 1, "angenommen", jetzt, titel="Ast")[0]
+    beendet.kategorien.add(oben)
+    feld = _feld(client.get(reverse("verfahren:parlament") + "?fach=gp-verkehr").content.decode(), "favoriten")
+    for a in im_ast:
+        assert f'href="{reverse("verfahren:antrag", args=[a.pk])}"' in feld
+    assert reverse("verfahren:antrag", args=[daneben.pk]) not in feld
+    assert reverse("verfahren:antrag", args=[beendet.pk]) not in feld
+    # Neutrale Ordnung: die Abstimmungen zuerst
+    reihe = list(dict.fromkeys(int(n) for n in re.findall(r'href="/antrag/(\d+)/"', feld)))
+    assert {reihe[0], reihe[1]} == {a.pk for a in im_ast if a.phase == "abstimmung"}
+    # Der Unterbereich zeigt nur seine eigenen
+    unter = _feld(client.get(reverse("verfahren:parlament") + "?fach=gp-radwege").content.decode(), "favoriten")
+    assert sum(reverse("verfahren:antrag", args=[a.pk]) in unter for a in im_ast) == 2
+
+
+def test_gp075_suche_findet_den_antrag_ueber_ein_titelwort(client, ordnung):  # noqa: F811
+    person, vorlage = _bestand(ordnung, 0)
+    jetzt = timezone.now()
+    laufend = _kopien(vorlage, 1, "beratung", jetzt, titel="Bürgerhaushalt Zwiebelturm")[0]
+    beendet = _kopien(vorlage, 1, "angenommen", jetzt, titel="Bürgerhaushalt Zwiebelturm")[0]
+    feld = _feld(client.get(reverse("verfahren:parlament") + "?suche=zwiebelturm").content.decode(), "favoriten")
+    assert reverse("verfahren:antrag", args=[laufend.pk]) in feld
+    assert reverse("verfahren:antrag", args=[beendet.pk]) in feld
+    assert feld.index(reverse("verfahren:antrag", args=[laufend.pk])) < feld.index(
+        reverse("verfahren:antrag", args=[beendet.pk])
+    )
+
+
+# ── GP-074: Jede Liste nennt ihre Reihungsregel ────────────────────────────────────────────────
+
+
+def test_gp074_jedes_feld_mit_mehreren_antraegen_verweist_auf_seine_regel(client, ordnung):  # noqa: F811
+    from verfahren.models import FilterProfil
+
+    person = mitglied_anlegen("ortsperson")
+    ort = {"ebene": "gemeinde", "gebiet": "St. Marienkirchen an der Polsenz"}
+    vorlage = antrag_einbringen(person, **ANTRAG, ordnung=ordnung, **ort)
+    jetzt = timezone.now()
+    oben, unten, _fremd = _ast()
+    sammelnd = _kopien(vorlage, 2, "unterstuetzung", jetzt, titel="Regionsliste", hervorgehoben=True)
+    abstimmung = _kopien(vorlage, 1, "abstimmung", jetzt, titel="Regionsliste", hervorgehoben=True)
+    for a in sammelnd + abstimmung:
+        a.kategorien.add(oben)
+    regeln = reverse("parameter:regeln")
+    for wer in (None, person):
+        if wer is not None:
+            client.force_login(wer)
+        html = client.get(reverse("verfahren:parlament")).content.decode()
+        for feld in ("filter", "wichtig", "region"):
+            assert f'href="{regeln}#regel-parlamentlisten"' in _feld(html, feld), (wer, feld)
+        for adresse in ("?fach=gp-verkehr", "?suche=Regionsliste"):
+            teil = _feld(client.get(reverse("verfahren:parlament") + adresse).content.decode(), "favoriten")
+            assert f'href="{regeln}#regel-parlamentlisten"' in teil, (wer, adresse)
+        # Meine Region in neutraler Ordnung: die laufende Abstimmung zuerst
+        region = _feld(html, "region")
+        reihe = list(dict.fromkeys(int(n) for n in re.findall(r'href="/antrag/(\d+)/', region)))
+        assert reihe[0] == abstimmung[0].pk, reihe
+    # Mit eigenem Profil verweist der Feldkopf auf die Regel des WeicherFilters
+    FilterProfil.objects.create(mitglied=person, name="Eigen", aktiv=True, regler={"chronologisch": 60})
+    kopf = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "filter")
+    assert f'href="{regeln}#regel-weicherfilter"' in kopf
+
+
+def test_gp074_abgeschnittene_lebensbereichsuche_nennt_die_gesamtzahl(client, ordnung, settings):  # noqa: F811
+    from parameter.models import Parameter
+    from verfahren.models import Kategorie
+
+    wurzel = Kategorie.objects.filter(eltern__isnull=True).first() or Kategorie.objects.create(slug="gp-w", name="W")
+    for i in range(5):
+        Kategorie.objects.create(slug=f"gp-wasser-{i}", name=f"Gewässerschutz {i}", eltern=wurzel)
+    Parameter.objects.update_or_create(schluessel="suche-treffer-hoechstzahl", defaults={"wert": "2"})
+    feld = _feld(client.get(reverse("verfahren:parlament") + "?suche=Gewässerschutz").content.decode(), "favoriten")
+    assert feld.count('class="treffer-link"') == 2
+    assert "2 von 5" in feld
+
+
+# ── GP-175 (Rest): Am letzten Tag nennen Kachel und Zeile die Uhrzeit ──────────────────────────
+
+
+def test_gp175_am_letzten_tag_endet_heute_um_uhrzeit(ordnung):  # noqa: F811
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from django.template.loader import render_to_string
+    from django.test import RequestFactory
+
+    from verfahren.views import _kachel
+
+    wien = ZoneInfo("Europe/Vienna")
+    person = mitglied_anlegen("fristperson")
+    antrag = antrag_einbringen(person, **ANTRAG, ordnung=ordnung)
+    tage = antrag.policy().unterstuetzung_frist_tage
+    frist = datetime(2026, 11, 19, 12, 41, tzinfo=wien)
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=frist - timedelta(days=tage))
+    antrag.refresh_from_db()
+    jetzt = datetime(2026, 11, 19, 8, 0, tzinfo=wien)  # ein fester Zeitpunkt am letzten Tag
+    k = _kachel(antrag, jetzt, nutzer=person)
+    assert k["resttage"] == 0 and k["frist"] == frist
+    anfrage = RequestFactory().get("/parlament/")
+    anfrage.user = person
+    kachel = render_to_string("verfahren/_kachel.html", {"k": k, "user": person}, request=anfrage)
+    zeile = render_to_string("verfahren/_filter_zeile.html", {"z": k, "meine_unterstuetzungen": set()}, request=anfrage)
+    for teil in (kachel, zeile):
+        assert "endet heute um 12:41" in teil

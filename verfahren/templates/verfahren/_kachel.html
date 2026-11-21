@@ -42,7 +42,7 @@ kehrt mit Hinweis in dieses Feld zurück, Befund B1); Knöpfe nur, wenn k.sperre
     {% if k.resttage is not None %}
     <span class="rest frist{% if k.resttage <= 3 %} knapp{% endif %}">
       {% if k.verstrichen is not None %}{% include "verfahren/_ring.html" with wert=k.verstrichen %}{% endif %}
-      {% if k.resttage == 0 %}<strong>{% translate "Frist endet heute" %}</strong>{% else %}{% blocktranslate count t=k.resttage %}noch <strong>{{ t }}</strong> Tag{% plural %}noch <strong>{{ t }}</strong> Tage{% endblocktranslate %}{% endif %}
+      {% if k.resttage == 0 %}<strong>{% blocktranslate with um=k.frist|time:"H:i" %}Frist endet heute um {{ um }}{% endblocktranslate %}</strong>{% else %}{% blocktranslate count t=k.resttage %}noch <strong>{{ t }}</strong> Tag{% plural %}noch <strong>{{ t }}</strong> Tage{% endblocktranslate %}{% endif %}
     </span>
     {% endif %}
 

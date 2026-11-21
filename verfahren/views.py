@@ -849,7 +849,7 @@ def _meine_favoriten(nutzer) -> set[int]:
     return set(nutzer.favoriten.values_list("antrag_id", flat=True))
 
 
-def _kategorien_suchen(suchtext: str, nutzer) -> list[dict]:
+def _kategorien_suchen(suchtext: str, nutzer) -> tuple[list[dict], int]:
     """Die Tiefen-Ansicht als Feld-Suche (P2): findet Lebensbereiche über
     Name, Beschreibung und Schlagworte; jeder Treffer trägt Pfad, laufende
     Verfahren im ganzen Ast und den Abo-Stand — Klick öffnet den Fächer dort."""
@@ -873,7 +873,44 @@ def _kategorien_suchen(suchtext: str, nutzer) -> list[dict]:
                 {"k": k, "laufend": laufend.get(k.pk, 0), "abonniert": k.pk in abonniert}
             )
     treffer.sort(key=lambda t: (t["k"].tiefe, t["k"].name))
-    return treffer[: zahl("suche-treffer-hoechstzahl", 24)]
+    # Mit Gesamtzahl (GP-074): Die Suche schneidet nicht still ab
+    return treffer[: max(zahl("suche-treffer-hoechstzahl", 24), 0)], len(treffer)
+
+
+def _ast_lage(zeilen, fokus_slug, laufende, beginne, vfs, seite_nr):
+    """FB-C5 (D-C5, GP-075): die laufenden Verfahren des fokussierten Lebensbereichs samt aller
+    Unterbereiche, in neutraler Ordnung und seitenweise — None ohne Fokus oder an der Wurzel."""
+    from plattform_core.parlamentlisten import seite
+
+    je_slug = {z["slug"]: z for z in zeilen}
+    fokus = je_slug.get(fokus_slug or "")
+    if fokus is None or fokus["eltern_id"] is None:
+        return None
+    kinder: dict[int, list[int]] = {}
+    for z in zeilen:
+        kinder.setdefault(z["eltern_id"], []).append(z["id"])
+    ids, offen = set(), [fokus["id"]]
+    while offen:
+        k = offen.pop()
+        ids.add(k)
+        offen.extend(kinder.get(k, []))
+    treffer = [a for a in laufende if any(k.pk in ids for k in a.kategorien.all())]
+    treffer.sort(key=lambda a: _neutraler_schluessel(a, _frist_fuer(a, a.policy(), beginne.get(a.pk), vfs.get(a.pk))))
+    teil = seite(len(treffer), GRUPPE_HOECHSTZAHL, seite_nr)
+    return {"slug": fokus["slug"], "zeilen": treffer[teil.von - 1 : teil.bis], "seite": teil}
+
+
+def _antraege_suchen(suchtext, antraege, laufende, beginne, vfs) -> dict:
+    """GP-075: Anträge über ein Wort im Titel finden — laufende in neutraler Ordnung, danach die
+    übrigen, zuletzt entschiedene zuerst; höchstens `suche-treffer-hoechstzahl`, mit Gesamtzahl."""
+    je_pk = {a.pk: a for a in laufende}
+    gefunden = list(antraege.filter(titel__icontains=suchtext).order_by("-phase_beginn", "-pk"))
+    laufend = sorted(
+        (je_pk[a.pk] for a in gefunden if a.pk in je_pk),
+        key=lambda a: _neutraler_schluessel(a, _frist_fuer(a, a.policy(), beginne.get(a.pk), vfs.get(a.pk))),
+    )
+    alle = laufend + [a for a in gefunden if a.pk not in je_pk]
+    return {"zeilen": alle[: max(zahl("suche-treffer-hoechstzahl", 24), 0)], "gesamt": len(alle)}
 
 
 def parlament(request):
@@ -912,7 +949,7 @@ def parlament(request):
     )
     faecher["abos"] = abo_slugs
     suchtext = (request.GET.get("suche") or "").strip()
-    suchtreffer = _kategorien_suchen(suchtext, request.user) if suchtext else None
+    suchtreffer, suchtreffer_gesamt = _kategorien_suchen(suchtext, request.user) if suchtext else (None, 0)
     # Fokus-Modus (Teil 7): ?fokus=<feld> dehnt ein Feld auf das ganze Raster — serverseitig, damit es
     # ohne JavaScript denselben Zustand gibt wie der ⤢-Knopf mit Alpine. Unbekannte Werte: kein Fokus.
     fokus = request.GET.get("fokus") or ""
@@ -936,6 +973,9 @@ def parlament(request):
     zaehler["eigene_teilnehmerkreise"] = eigene_kreise(request.user, laufende)
     beginne = _wirksame_beginne(laufende, jetzt)
     vfs = _vertrauensfragen(laufende)  # Vertrauensfragen (§ 7 Abs 10): Legende, Unterstützungsrecht
+    # GP-075: vom Lebensbereich zu seinen laufenden Verfahren, und die Suche findet Anträge über den Titel
+    ast = _ast_lage(zeilen, request.GET.get("fach"), laufende, beginne, vfs, ganze_zahl(request.GET.get("ast_seite")))
+    antrag_treffer = _antraege_suchen(suchtext, antraege, laufende, beginne, vfs) if suchtext else None
 
     # Bereich b — vom Integritätsrat hervorgehobene Abstimmungen (F-42, nie
     # algorithmisch), als Kacheln (P3): Stern, Beteiligung, Resttage. Wie viele
@@ -948,7 +988,11 @@ def parlament(request):
     # Bereich c — Meine Region (F-43, P4): drei Zeilen Gemeinde/Bezirk/Land.
     # Mit Wohnsitz zeigt jede Zeile die EIGENE Region; ohne (Gäste, fehlendes
     # Profil) alle regionalen Anträge der jeweiligen Ebene.
-    regionale = [a for a in laufende if a.ebene != "bund"]
+    # GP-074: je Zeile in neutraler Ordnung (plattform_core.parlamentlisten) — die laufende Abstimmung zuerst
+    regionale = sorted(
+        (a for a in laufende if a.ebene != "bund"),
+        key=lambda a: _neutraler_schluessel(a, _frist_fuer(a, a.policy(), beginne.get(a.pk), vfs.get(a.pk))),
+    )
     mein_ort, meine_gemeinden, wiener_bezirk = _meine_orte(request.user)
     from verfahren.teilnahme import wien_ohne_bezirk, wohnsitz_ohne_verzeichnis
 
@@ -1042,6 +1086,9 @@ def parlament(request):
             "faecher": faecher,
             "suchtext": suchtext,
             "suchtreffer": suchtreffer,
+            "suchtreffer_gesamt": suchtreffer_gesamt,
+            "antrag_treffer": antrag_treffer,
+            "ast": ast,
             "fokus": fokus,
             "feed": feed,
             "meine_favoriten": meine_favoriten,
@@ -1050,6 +1097,7 @@ def parlament(request):
             "wichtige_gesamt": len(wichtige_alle),
         "meine_unterstuetzungen": meine_unterstuetzungen,
             "region_zeilen": region_zeilen,
+            "region_anzahl": sum(len(z["kacheln"]) for z in region_zeilen),
             "region_gefiltert": any(mein_ort.values()),
             # Ohne festen Wohnsitz oder im Ausland gibt es nichts zu hinterlegen (GP-169)
             "ohne_region": request.user.is_authenticated

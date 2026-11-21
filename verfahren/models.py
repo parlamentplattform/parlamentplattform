@@ -591,17 +591,28 @@ class Antrag(models.Model):
             return False
         siegel = {}
         if phase is Phase.ABSTIMMUNG:
-            # Gegenprobe vor der Feststellung (GP-138): Passen Stimmzettel, Stimmregister, Nenner und
+            # Gegenprobe vor der Feststellung (GP-138): Passen Stimmzettel, Stimmregister und
             # Stimm-Ereignisse nicht zusammen, wird kein Ergebnis festgestellt — der Antrag bleibt in
-            # der Abstimmung stehen, der Befund steht in der Kette. Besteht die Liste, kommt ihre
-            # Prüfsumme mit dem Ergebnis unter die Kette.
+            # der Abstimmung stehen, der Befund steht in der Kette. Sonst kommt die Prüfsumme der
+            # Liste mit dem Ergebnis unter die Kette.
+            from plattform_core.tally import HALTEGRUENDE
+
             probe = self.stimmliste_gegenprobe()
-            if probe["abweichungen"]:
+            if HALTEGRUENDE & set(probe["abweichungen"]):
                 self._auszaehlung_anhalten(probe)
                 return False
             siegel = {"stimmzettel": probe["stimmzettel"], "stimmliste_sha256": self.stimmliste_pruefsumme()}
             if probe["stimmereignisse"] is not None:
                 siegel["stimmereignisse"] = probe["stimmereignisse"]
+            if probe["abweichungen"]:
+                # Mehr Stimmen als festgestellte Stimmberechtigte: Das Ergebnis wird festgestellt wie
+                # bisher (auf einem regulären Weg erreichbar, siehe `HALTEGRUENDE`), die Abweichung
+                # steht aber mit ihm in der Kette — nur die Kennung, die Zahlen stehen daneben.
+                siegel["abweichungen"] = probe["abweichungen"]
+                log.warning(
+                    "Antrag %s: %s Stimmen bei %s Stimmberechtigten — Ergebnis festgestellt, Abweichung ausgewiesen",
+                    self.pk, probe["waehler"], probe["stimmberechtigte"],
+                )
         self.phase = uebergang.neue_phase.value
         self.phase_beginn = uebergang.wirksam_ab
         felder = ["phase", "phase_beginn"]
@@ -798,7 +809,9 @@ class Antrag(models.Model):
         Stimmregister, Nenner und Stimm-Ereignisse — gerechnet im Kern (`tally.gegenprobe`).
 
         Die Zahl der Stimm-Ereignisse wird nur verglichen, wenn der Beginn dieser Abstimmung schon
-        versiegelt wurde (GP-028); ältere Abstimmungen werden gegen Register und Nenner geprüft."""
+        versiegelt wurde (GP-028); ältere Abstimmungen werden gegen Register und Nenner geprüft.
+        Angehalten wird die Feststellung nur bei den `tally.HALTEGRUENDE`; mehr Stimmen als
+        Stimmberechtigte werden mit dem Ergebnis ausgewiesen."""
         from plattform_core.tally import gegenprobe
 
         register = set(self.stimmregister.values_list("pseudonym", flat=True))

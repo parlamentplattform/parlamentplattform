@@ -346,6 +346,16 @@ UEBERZAHL = "mehr_stimmen_als_stimmberechtigte"
 #: Die Audit-Kette führt nicht so viele Stimm-Ereignisse, wie Stimmzettel in der Liste stehen.
 EREIGNISSE_WEICHEN_AB = "stimmereignisse_weichen_ab"
 
+#: Die Abweichungen, bei denen kein Ergebnis festgestellt wird. Beide entstehen auf keinem Weg der
+#: Stimmabgabe, nur durch einen Eingriff in die Daten oder einen Defekt. Die Überzahl gehört nicht
+#: dazu: Wer am Stichtag erst nach der Zählung freigeschaltet oder wieder aktiv wird, ist nach der
+#: geltenden Regel stimmberechtigt (§ 4 Abs 4 lit a rechnet in Tagen), steht aber nicht im
+#: festgestellten Nenner. Stimmen dann alle, bestünde die Liste die Probe nie mehr — und niemand ist
+#: zuständig, sie zu klären. Die Überzahl wird deshalb mit dem Ergebnis ausgewiesen (Ereignis
+#: „phasenwechsel“, Feld „abweichungen“), und das Prüfskript endet an ihr mit FEHLER; ob auch sie
+#: die Feststellung anhalten soll, ist eine offene Entscheidung.
+HALTEGRUENDE = frozenset({OHNE_REGISTERZEILE, EREIGNISSE_WEICHEN_AB})
+
 
 def gegenprobe(
     *,
@@ -361,9 +371,10 @@ def gegenprobe(
     Von Hand, mit vier Zahlen:
     - `ohne_registerzeile`: Stimmzettel, deren Pseudonym im Stimmregister des Antrags fehlt. Jede
       Stimme entsteht mit ihrem Registereintrag; fehlt er, kam der Zettel nicht aus einer Stimmabgabe.
-    - `waehler` gegen `stimmberechtigte`: Es können nicht mehr Menschen stimmen, als bei
+    - `waehler` gegen `stimmberechtigte`: Es sollen nicht mehr Menschen stimmen, als bei
       Abstimmungsbeginn festgestellt wurden (§ 4 Abs 4 lit a). `None` heißt: nie festgestellt
-      (Altbestand) — dann entfällt der Vergleich.
+      (Altbestand) — dann entfällt der Vergleich. Diese Abweichung wird ausgewiesen, hält die
+      Feststellung aber nicht an (`HALTEGRUENDE`).
     - `stimmzettel` gegen `stimmereignisse`: Jede Stimmabgabe schreibt ein Ereignis in die
       Audit-Kette. Bei Sachfragen ist das die Zahl der Ereignisse „stimme“; bei der Zustimmungswahl
       die der gegebenen abzüglich der zurückgenommenen Zustimmungen. `None` heißt: Die Abstimmung

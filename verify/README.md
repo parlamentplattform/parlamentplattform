@@ -66,9 +66,13 @@ Unabhängig von jedem Siegel gilt: Mehr Stimmen als Stimmberechtigte zählt das 
 endet mit `FEHLER`.
 
 Die Plattform macht dieselbe Gegenprobe, bevor sie ein Ergebnis feststellt: Stimmzettel gegen
-Stimmregister, Zahl der Stimmberechtigten und Stimm-Ereignisse. Besteht die Liste sie nicht, stellt
+Stimmregister, Zahl der Stimmberechtigten und Stimm-Ereignisse. Fehlt zu einem Stimmzettel die Zeile
+im Stimmregister oder führt die Audit-Spur nicht so viele Stimm-Ereignisse wie Stimmzettel, stellt
 die Plattform kein Ergebnis fest; der Antrag bleibt in der Abstimmung stehen, und der Befund steht als
-Ereignis `auszaehlung_angehalten` in der Audit-Spur (nur Zahlen, keine Pseudonyme).
+Ereignis `auszaehlung_angehalten` in der Audit-Spur (nur Zahlen, keine Pseudonyme). Mehr Stimmen als
+Stimmberechtigte halten die Feststellung nicht an: Die Plattform stellt das Ergebnis fest und weist die
+Abweichung im Ereignis `phasenwechsel` des Ergebnisses aus (`abweichungen`:
+`mehr_stimmen_als_stimmberechtigte`); das Skript endet an einem solchen Export mit `FEHLER`.
 
 Abstimmungen aus der Zeit vor einem dieser Siegel tragen die Felder im Ereignis nicht. Das Skript
 rechnet sie wie bisher und gibt `False` aus: nicht versiegelt, kein Fehler.

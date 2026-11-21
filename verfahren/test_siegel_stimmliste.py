@@ -130,7 +130,7 @@ def test_nach_der_klaerung_wird_das_ergebnis_festgestellt(ordnung):  # noqa: F81
     assert len(_halte(antrag)) == 1  # der Halt bleibt in der Kette stehen
 
 
-def test_mehr_stimmen_als_stimmberechtigte_halten_an(ordnung):  # noqa: F811
+def test_eingeschleuste_stimmen_ueber_dem_nenner_halten_an(ordnung):  # noqa: F811
     leute = [mitglied_anlegen(f's{i}') for i in range(3)]
     antrag = in_abstimmung_bringen(antrag_einbringen(leute[0], **ANTRAG, ordnung=ordnung), leute[1:3])
     antrag.refresh_from_db()
@@ -141,7 +141,43 @@ def test_mehr_stimmen_als_stimmberechtigte_halten_an(ordnung):  # noqa: F811
 
     assert antrag.fortschreiben(_fristende(antrag)) is False
     (halt,) = _halte(antrag)
-    assert UEBERZAHL in halt['abweichungen'] and (halt['stimmzettel'], halt['stimmberechtigte']) == (4, 3)
+    # Mit Registerzeile, aber ohne Stimm-Ereignis: Das hält an — die Überzahl steht mit im Befund.
+    assert halt['abweichungen'] == [UEBERZAHL, EREIGNISSE_WEICHEN_AB]
+    assert (halt['stimmzettel'], halt['stimmberechtigte']) == (4, 3)
+
+
+def test_mehr_stimmen_als_stimmberechtigte_auf_regulaerem_weg_halten_nicht_an(client, ordnung):  # noqa: F811
+    '''Wer am Stichtag erst nach der Zählung freigeschaltet wird, ist nach der geltenden Regel
+    stimmberechtigt (§ 4 Abs 4 lit a rechnet in Tagen), steht aber nicht im festgestellten Nenner. Stimmen
+    alle, sind es mehr Stimmen als Stimmberechtigte — auf einem regulären Weg, jede mit Registerzeile und
+    Stimm-Ereignis. Das Ergebnis wird festgestellt wie vor dieser Fassung, die Abweichung steht im
+    Ergebnis-Ereignis, und das Prüfskript endet an diesem Export mit FEHLER.'''
+    from mitglieder.models import Identitaetsstufe, Mitglied
+    from plattform_core import Gegenstand
+
+    leute = [mitglied_anlegen(f's{i}') for i in range(3)]
+    spaet = mitglied_anlegen('spaet', stufe=Identitaetsstufe.UNGEPRUEFT)
+    antrag = in_abstimmung_bringen(antrag_einbringen(leute[0], **ANTRAG, ordnung=ordnung), leute[1:3])
+    antrag.refresh_from_db()
+    assert antrag.stimmberechtigte_anzahl == 3
+    stichtag = antrag.stimmberechtigung_stichtag
+    # Freigeschaltet am Stichtag, nach der Zählung — der Tag steht fest, die Uhr spielt keine Rolle.
+    Mitglied.objects.filter(pk=spaet.pk).update(identitaetsstufe=Identitaetsstufe.GEPRUEFT, geprueft_seit=stichtag)
+    spaet.refresh_from_db()
+    assert spaet.ist_stimmberechtigt(Gegenstand.SACHFRAGE, stichtag) is True
+    for m in [*leute, spaet]:
+        stimme_abgeben(antrag, m, 'ja')
+
+    assert antrag.fortschreiben(_fristende(antrag)) is True
+    antrag.refresh_from_db()
+    assert antrag.phase == 'angenommen' and _halte(antrag) == []
+    ereignis = _ergebnis_ereignis(antrag)
+    assert ereignis['grund'].startswith('Angenommen: Ja 4 : Nein 0') and 'Beteiligung 4/3' in ereignis['grund']
+    assert ereignis['abweichungen'] == [UEBERZAHL]
+    assert (ereignis['stimmzettel'], ereignis['stimmereignisse']) == (4, 4)
+    daten = _export(client, antrag)
+    with pytest.raises(SystemExit, match='FEHLER.*mehr Stimmen als Stimmberechtigte'):
+        _nachrechnen_laden()(daten)
 
 
 def test_ein_stimmzettel_ohne_stimmereignis_haelt_an(ordnung):  # noqa: F811
@@ -188,6 +224,7 @@ def test_ein_unverfaelschter_bestand_ergibt_dasselbe_wie_bisher(ordnung):  # noq
     assert antrag.phase == 'angenommen' and _halte(antrag) == []
     ereignis = _ergebnis_ereignis(antrag)
     assert ereignis['grund'] == vorher.begruendung == 'Angenommen: Ja 2 : Nein 1, Enthaltungen 1; Beteiligung 4/6 (§ 5 Abs 4).'
+    assert 'abweichungen' not in ereignis
     assert antrag.auszaehlen() == vorher
 
 

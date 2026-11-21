@@ -213,6 +213,14 @@ class TestGegenprobe:
             OHNE_REGISTERZEILE, UEBERZAHL, EREIGNISSE_WEICHEN_AB,
         )
 
+    def test_angehalten_wird_nur_bei_dem_was_kein_regulaerer_weg_erzeugt(self):
+        """Die Überzahl ist auf einem regulären Weg erreichbar (am Stichtag nach der Zählung
+        freigeschaltet) — sie wird ausgewiesen, hält die Feststellung aber nicht an."""
+        from plattform_core.tally import EREIGNISSE_WEICHEN_AB, HALTEGRUENDE, OHNE_REGISTERZEILE, UEBERZAHL
+
+        assert HALTEGRUENDE == {OHNE_REGISTERZEILE, EREIGNISSE_WEICHEN_AB}
+        assert UEBERZAHL not in HALTEGRUENDE
+
 
 class TestPruefsummeDerStimmliste:
     def test_von_hand_nachrechenbar(self):

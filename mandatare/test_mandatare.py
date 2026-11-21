@@ -402,6 +402,21 @@ def test_berichtigung_der_bezeichnung_steht_mit_alt_und_neu_im_audit(client):
     assert AuditEintrag.objects.filter(ereignis__typ="mandat_berichtigt").count() == 1
 
 
+def test_der_alte_wortlaut_einer_berichtigung_steht_nicht_im_oeffentlichen_protokoll(client):
+    """Datenschutz-Fund: Wird eine Bezeichnung berichtigt, weil sie Persönliches enthielt, stand der alte
+    Wortlaut dauerhaft in /audit.json. Öffentlich ist „alt“ geschwärzt; der neue Wert steht ohnehin am Mandat."""
+    from django.test import Client
+
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), bezeichnung="Gemeinderat Max Muster (krank)")
+    client.force_login(admin_anlegen())
+    client.post(reverse("mandatare:verwaltung_aktion"),
+                {"aktion": "berichtigen", "mandat": mandat.pk, "bezeichnung": "Gemeinderat", "gebiet": mandat.gebiet})
+    antwort = Client().get(reverse("verfahren:audit_json"))
+    assert "Max Muster" not in antwort.content.decode()
+    (e,) = [x for x in antwort.json()["eintraege"] if x["ereignis"].get("typ") == "mandat_berichtigt"]
+    assert e["ereignis"]["alt"] == "•" and e["ereignis"]["neu"] == "Gemeinderat" and e["ereignis"]["feld"] == "bezeichnung"
+
+
 # ── GP-113 (Rest): Enddatum als Eingabe mit Grenzen, Berichtigung als eigener Vermerk ─────────
 
 

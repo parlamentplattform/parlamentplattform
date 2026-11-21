@@ -1799,7 +1799,8 @@ class Sitzung(models.Model):
         """Alle offenen Sitzungen, deren Höchstdauer um ist, beenden — für Übersichten ohne Einzelaufruf."""
         jetzt = jetzt or timezone.now()
         grenze = jetzt - timedelta(hours=max(1, live_hoechstdauer_stunden()))
-        return sum(1 for s in cls.objects.filter(ende__isnull=True, beginn__lte=grenze) if s.fortschreiben(jetzt))
+        offene = cls.objects.filter(ende__isnull=True, beginn__lte=grenze)
+        return sum(1 for sitzung in offene if sitzung.fortschreiben(jetzt))
 
 
 class Tagesordnungspunkt(models.Model):

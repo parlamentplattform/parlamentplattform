@@ -72,44 +72,9 @@ BEGRUENDET: dict[str, str] = {
 }
 
 # Nicht gefasste Stellen, die gefasst werden sollen: Schlüssel -> zuständiges Paket und wo die
-# Klammer hingehört. Stand 0.114.0 (GP-129); wer eine Stelle fasst, streicht ihre Zeile.
-ZU_FASSEN: dict[str, str] = {
-    # gremien/views.py: die Ansichten selbst fassen (Dekorator oder with-Block um Schreiben und Eintrag)
-    "gremien/views.py:fenster_aktion": "gremien (Ansicht fassen)",
-    "gremien/views.py:koordination_hinweis": "gremien (Ansicht fassen)",
-    "gremien/views.py:_einfuehrung_anlegen": "gremien (Aufrufer koordination_hinweis, koordination_test fassen)",
-    "gremien/views.py:koordination_test": "gremien (Ansicht fassen)",
-    "gremien/views.py:ueberlastung_melden": "gremien (Ansicht fassen)",
-    "gremien/models.py:Entwurf.einreichungsbeschluss_anlegen": "gremien (Aufrufer fenster_aktion fassen)",
-    "gremien/models.py:auslosen": "gremien (Aufrufer fenster_aktion fassen)",
-    "gremien/models.py:Entwurf.fortschreiben": "gremien (Aufruf in der Ansicht pruefung fassen)",
-    "gremien/models.py:Entwurf.zurueck_an_gruppe_1": "gremien (Aufruf in der Ansicht pruefung fassen)",
-    # mandatare
-    "mandatare/models.py:Mandat.bestaetigen": "mandatare (in der Methode fassen; Aufrufer auch in mitglieder)",
-    "mandatare/models.py:stellungnahme_abgeben": "mandatare (in der Funktion fassen)",
-    "mandatare/models.py:rueckgabezusage_vermerken": "mandatare (in der Funktion fassen)",
-    "mandatare/views.py:mein_aktion": "mandatare (Ansicht fassen)",
-    "mandatare/views.py:_report_anlegen": "mandatare (Aufrufer mein_aktion fassen)",
-    "mandatare/views.py:_foto_speichern": "mandatare (Aufrufer mein_aktion fassen)",
-    "mandatare/views.py:_monatsbericht_anlegen": "mandatare (Aufrufer mein_aktion fassen)",
-    "mandatare/views.py:_sammelbericht_anlegen": "mandatare (Aufrufer mein_aktion fassen)",
-    "mandatare/views.py:_verwaltung_vertrauen": "mandatare (Aufrufer verwaltung_aktion fassen)",
-    "mandatare/views.py:verwaltung_aktion": "mandatare (Ansicht fassen)",
-    "mandatare/views_live.py:live_beitrag_aktion": "mandatare (Ansicht fassen)",
-    # mitglieder
-    "mitglieder/ausweis.py:ausweis_code_sicherstellen": "mitglieder (bedingtes UPDATE und Eintrag fassen)",
-    "mitglieder/post.py:region_benachrichtigen": "mitglieder (bulk_create und Eintrag fassen)",
-    "mitglieder/profil.py:_auditieren": "mitglieder (schreibende Aufrufer fassen)",
-    "mitglieder/verwaltung.py:_auditieren": "mitglieder (schreibende Aufrufer fassen)",
-    "mitglieder/views.py:registrieren": "mitglieder (Eintrag in den vorhandenen atomic-Block ziehen)",
-    "mitglieder/views.py:bestaetigen": "mitglieder (Freischalten und Eintrag fassen)",
-    # verfahren
-    "verfahren/models.py:vollzug_fortschreiben": "siegel (in der Funktion fassen)",
-    "verfahren/models.py:bewerbung_einreichen": "siegel (in der Funktion fassen)",
-    "verfahren/models.py:kategorien_zuordnen": "siegel (in der Funktion fassen)",
-    "verfahren/views_aktionen.py:melden": "oberflaeche (get_or_create und Eintrag fassen)",
-    "verfahren/views_aktionen.py:bewerbung_zurueckziehen": "oberflaeche (Speichern und Eintrag fassen)",
-}
+# Klammer hingehört. Wer eine Stelle fasst, streicht ihre Zeile. Seit der Schlusspflege 0.115.0
+# (GP-129) leer: Die 31 Stellen aus Stand 0.114.0 sind gefasst.
+ZU_FASSEN: dict[str, str] = {}
 
 
 @dataclass(frozen=True)

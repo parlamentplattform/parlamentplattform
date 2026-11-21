@@ -138,8 +138,8 @@ def ticker(sitzung: Sitzung) -> list[dict]:
 
 
 def _sitzungen_fortschreiben(qs) -> None:
-    for s in qs.filter(ende__isnull=True):
-        s.fortschreiben()
+    for sitzung in qs.filter(ende__isnull=True):
+        sitzung.fortschreiben()
 
 
 # ── Öffentlich ────────────────────────────────────────────────────────────────────────────

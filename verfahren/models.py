@@ -523,8 +523,12 @@ class Antrag(models.Model):
                 entwurf = (
                     apps.get_model("gremien", "Entwurf").objects.filter(antrag_id=self.pk).first()
                 )
-        if entwurf is not None and entwurf.fortschreiben(self, jetzt, vorlauf=vorlauf):
-            return True
+        if entwurf is not None:
+            # Die Schleife schreibt Status, Beschlüsse und ihre Audit-Einträge: gemeinsam oder gar nicht (GP-129).
+            with transaction.atomic():
+                weiter = entwurf.fortschreiben(self, jetzt, vorlauf=vorlauf)
+            if weiter:
+                return True
         policy = self.policy()
         ausz = None
         if phase is Phase.ABSTIMMUNG:

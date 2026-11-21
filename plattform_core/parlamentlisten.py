@@ -65,3 +65,15 @@ def seite(gesamt: int, groesse: int, gewuenscht: int | None) -> Seite:
     nummer = min(max(gewuenscht or 1, 1), seiten)
     von = (nummer - 1) * groesse
     return Seite(nummer=nummer, seiten=seiten, gesamt=gesamt, von=von + 1, bis=min(von + groesse, gesamt))
+
+
+def suchtext(roh, hoechstens: int | None = None) -> str:
+    """Den Suchtext einer Anfrage lesen, bevor er in einen Datenbankvergleich geht — die eine Stelle
+    für jede Seite, die Text aus der Adresse sucht (Titelsuche im Parlament, Antragsauswahl der Räte,
+    Gemeindesuche, Archivwahl der Antragsseite). Keine Reihung; die Fassung dieser Datei bleibt.
+
+    Von Hand: Nullzeichen entfernen, Leerraum an den Rändern entfernen, auf `hoechstens` Zeichen kürzen
+    (ohne Angabe oder 0: nicht kürzen). Das Nullzeichen muss weg, weil PostgreSQL es in keinem Textwert
+    annimmt: Eine Suche damit endete in einem Serverfehler statt in einer leeren Trefferliste."""
+    text = str(roh or "").replace("\x00", "").strip()
+    return text[:hoechstens] if hoechstens else text

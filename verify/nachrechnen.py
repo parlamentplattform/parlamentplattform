@@ -68,7 +68,20 @@ Stimmberechtigten festgestellt wurde) und im Block "audit" die Audit-Einträge d
 vergleicht den Export damit (siehe nenner_gegen_kette, stimmliste_gegen_kette und
 regeln_und_wortlaut_gegen_kette; für den Wortlaut nennt der Export unter "fassungen" jede Fassung mit
 Nummer und Text). Ältere Exporte ohne diese Angaben rechnet es wie bisher und weist aus, was nicht
-versiegelt ist. Mehr Stimmen als Stimmberechtigte sind in jedem Export ein Fehler.
+versiegelt ist.
+
+Mehr Stimmen als Stimmberechtigte: Die Zahl der Stimmberechtigten wird bei Abstimmungsbeginn
+festgestellt. Wer am selben Tag erst nach dieser Zählung stimmberechtigt wird, darf stimmen, steht aber
+nicht in der Zahl; so können mehr Stimmen in der Liste stehen als Stimmberechtigte. Die Plattform stellt
+das Ergebnis dann fest und weist die Abweichung im Ereignis "phasenwechsel" des Ergebnisses aus (Feld
+"abweichungen": "mehr_stimmen_als_stimmberechtigte"). Das Skript zählt einen solchen Export voll aus,
+macht alle Vergleiche mit der Audit-Spur und gibt die Abweichung als Hinweis aus:
+    abweichung: mehr_stimmen_als_stimmberechtigte (4 bei 3)
+    abweichung_ausgewiesen: True
+"abweichung_ausgewiesen" sagt, ob das Ergebnis-Ereignis der Audit-Spur die Abweichung selbst nennt.
+Trägt der Export das Siegel der Stimmliste und nennt das Ergebnis-Ereignis die Abweichung NICHT, endet das
+Skript mit FEHLER: Dann kamen die Stimmen nach der Feststellung dazu, oder der Nenner wurde verändert.
+Ein Export ohne Audit-Spur oder von vor diesem Siegel wird gerechnet wie bisher (Hinweis, kein FEHLER).
 
 Das Ergebniswort: Das Skript gibt unter "ergebnis" aus, wie der Ausgang heißt — "angenommen",
 "abgelehnt" oder "kein_beschluss" (es gab keinen einzigen Stimmberechtigten; das kommt nur im leeren
@@ -91,10 +104,8 @@ def _beteiligung_erreicht(daten, abgegeben, berechtigte, schwelle):
         raise SystemExit("FEHLER: Nenner 0 ohne gültigen leeren örtlichen Kreis.")
     if berechtigte < 0:
         raise SystemExit("FEHLER: Negativer Nenner.")
-    if abgegeben > berechtigte:
-        # Es können nicht mehr Menschen stimmen, als bei Abstimmungsbeginn als stimmberechtigt
-        # festgestellt wurden — eine solche Liste wird nicht ausgezählt.
-        raise SystemExit(f"FEHLER: mehr Stimmen als Stimmberechtigte ({abgegeben} bei {berechtigte}).")
+    # Mehr Stimmen als Stimmberechtigte werden gezählt wie jede andere Liste — so rechnet auch die
+    # Plattform. Ob die Abweichung in der Audit-Spur ausgewiesen ist, prüft ueberzahl_gegen_kette.
     return Fraction(abgegeben, berechtigte) >= schwelle
 
 
@@ -276,6 +287,20 @@ def stimmliste_pruefsumme(daten: dict) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _abschluss(daten: dict) -> tuple:
+    """Der Abschluss in der Audit-Spur: das letzte Ereignis "phasenwechsel", das eine Prüfsumme der
+    Stimmliste trägt — mit ihm wurde das Ergebnis festgestellt. Rückgabe: (Ereignis, Nummer des Eintrags);
+    (None, None), wenn der Export keinen solchen Eintrag hat (ohne Audit-Spur oder von vor diesem Siegel)."""
+    abschluesse = [
+        e
+        for e in daten.get("audit") or []
+        if e.get("typ") == "phasenwechsel" and "stimmliste_sha256" in (e.get("ereignis") or {})
+    ]
+    if not abschluesse:
+        return None, None
+    return abschluesse[-1]["ereignis"], abschluesse[-1].get("lfd")
+
+
 def stimmliste_gegen_kette(daten: dict) -> dict:
     """Vergleicht die Stimmliste des Exports mit dem, was die Audit-Spur über sie festhält.
 
@@ -293,13 +318,9 @@ def stimmliste_gegen_kette(daten: dict) -> dict:
     Abstimmungen, die vor dieser Prüfung endeten, haben keinen Abschluss mit Prüfsumme. Dann ist die
     Stimmliste nicht versiegelt ("stimmliste_versiegelt": False) — kein Fehler, nur weniger Nachweis."""
     audit = daten.get("audit") or []
-    abschluesse = [
-        e for e in audit if e.get("typ") == "phasenwechsel" and "stimmliste_sha256" in (e.get("ereignis") or {})
-    ]
-    if not abschluesse:
+    abschluss, nummer = _abschluss(daten)
+    if abschluss is None:
         return {"stimmliste_versiegelt": False}
-    abschluss = abschluesse[-1]["ereignis"]
-    nummer = abschluesse[-1].get("lfd")
     if stimmliste_pruefsumme(daten) != abschluss["stimmliste_sha256"]:
         raise SystemExit(
             f"FEHLER: Die Prüfsumme der Stimmliste passt nicht zum Abschluss in der Audit-Spur (Eintrag {nummer})."
@@ -324,6 +345,75 @@ def stimmliste_gegen_kette(daten: dict) -> dict:
             f"(der Abschluss nennt {abschluss['stimmereignisse']})."
         )
     return {"stimmliste_versiegelt": True}
+
+
+#: So nennt die Plattform die Abweichung im Ergebnis-Ereignis (Feld "abweichungen").
+UEBERZAHL = "mehr_stimmen_als_stimmberechtigte"
+
+
+def ueberzahl_gegen_kette(daten: dict) -> dict:
+    """Vergleicht, ob mehr Menschen gestimmt haben, als Stimmberechtigte festgestellt wurden — und ob die
+    Audit-Spur das selbst ausweist.
+
+    Gezählt werden Menschen, wie die Plattform sie vor der Feststellung zählt: bei Sachfragen die Stimmen;
+    bei der Zustimmungswahl die Pseudonyme mit mindestens einer nicht zurückgenommenen Zustimmung, auch zu
+    einer zurückgezogenen Bewerbung (die Beteiligung der Auszählung zählt diese nicht mit).
+
+    Sind es mehr als die Zahl "stimmberechtigte", gibt es drei Fälle:
+    - Das Ergebnis-Ereignis der Audit-Spur nennt unter "abweichungen" selbst
+      "mehr_stimmen_als_stimmberechtigte": Die Plattform hat das Ergebnis so festgestellt und die
+      Abweichung veröffentlicht. Das Skript gibt sie als Hinweis aus ("abweichung_ausgewiesen": True).
+    - Der Export trägt das Siegel der Stimmliste, aber das Ergebnis-Ereignis nennt die Abweichung nicht:
+      Bei der Feststellung gab es sie nicht. Das Skript bricht ab.
+    - Der Export hat keine Audit-Spur oder ist von vor diesem Siegel: Es gibt nichts zu vergleichen. Das
+      Skript rechnet wie bisher und gibt die Abweichung als Hinweis aus ("abweichung_ausgewiesen": False).
+
+    Ohne Überzahl gibt die Funktion nichts aus — außer die Audit-Spur weist eine aus, die der Export nicht
+    zeigt; das steht dann als Hinweis da."""
+    berechtigte = int(daten["stimmberechtigte"])
+    if daten.get("art", "sache") == "mandat":
+        menschen = len(
+            {
+                z["pseudonym"]
+                for z in daten["zustimmungen"]
+                if not (z.get("zurueckgenommen") or z.get("zurueckgenommen_am"))
+            }
+        )
+    else:
+        menschen = len({s["pseudonym"] for s in daten["stimmen"]})
+    abschluss, nummer = _abschluss(daten)
+    ausgewiesen = abschluss is not None and UEBERZAHL in (abschluss.get("abweichungen") or [])
+    if menschen <= berechtigte:
+        if ausgewiesen:
+            return {
+                "hinweis": (
+                    f"Das Ergebnis-Ereignis der Audit-Spur (Eintrag {nummer}) weist mehr Stimmen als "
+                    f"Stimmberechtigte aus, der Export zeigt keine Überzahl ({menschen} bei {berechtigte})."
+                )
+            }
+        return {}
+    if abschluss is not None and not ausgewiesen:
+        raise SystemExit(
+            f"FEHLER: mehr Stimmen als Stimmberechtigte ({menschen} bei {berechtigte}), und das "
+            f"Ergebnis-Ereignis der Audit-Spur (Eintrag {nummer}) weist diese Abweichung nicht aus."
+        )
+    if ausgewiesen:
+        hinweis = (
+            f"Es haben mehr Menschen gestimmt ({menschen}), als bei Abstimmungsbeginn als stimmberechtigt "
+            f"festgestellt wurden ({berechtigte}). Die Plattform hat das Ergebnis so festgestellt; das "
+            f"Ergebnis-Ereignis der Audit-Spur (Eintrag {nummer}) weist diese Abweichung selbst aus."
+        )
+    else:
+        hinweis = (
+            f"Es haben mehr Menschen gestimmt ({menschen}), als bei Abstimmungsbeginn als stimmberechtigt "
+            f"festgestellt wurden ({berechtigte}). Dieser Export trägt kein Siegel der Stimmliste; ob die "
+            "Audit-Spur die Abweichung ausweist, lässt sich an ihm nicht prüfen."
+        )
+    return {
+        "abweichung": f"{UEBERZAHL} ({menschen} bei {berechtigte})",
+        "abweichung_ausgewiesen": ausgewiesen,
+        "hinweis": hinweis,
+    }
 
 
 def regeln_und_wortlaut_gegen_kette(daten: dict) -> dict:
@@ -373,6 +463,7 @@ def nachrechnen(daten: dict) -> dict:
     ergebnis.update(nenner_gegen_kette(daten))
     ergebnis.update(stimmliste_gegen_kette(daten))
     ergebnis.update(regeln_und_wortlaut_gegen_kette(daten))
+    ergebnis.update(ueberzahl_gegen_kette(daten))
     return ergebnis
 
 

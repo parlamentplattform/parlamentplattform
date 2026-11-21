@@ -219,10 +219,16 @@ def test_ein_ausstand_ueber_30_tage_ist_ein_anlass(ordnung, altmandat):  # noqa:
     assert audit("vertrauensfrage_eingebracht")[0]["ausstaende"] == len(kennungen)
 
 
-def test_eine_sperre_wird_als_hinweis_eroeffnet_nicht_abgewiesen(ordnung):  # noqa: F811
-    """lit b und g: Die Software weist nicht ab — sie schreibt den Hinweis, der Integritätsrat stellt fest."""
+def test_eine_sperre_wird_als_hinweis_eroeffnet_nicht_abgewiesen(ordnung, monkeypatch):  # noqa: F811
+    """lit b und g: Die Software weist nicht ab — sie schreibt den Hinweis, der Integritätsrat stellt fest.
+
+    Ein Altmandat (angetreten vor dem Inkrafttreten von Absatz 10) in der Schonfrist, die nach lit j ab dem
+    Inkrafttreten läuft. Beide Tage hängen am Tag des Testlaufs, nicht am Kalender: Mit dem echten
+    Inkrafttreten (15.9.2026) endete die Schonfrist am 14.12.2026, und der Test wäre von da an rot."""
+    heute = timezone.localdate()
+    monkeypatch.setattr(mm, "INKRAFTTRETEN_ABS_10", heute - tage(10))
     frisch = Mandat.objects.create(
-        mitglied=mitglied_anlegen("neu"), bezeichnung="Gemeinderat", ebene="gemeinde", angetreten=date(2026, 1, 1)
+        mitglied=mitglied_anlegen("neu"), bezeichnung="Gemeinderat", ebene="gemeinde", angetreten=heute - tage(250)
     )
     antrag = einbringen(mitglied_anlegen("anna"), frisch, ordnung)
     vf = antrag.vertrauensfrage

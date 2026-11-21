@@ -151,7 +151,9 @@ def test_mehr_stimmen_als_stimmberechtigte_auf_regulaerem_weg_halten_nicht_an(cl
     stimmberechtigt (§ 4 Abs 4 lit a rechnet in Tagen), steht aber nicht im festgestellten Nenner. Stimmen
     alle, sind es mehr Stimmen als Stimmberechtigte — auf einem regulären Weg, jede mit Registerzeile und
     Stimm-Ereignis. Das Ergebnis wird festgestellt wie vor dieser Fassung, die Abweichung steht im
-    Ergebnis-Ereignis, und das Prüfskript endet an diesem Export mit FEHLER.'''
+    Ergebnis-Ereignis, und das Prüfskript rechnet diesen Export voll nach: dasselbe Ergebnis, alle
+    Vergleiche mit der Audit-Spur, die Abweichung als Hinweis — kein FEHLER an einem veröffentlichten
+    Ergebnis.'''
     from mitglieder.models import Identitaetsstufe, Mitglied
     from plattform_core import Gegenstand
 
@@ -176,8 +178,89 @@ def test_mehr_stimmen_als_stimmberechtigte_auf_regulaerem_weg_halten_nicht_an(cl
     assert ereignis['abweichungen'] == [UEBERZAHL]
     assert (ereignis['stimmzettel'], ereignis['stimmereignisse']) == (4, 4)
     daten = _export(client, antrag)
-    with pytest.raises(SystemExit, match='FEHLER.*mehr Stimmen als Stimmberechtigte'):
+    ergebnis = _nachrechnen_laden()(copy.deepcopy(daten))
+    assert (ergebnis['ja'], ergebnis['nein'], ergebnis['abgegeben'], ergebnis['stimmberechtigte']) == (4, 0, 4, 3)
+    assert ergebnis['angenommen'] is True and ergebnis['ergebnis'] == daten['ergebnis'] == 'angenommen'
+    # alle Vergleiche mit der Audit-Spur sind gelaufen
+    assert ergebnis['nenner_versiegelt'] is True and ergebnis['stimmliste_versiegelt'] is True
+    assert ergebnis['regeln_versiegelt'] is True and ergebnis['wortlaut_versiegelt'] is True
+    assert ergebnis['abweichung'] == 'mehr_stimmen_als_stimmberechtigte (4 bei 3)'
+    assert ergebnis['abweichung_ausgewiesen'] is True
+    assert 'weist diese Abweichung selbst aus' in ergebnis['hinweis']
+
+    # Die Siegel gelten weiter: Eine umgeschriebene Stimme bleibt ein FEHLER, auch bei ausgewiesener Überzahl.
+    umgeschrieben = copy.deepcopy(daten)
+    umgeschrieben['stimmen'][0]['stimme'] = 'nein'
+    with pytest.raises(SystemExit, match='FEHLER.*Prüfsumme'):
+        _nachrechnen_laden()(umgeschrieben)
+
+
+def test_nach_der_feststellung_eingeschleuste_stimmen_bleiben_ein_fehler(client, ordnung):  # noqa: F811
+    '''Das Gegenstück zum regulären Weg: Das Ergebnis ist festgestellt und versiegelt, die Kette weist keine
+    Abweichung aus — und danach stehen mehr Stimmzettel in der Datenbank als Stimmberechtigte. Die Plattform
+    liefert den Export, das Prüfskript endet mit FEHLER.'''
+    leute = [mitglied_anlegen(f's{i}') for i in range(3)]
+    antrag = in_abstimmung_bringen(antrag_einbringen(leute[0], **ANTRAG, ordnung=ordnung), leute[1:3])
+    antrag.refresh_from_db()
+    for m in leute:
+        stimme_abgeben(antrag, m, 'nein')
+    assert antrag.fortschreiben(_fristende(antrag)) is True
+    assert 'abweichungen' not in _ergebnis_ereignis(antrag)
+    for i in range(4):
+        _zettel_einschleusen(antrag, mitglied_anlegen(f'spaeter{i}'))
+
+    daten = _export(client, antrag)
+    assert len(daten['stimmen']) == 7 and daten['stimmberechtigte'] == 3
+    with pytest.raises(SystemExit, match='FEHLER'):
         _nachrechnen_laden()(daten)
+
+
+def test_das_pruefskript_meldet_eine_ueberzahl_die_die_kette_nicht_ausweist_als_fehler(client, ordnung):  # noqa: F811
+    '''Die eigene Prüfung neben den Siegeln: Begann die Abstimmung vor dem Siegel des Nenners, hält nur der
+    Abschluss fest, ob es eine Überzahl gab. Nennt der Export dann einen kleineren Nenner als gezählt wurde,
+    passen alle Prüfsummen — aber die Kette weist die Überzahl nicht aus.'''
+    leute = [mitglied_anlegen(f'a{i}') for i in range(5)]
+    antrag = antrag_einbringen(leute[0], **ANTRAG, ordnung=ordnung)
+    jetzt = timezone.now()
+    Antrag._base_manager.filter(pk=antrag.pk).update(
+        phase='abstimmung', phase_beginn=jetzt, stimmberechtigte_anzahl=5, stimmberechtigung_stichtag=timezone.localdate(jetzt),
+    )
+    AuditEintrag.anhaengen({'typ': 'phasenwechsel', 'antrag': antrag.pk, 'neue_phase': 'abstimmung', 'wirksam_ab': jetzt.isoformat()})
+    antrag.refresh_from_db()
+    for m in leute[:3]:
+        _zettel_einschleusen(antrag, m)
+    assert antrag.fortschreiben(_fristende(antrag)) is True
+    daten = _export(client, antrag)
+    nachrechnen = _nachrechnen_laden()
+    unveraendert = nachrechnen(copy.deepcopy(daten))
+    assert unveraendert['stimmliste_versiegelt'] is True and unveraendert['nenner_versiegelt'] is False
+    assert 'abweichung' not in unveraendert and 'hinweis' not in unveraendert
+
+    kleiner = copy.deepcopy(daten)
+    kleiner['stimmberechtigte'] = 2
+    with pytest.raises(SystemExit, match=r'FEHLER: mehr Stimmen als Stimmberechtigte \(3 bei 2\).*nicht aus'):
+        nachrechnen(kleiner)
+
+
+def test_eine_im_altbestand_ausgewiesene_ueberzahl_rechnet_das_pruefskript_nach(client, ordnung):  # noqa: F811
+    '''Altbestand ohne versiegelten Beginn: Die Zahl der Stimm-Ereignisse wird nicht geprüft, eine Überzahl
+    hält nicht an und steht im Ergebnis-Ereignis. Ob sie regulär entstand, sagt die Kette hier nicht —
+    das Skript rechnet, nennt die Abweichung und dass die Kette sie ausweist.'''
+    leute = [mitglied_anlegen(f'a{i}') for i in range(4)]
+    antrag = antrag_einbringen(leute[0], **ANTRAG, ordnung=ordnung)
+    jetzt = timezone.now()
+    Antrag._base_manager.filter(pk=antrag.pk).update(
+        phase='abstimmung', phase_beginn=jetzt, stimmberechtigte_anzahl=3, stimmberechtigung_stichtag=timezone.localdate(jetzt),
+    )
+    AuditEintrag.anhaengen({'typ': 'phasenwechsel', 'antrag': antrag.pk, 'neue_phase': 'abstimmung', 'wirksam_ab': jetzt.isoformat()})
+    antrag.refresh_from_db()
+    for m in leute:
+        _zettel_einschleusen(antrag, m)
+    assert antrag.fortschreiben(_fristende(antrag)) is True
+    assert _ergebnis_ereignis(antrag)['abweichungen'] == [UEBERZAHL]
+    ergebnis = _nachrechnen_laden()(_export(client, antrag))
+    assert ergebnis['angenommen'] is True and ergebnis['abweichung'] == 'mehr_stimmen_als_stimmberechtigte (4 bei 3)'
+    assert ergebnis['abweichung_ausgewiesen'] is True
 
 
 def test_ein_stimmzettel_ohne_stimmereignis_haelt_an(ordnung):  # noqa: F811
@@ -249,7 +332,7 @@ def test_das_ergebnis_ereignis_versiegelt_die_stimmliste_und_das_pruefskript_rec
     assert ergebnis['angenommen'] is True and ergebnis['stimmliste_versiegelt'] is True
 
 
-def test_das_pruefskript_endet_bei_ueberzahl_abweichung_und_falscher_pruefsumme_mit_fehler(client, ordnung):  # noqa: F811
+def test_das_pruefskript_endet_bei_abweichung_und_falscher_pruefsumme_mit_fehler(client, ordnung):  # noqa: F811
     antrag, _leute = _abstimmung(ordnung)
     daten = _export(client, antrag)
     nachrechnen = _nachrechnen_laden()
@@ -264,9 +347,11 @@ def test_das_pruefskript_endet_bei_ueberzahl_abweichung_und_falscher_pruefsumme_
     with pytest.raises(SystemExit, match='FEHLER'):
         nachrechnen(erfunden)
 
+    # Mehr Stimmen als Stimmberechtigte in einem versiegelten Export, dessen Kette keine Abweichung
+    # ausweist: Die Stimmen kamen nach der Feststellung dazu — das Siegel der Liste passt nicht mehr.
     ueberzahl = copy.deepcopy(daten)
     ueberzahl['stimmen'] += [{'pseudonym': uuid.uuid4().hex, 'stimme': 'ja'} for _ in range(10)]
-    with pytest.raises(SystemExit, match='FEHLER.*mehr Stimmen als Stimmberechtigte'):
+    with pytest.raises(SystemExit, match='FEHLER.*Prüfsumme'):
         nachrechnen(ueberzahl)
 
     # Zahl der Stimm-Ereignisse: ein Ereignis „stimme“ aus der Spur genommen
@@ -276,21 +361,110 @@ def test_das_pruefskript_endet_bei_ueberzahl_abweichung_und_falscher_pruefsumme_
         nachrechnen(ohne_ereignis)
 
 
-def test_ueberzahl_ist_auch_ohne_audit_spur_ein_fehler():
+def test_ueberzahl_ohne_audit_spur_rechnet_das_skript_wie_am_live_stand():
+    '''Ein Export ohne Audit-Spur oder von vor dieser Fassung trägt kein Siegel: Das Skript rechnet wie das
+    des Live-Stands 0.114.0 (dort ohne jede Prüfung der Überzahl) und nennt die Abweichung als Hinweis.'''
     nachrechnen = _nachrechnen_laden()
     export = {
         'art': 'sache', 'policy': {'mindestbeteiligung': 0.05}, 'stimmberechtigte': 5,
-        'stimmen': [{'pseudonym': f'p{i}', 'stimme': 'ja'} for i in range(9)],
+        'stimmen': [{'pseudonym': f'p{i}', 'stimme': 'ja' if i < 6 else 'nein'} for i in range(9)],
     }
-    with pytest.raises(SystemExit, match='FEHLER.*mehr Stimmen als Stimmberechtigte'):
-        nachrechnen(export)
+    ergebnis = nachrechnen(export)
+    assert (ergebnis['ja'], ergebnis['nein'], ergebnis['abgegeben']) == (6, 3, 9)
+    assert ergebnis['beteiligung_erreicht'] is True and ergebnis['angenommen'] is True
+    assert ergebnis['abweichung'] == 'mehr_stimmen_als_stimmberechtigte (9 bei 5)'
+    assert ergebnis['abweichung_ausgewiesen'] is False and ergebnis['stimmliste_versiegelt'] is False
+    assert 'kein Siegel' in ergebnis['hinweis']
     wahl = {
         'art': 'mandat', 'policy': {'mindestbeteiligung': 0.05}, 'stimmberechtigte': 2,
         'bewerbungen': [{'bewerbung': 1, 'name': 'A'}],
         'zustimmungen': [{'pseudonym': f'p{i}', 'bewerbung': 1} for i in range(3)],
     }
-    with pytest.raises(SystemExit, match='FEHLER.*mehr Stimmen als Stimmberechtigte'):
-        nachrechnen(wahl)
+    ergebnis = nachrechnen(wahl)
+    assert ergebnis['beteiligung'] == 3 and ergebnis['gewaehlt'] == 1 and ergebnis['angenommen'] is True
+    assert ergebnis['abweichung'] == 'mehr_stimmen_als_stimmberechtigte (3 bei 2)'
+    assert ergebnis['abweichung_ausgewiesen'] is False
+    # Auch der alte Export (0.114.0) mit Audit-Spur ohne Siegel: Hinweis, kein FEHLER.
+    alt = copy.deepcopy(ALTER_EXPORT)
+    alt['stimmberechtigte'] = 4
+    ergebnis = nachrechnen(alt)
+    assert ergebnis['angenommen'] is True and ergebnis['abweichung'] == 'mehr_stimmen_als_stimmberechtigte (5 bei 4)'
+    assert ergebnis['abweichung_ausgewiesen'] is False
+    # Ohne Überzahl nennt das Skript keine Abweichung.
+    assert 'abweichung' not in nachrechnen(copy.deepcopy(ALTER_EXPORT))
+
+
+def test_die_ueberzahl_zaehlt_menschen_wie_die_gegenprobe_der_plattform():
+    '''Bei der Zustimmungswahl zählt die Plattform für die Überzahl jeden Menschen mit einer geltenden
+    Zustimmung — auch zu einer zurückgezogenen Bewerbung, mehrere Zustimmungen einer Person einmal,
+    zurückgenommene nicht (`Antrag.stimmliste_gegenprobe`). Das Skript vergleicht mit derselben Zahl.'''
+    nachrechnen = _nachrechnen_laden()
+    wahl = {
+        'art': 'mandat', 'policy': {'mindestbeteiligung': 0.05}, 'stimmberechtigte': 2,
+        'bewerbungen': [{'bewerbung': 1, 'name': 'A'}, {'bewerbung': 2, 'name': 'B', 'zurueckgezogen': True}],
+        'zustimmungen': [
+            {'pseudonym': 'p1', 'bewerbung': 1}, {'pseudonym': 'p1', 'bewerbung': 2},
+            {'pseudonym': 'p2', 'bewerbung': 1}, {'pseudonym': 'p3', 'bewerbung': 1, 'zurueckgenommen': True},
+        ],
+    }
+    ergebnis = nachrechnen(copy.deepcopy(wahl))
+    assert ergebnis['beteiligung'] == 2 and 'abweichung' not in ergebnis
+    wahl['zustimmungen'].append({'pseudonym': 'p4', 'bewerbung': 2})  # nur der zurückgezogenen zugestimmt
+    ergebnis = nachrechnen(wahl)
+    assert ergebnis['beteiligung'] == 2  # die Auszählung bleibt, wie sie ist
+    assert ergebnis['abweichung'] == 'mehr_stimmen_als_stimmberechtigte (3 bei 2)'
+
+
+def test_weist_die_kette_eine_ueberzahl_aus_die_der_export_nicht_zeigt_steht_das_als_hinweis_da():
+    from plattform_core.tally import stimmliste_pruefsumme
+
+    nachrechnen = _nachrechnen_laden()
+    export = copy.deepcopy(ALTER_EXPORT)
+    export['audit'][-1]['ereignis'].update(
+        stimmzettel=5, abweichungen=[UEBERZAHL],
+        stimmliste_sha256=stimmliste_pruefsumme([s['pseudonym'], s['stimme']] for s in export['stimmen']),
+    )
+    ergebnis = nachrechnen(export)
+    assert ergebnis['angenommen'] is True and 'abweichung' not in ergebnis
+    assert 'zeigt keine Überzahl (5 bei 5)' in ergebnis['hinweis']
+
+
+def test_das_skript_als_programm_gibt_die_abweichung_als_zeile_aus(tmp_path):
+    import os
+    import subprocess
+    import sys
+
+    from verfahren.test_views_aktionen import NACHRECHNEN_PFAD
+
+    export = {
+        'art': 'sache', 'policy': {'mindestbeteiligung': 0.05}, 'stimmberechtigte': 3,
+        'stimmen': [{'pseudonym': f'p{i}', 'stimme': 'ja'} for i in range(4)],
+    }
+    datei = tmp_path / 'export.json'
+    datei.write_text(json.dumps(export), encoding='utf-8')
+    # Die Kodierung der Ausgabe steht fest: Auf einer Windows-Konsole (cp1252) wären die Umlaute des
+    # Hinweises sonst nicht als UTF-8 lesbar, und der Test hinge am Rechner, auf dem er läuft.
+    lauf = subprocess.run(
+        [sys.executable, str(NACHRECHNEN_PFAD), str(datei)], capture_output=True, text=True, encoding='utf-8',
+        check=False, env={**os.environ, 'PYTHONIOENCODING': 'utf-8'},
+    )
+    assert lauf.returncode == 0, lauf.stderr
+    zeilen = lauf.stdout.splitlines()
+    assert 'abweichung: mehr_stimmen_als_stimmberechtigte (4 bei 3)' in zeilen
+    assert 'angenommen: True' in zeilen and 'FEHLER' not in lauf.stdout + lauf.stderr
+
+
+def test_beschreibung_und_skript_sagen_dasselbe_ueber_die_ueberzahl():
+    from verfahren.test_views_aktionen import NACHRECHNEN_PFAD
+
+    skript = NACHRECHNEN_PFAD.read_text(encoding='utf-8')
+    liesmich = (NACHRECHNEN_PFAD.parent / 'README.md').read_text(encoding='utf-8')
+    for text in (skript, liesmich):
+        assert 'sind in jedem Export ein Fehler' not in text
+        assert 'zählt das Skript nicht aus' not in text
+        assert 'endet an einem solchen Export mit `FEHLER`' not in text
+    assert '`abweichung`' in liesmich and '`abweichung_ausgewiesen`' in liesmich
+    assert 'mehr_stimmen_als_stimmberechtigte' in skript.split('import hashlib')[0]  # im Docstring erklärt
 
 
 #: Ein Export, wie ihn der Live-Stand 0.114.0 liefert (gekürzt): ohne Stichtag, ohne Prüfsumme, die

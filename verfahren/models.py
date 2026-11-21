@@ -2102,15 +2102,28 @@ def bewerbung_einreichen(antrag: Antrag, mitglied, vorstellung: str, rueckgabezu
     return bewerbung
 
 
+def _antrag_fuer_stimme_sperren(antrag: Antrag) -> Antrag:
+    """Die Antragszeile sperren und neu lesen, bevor eine Stimme geprüft und geschrieben wird — für
+    jeden Antrag, nicht nur für den örtlichen Kreis.
+
+    Die Ansicht hat den Antrag vor der Stimmabgabe geladen; stellt inzwischen ein anderer Ablauf das
+    Ergebnis fest, prüfte die Stimmabgabe Phase und Frist sonst an einem veralteten Objekt, und die
+    Stimme käme nach der Feststellung in die Liste — an der Prüfsumme vorbei, die mit dem Ergebnis
+    in der Audit-Kette steht. Dieselbe Sperrreihenfolge wie `Antrag.fortschreiben` (zuerst die
+    Antragszeile): Die Stimmabgabe wartet auf eine laufende Feststellung und wird dann abgewiesen,
+    oder die Feststellung wartet auf die Stimmabgabe und zählt die Stimme mit. Nur innerhalb einer
+    Transaktion aufrufen."""
+    return Antrag.objects.select_for_update().get(pk=antrag.pk)
+
+
 @transaction.atomic
 def bewerbung_zustimmen(antrag: Antrag, mitglied, bewerbung: Bewerbung, jetzt=None) -> bool:
     """Zustimmung zu einer Bewerbung geben oder zurücknehmen (Umschalter).
     Rückgabe: True = zugestimmt, False = zurückgenommen. Läuft über das
     Stimmregister des Antrags — geheim und nachrechenbar wie jede Stimme."""
-    from verfahren.teilnahme import oertlich_begrenzt, stimmrecht_im_neuen_kreis
+    from verfahren.teilnahme import stimmrecht_im_neuen_kreis
 
-    if oertlich_begrenzt(antrag):
-        antrag = Antrag.objects.select_for_update().get(pk=antrag.pk)
+    antrag = _antrag_fuer_stimme_sperren(antrag)
     if not stimmrecht_im_neuen_kreis(antrag, mitglied, frisch=True):
         raise StimmabgabeFehler(_("Sie gehören nicht zum stimmberechtigten örtlichen Teilnehmerkreis."))
     jetzt = jetzt or timezone.now()
@@ -2156,10 +2169,9 @@ class StimmabgabeFehler(Exception):
 @transaction.atomic
 def stimme_abgeben(antrag: Antrag, mitglied, stimme: str, jetzt=None) -> Stimmabgabe:
     """Stimmabgabe bzw. -änderung während laufender Abstimmung (§ 5 Abs 3 lit d)."""
-    from verfahren.teilnahme import oertlich_begrenzt, stimmrecht_im_neuen_kreis
+    from verfahren.teilnahme import stimmrecht_im_neuen_kreis
 
-    if oertlich_begrenzt(antrag):
-        antrag = Antrag.objects.select_for_update().get(pk=antrag.pk)
+    antrag = _antrag_fuer_stimme_sperren(antrag)
     if not stimmrecht_im_neuen_kreis(antrag, mitglied, frisch=True):
         raise StimmabgabeFehler(_("Sie gehören nicht zum stimmberechtigten örtlichen Teilnehmerkreis."))
     jetzt = jetzt or timezone.now()

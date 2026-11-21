@@ -200,11 +200,14 @@ def registrieren(request):
                     wohnsitz_anwenden(mitglied, form)
                     mitglied.set_unusable_password()
                     mitglied.save()
-                    # GP-129: im selben Block und vor dem Versand — ohne Eintrag kein Konto und keine Mail
+                    _bestaetigungslink_senden(request, mitglied)
+                    # GP-129: im selben Block — ohne Eintrag kein Konto. Als Letztes, NACH dem Versand:
+                    # Der noch nicht festgeschriebene Eintrag hält auf PostgreSQL den Kopf der Audit-Kette
+                    # (Eindeutigkeit von `vorgaenger`); stünde er vor dem Versand, wartete jede andere
+                    # protokollierte Handlung der Plattform, solange der Mailserver antwortet.
                     AuditEintrag.anhaengen(
                         {"typ": "registrierung", "mitglied": mitglied.pk, **({"erneut": True} if erneut else {})}
                     )
-                    _bestaetigungslink_senden(request, mitglied)
             except (SMTPException, OSError):
                 log.exception("Bestätigungs-Mail nicht versendbar — Registrierung zurückgerollt.")
                 form.add_error(None, _("Ihre Registrierung wurde nicht gespeichert: %s") % MAIL_STOERUNG)

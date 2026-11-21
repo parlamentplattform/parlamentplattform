@@ -119,13 +119,34 @@ def test_beitragserinnerung_bleibt_ohne_audit_unbeauftragt(client, audit_scheite
     assert not Postauftrag.objects.filter(mitglied=bert, art='beitragserinnerung').exists()
 
 
-def test_registrierung_bleibt_ohne_audit_ohne_konto_und_ohne_mail(client, audit_scheitert):
+def test_registrierung_bleibt_ohne_audit_ohne_konto_und_ohne_gueltigen_link(client, audit_scheitert):
+    from mitglieder.auth_flows import EinmalToken
+
     daten = {**ANMELDUNG, **botschutz(client)}
     audit_scheitert('registrierung')
     with pytest.raises(AuditGescheitert):
         client.post(reverse('mitglieder:registrieren'), daten)
     assert not Mitglied.objects.filter(email=ANMELDUNG['email']).exists()
-    assert mail.outbox == []
+    assert not EinmalToken.objects.exists()  # ein schon versandter Link löst nichts mehr ein
+
+
+def test_registrierung_haelt_den_kettenkopf_nicht_ueber_den_mailversand(client, monkeypatch):
+    """Der Eintrag steht im Block NACH dem Versand: Ein noch nicht festgeschriebener Eintrag hält auf
+    PostgreSQL den Kopf der Audit-Kette — vor dem Versand wartete jede andere protokollierte Handlung
+    auf den Mailserver."""
+    from mitglieder import views
+
+    beim_versand = []
+    original = views._bestaetigungslink_senden
+
+    def senden(request, mitglied):
+        beim_versand.append(AuditEintrag.objects.filter(ereignis__typ='registrierung').exists())
+        return original(request, mitglied)
+
+    monkeypatch.setattr(views, '_bestaetigungslink_senden', senden)
+    antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    assert antwort.status_code == 200 and beim_versand == [False]
+    assert AuditEintrag.objects.filter(ereignis__typ='registrierung').count() == 1 and len(mail.outbox) == 1
 
 
 def test_bestaetigung_bleibt_ohne_audit_unwirksam_und_der_link_gueltig(client, audit_scheitert):

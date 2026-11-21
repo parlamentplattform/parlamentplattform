@@ -1469,16 +1469,17 @@ def test_profil_zeigt_die_karte_zur_fachliste_nur_wem_der_endpunkt_sie_erlaubt(c
     pausiert.save(update_fields=['status'])
     testkonto = mitglied_anlegen('testkonto')
     Mitglied.objects.filter(pk=testkonto.pk).update(testkonto=True)
+    gemeindekonto = Mitglied.objects.create_user('einwohner', email='einwohner@example.org', parteikonto=False)
     gesehen = {}
-    for konto in (aktiv, pausiert, Mitglied.objects.get(pk=testkonto.pk)):
+    for konto in (aktiv, pausiert, Mitglied.objects.get(pk=testkonto.pk), gemeindekonto):
         client.force_login(konto)
-        html = client.get(PROFIL).content.decode()
+        html = client.get(PROFIL, follow=True).content.decode()
         gesehen[konto.username] = 'id="fachliste-einwilligung"' in html
         if gesehen[konto.username]:
             assert f'action="{ziel}"' in html
         darf = client.post(ziel, {'aktion': 'erklaeren'}).status_code != 403
         assert gesehen[konto.username] == darf, konto.username
-    assert gesehen == {'aktiv': True, 'pausiert': False, 'testkonto': False}
+    assert gesehen == {'aktiv': True, 'pausiert': False, 'testkonto': False, 'einwohner': False}
 
 
 def test_austritt_widerruft_die_offene_einwilligung_zur_fachliste_in_derselben_transaktion(monkeypatch):

@@ -1868,9 +1868,26 @@ def _anlegen_pruefen(d: dict) -> str:
     return ""
 
 
+def _enddatum(mandat: Mandat, roh: str) -> date | None:
+    """Das eingegebene Ende eines Mandats — None, wenn es kein Datum ist oder nicht zwischen dem Antritt
+    und heute liegt (GP-113)."""
+    tag = _datum_aus_eingabe(roh)
+    if tag is None or tag > timezone.localdate() or (mandat.angetreten is not None and tag < mandat.angetreten):
+        return None
+    return tag
+
+
+def _enddatum_meldung(mandat: Mandat) -> str:
+    return _("Das Ende des Mandats liegt zwischen dem Antritt (%(ab)s) und heute.") % {
+        "ab": mandat.angetreten.strftime("%d.%m.%Y") if mandat.angetreten else "–"
+    }
+
+
 def _berichtigen(request, mandat: Mandat) -> None:
     """Berichtigung der Stammdaten eines Mandats (GP-115): je geändertem Feld ein Vermerk mit altem und
-    neuem Wert im Audit, mit dem handelnden Konto. Ohne Änderung geschieht nichts."""
+    neuem Wert im Audit, mit dem handelnden Konto. Ohne Änderung geschieht nichts. Das Ende eines
+    beendeten Mandats wird nur hier berichtigt, in denselben Grenzen wie beim Beenden (GP-113);
+    beendet wird ein offenes Mandat nur über „Mandat beenden“."""
     neu = {
         "bezeichnung": (request.POST.get("bezeichnung") or "").strip()[:120],
         "gebiet": (request.POST.get("gebiet") or "").strip()[:120],
@@ -1878,6 +1895,13 @@ def _berichtigen(request, mandat: Mandat) -> None:
     if not neu["bezeichnung"]:
         messages.error(request, _("Die Bezeichnung des Mandats darf nicht leer sein."))
         return
+    roh = (request.POST.get("beendet") or "").strip()
+    if mandat.beendet is not None and roh:
+        ende = _enddatum(mandat, roh)
+        if ende is None:
+            messages.error(request, _enddatum_meldung(mandat))
+            return
+        neu["beendet"] = ende
     geaendert = [feld for feld, wert in neu.items() if getattr(mandat, feld) != wert]
     if not geaendert:
         messages.info(request, _("Keine Änderung — nichts berichtigt."))
@@ -1886,7 +1910,12 @@ def _berichtigen(request, mandat: Mandat) -> None:
         alt = getattr(mandat, feld)
         setattr(mandat, feld, neu[feld])
         AuditEintrag.anhaengen(
-            {"typ": "mandat_berichtigt", "mandat": mandat.pk, "feld": feld, "alt": alt, "neu": neu[feld], "durch": request.user.pk}
+            {
+                "typ": "mandat_berichtigt", "mandat": mandat.pk, "feld": feld,
+                "alt": alt.isoformat() if isinstance(alt, date) else alt,
+                "neu": neu[feld].isoformat() if isinstance(neu[feld], date) else neu[feld],
+                "durch": request.user.pk,
+            }
         )
     mandat.save(update_fields=geaendert)
     messages.success(request, _("Mandat „%(bezeichnung)s“ berichtigt.") % {"bezeichnung": mandat.bezeichnung})
@@ -1977,7 +2006,12 @@ def verwaltung_aktion(request):
                 % {"bezeichnung": mandat.bezeichnung, "datum": mandat.beendet.strftime("%d.%m.%Y")},
             )
             return redirect("mandatare:verwaltung")
-        mandat.beendet = timezone.localdate()
+        roh = (request.POST.get("datum") or "").strip()
+        ende = _enddatum(mandat, roh) if roh else timezone.localdate()
+        if ende is None:
+            messages.error(request, _enddatum_meldung(mandat))
+            return redirect("mandatare:verwaltung")
+        mandat.beendet = ende
         mandat.save(update_fields=["beendet"])
         AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk, "durch": request.user.pk})
         mandatsende_folgen(mandat, "mandat_beendet")  # Sprechstunden absagen, laufende Sitzung beenden (GP-116)

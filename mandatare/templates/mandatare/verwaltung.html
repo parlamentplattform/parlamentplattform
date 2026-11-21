@@ -53,6 +53,8 @@ pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingre
     {% if not m.beendet %}
     <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}">{% csrf_token %}
       <input type="hidden" name="aktion" value="beenden"><input type="hidden" name="mandat" value="{{ m.pk }}">
+      <label for="ende-{{ m.pk }}">{% translate "Ende am" %}</label>
+      <input type="date" id="ende-{{ m.pk }}" name="datum" value="{% now 'Y-m-d' %}" min="{{ m.angetreten|date:'Y-m-d' }}" max="{% now 'Y-m-d' %}" required>
       <button type="submit" class="btn-still">{% translate "Mandat beenden" %}</button>
     </form>
     {% endif %}
@@ -63,6 +65,7 @@ pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingre
       <input type="hidden" name="aktion" value="berichtigen"><input type="hidden" name="mandat" value="{{ m.pk }}">
       <label for="bt-bezeichnung-{{ m.pk }}">{% translate "Mandat" %}</label><input type="text" id="bt-bezeichnung-{{ m.pk }}" name="bezeichnung" maxlength="120" value="{{ m.bezeichnung }}" required>
       <label for="bt-gebiet-{{ m.pk }}">{% translate "Gebiet" %}</label><input type="text" id="bt-gebiet-{{ m.pk }}" name="gebiet" maxlength="120" value="{{ m.gebiet }}">
+      {% if m.beendet %}<label for="bt-ende-{{ m.pk }}">{% translate "Ende am" %}</label><input type="date" id="bt-ende-{{ m.pk }}" name="beendet" value="{{ m.beendet|date:'Y-m-d' }}" min="{{ m.angetreten|date:'Y-m-d' }}" max="{% now 'Y-m-d' %}" required>{% endif %}
       <button type="submit" class="btn-linie klein mt">{% translate "Berichtigen" %}</button>
     </form>
   </details>

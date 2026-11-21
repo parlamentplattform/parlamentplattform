@@ -400,3 +400,54 @@ def test_berichtigung_der_bezeichnung_steht_mit_alt_und_neu_im_audit(client):
     mandat.refresh_from_db()
     assert mandat.bezeichnung == "Gemeinderat"
     assert AuditEintrag.objects.filter(ereignis__typ="mandat_berichtigt").count() == 1
+
+
+# ── GP-113 (Rest): Enddatum als Eingabe mit Grenzen, Berichtigung als eigener Vermerk ─────────
+
+
+def test_enddatum_ist_eine_eingabe_mit_grenzen(client):
+    from django.contrib.messages import get_messages
+
+    heute = timezone.localdate()
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), angetreten=heute - timedelta(days=100))
+    client.force_login(admin_anlegen())
+    url = reverse("mandatare:verwaltung_aktion")
+    assert 'name="datum"' in client.get(reverse("mandatare:verwaltung")).content.decode()
+    for falsch in (heute + timedelta(days=1), heute - timedelta(days=101), "kein Datum"):
+        wert = falsch.isoformat() if hasattr(falsch, "isoformat") else falsch
+        antwort = client.post(url, {"aktion": "beenden", "mandat": mandat.pk, "datum": wert})
+        mandat.refresh_from_db()
+        assert mandat.beendet is None, falsch
+        assert "zwischen dem Antritt" in " ".join(str(m) for m in get_messages(antwort.wsgi_request))
+    client.post(url, {"aktion": "beenden", "mandat": mandat.pk, "datum": (heute - timedelta(days=5)).isoformat()})
+    mandat.refresh_from_db()
+    assert mandat.beendet == heute - timedelta(days=5)
+
+
+def test_berichtigung_des_enddatums_steht_als_eigener_vermerk_mit_alt_und_neu(client):
+    from verfahren.models import AuditEintrag
+
+    heute = timezone.localdate()
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), angetreten=heute - timedelta(days=100), beendet=heute - timedelta(days=2))
+    client.force_login(admin_anlegen())
+    url = reverse("mandatare:verwaltung_aktion")
+    daten = {"aktion": "berichtigen", "mandat": mandat.pk, "bezeichnung": mandat.bezeichnung, "gebiet": mandat.gebiet}
+    client.post(url, {**daten, "beendet": (heute + timedelta(days=3)).isoformat()})  # außerhalb der Grenzen
+    mandat.refresh_from_db()
+    assert mandat.beendet == heute - timedelta(days=2)
+    client.post(url, {**daten, "beendet": (heute - timedelta(days=9)).isoformat()})
+    mandat.refresh_from_db()
+    assert mandat.beendet == heute - timedelta(days=9)
+    (e,) = [x.ereignis for x in AuditEintrag.objects.filter(ereignis__typ="mandat_berichtigt")]
+    assert (e["feld"], e["alt"], e["neu"]) == ("beendet", (heute - timedelta(days=2)).isoformat(), (heute - timedelta(days=9)).isoformat())
+    assert not AuditEintrag.objects.filter(ereignis__typ="mandat_beendet").exists()
+
+
+def test_offenes_mandat_kann_ueber_die_berichtigung_nicht_beendet_werden(client):
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), angetreten=timezone.localdate() - timedelta(days=10))
+    client.force_login(admin_anlegen())
+    client.post(reverse("mandatare:verwaltung_aktion"),
+                {"aktion": "berichtigen", "mandat": mandat.pk, "bezeichnung": mandat.bezeichnung, "gebiet": mandat.gebiet,
+                 "beendet": timezone.localdate().isoformat()})
+    mandat.refresh_from_db()
+    assert mandat.beendet is None

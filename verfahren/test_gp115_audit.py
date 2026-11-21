@@ -108,3 +108,21 @@ def test_der_lauf_meldet_den_grund_zeit():
     Hintergrundlauf.objects.filter(name=LAUF).update(zuletzt_stand={})
     stand = lauf()
     assert stand["intakt"] is False and stand["grund"] == "zeit" and stand["bruch"] == eintrag.lfd
+
+
+def test_der_befehl_nennt_den_grund_zeit_in_worten():
+    """GP-158: Der Prüfbefehl führt keine eigene Liste der Gründe — er liest die der Prüfung."""
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+
+    from verfahren.management.commands import audit_pruefen
+
+    _kette_geprueft()
+    eintrag = AuditEintrag.objects.order_by("lfd")[1]
+    AuditEintrag._base_manager.filter(pk=eintrag.pk).update(zeit=eintrag.zeit - timedelta(days=400))
+    with pytest.raises(CommandError) as fehler:
+        call_command("audit_pruefen", "--voll")
+    meldung = str(fehler.value)
+    assert f"bei Eintrag {eintrag.lfd}: " in meldung
+    assert str(audit_pruefung.GRUENDE["zeit"]) in meldung
+    assert not hasattr(audit_pruefen, "GRUENDE") or audit_pruefen.GRUENDE is audit_pruefung.GRUENDE

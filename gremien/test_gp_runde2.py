@@ -550,3 +550,74 @@ def test_altbestand_der_vermerk_des_rates_wandert_in_die_liste(client):
     einzel = _einzelseite(client, vom_rat)
     assert 'Einladung geht per Mail.' in einzel and 'Raum ist gebucht.' in einzel and frist.strftime('%d.%m.%Y') in einzel
     assert 'Ohne Wirkung: Beispiel.' in _einzelseite(client, von_der_plattform)
+
+
+# --- GP-021 (Rest) · Testwerte außerhalb des Wertbereichs --------------------------------------
+
+
+@pytest.mark.parametrize(
+    ('schluessel', 'testwert', 'bereich'),
+    [
+        ('live-hoechstdauer-stunden', '500', 'von 1 bis 72'),  # eigener Bereich mit Obergrenze
+        ('live-hoechstdauer-stunden', '0', 'von 1 bis 72'),
+        ('adresswechsel-wartefrist-stunden', '0', 'ab 1'),  # eine Wartefrist 0 ist eine Kontoübernahme
+        ('gremien-rollen-dauer-tage', '-1', 'ab 0'),  # ohne eigenen Bereich: keine negativen Werte
+        ('gremien-rollen-dauer-tage', '007', 'ab 0'),  # nur die Schreibweise, die das Register auch annimmt
+    ],
+)
+def test_ein_testwert_ausserhalb_des_wertbereichs_wird_abgewiesen(client, schluessel, testwert, bereich):
+    """GP-021: Die Verwaltung weist seit 0.113.0 Werte außerhalb des Wertbereichs ab — der Koordinationsrat
+    konnte dieselben Werte weiter als Test anordnen. Jetzt gilt dieselbe Prüfung mit derselben Meldung:
+    Es entsteht weder ein Test noch ein Beschluss, das Register bleibt, wie es ist."""
+    from gremien.models import Anlass, GremienBeschluss
+    from gremien.test_gp_runde1 import _korat, _register, _test_anordnen
+    from parameter.models import ParameterTest, wert_ausserhalb
+
+    leute = _korat()
+    parameter = _register(schluessel)
+    vorher = parameter.wert
+    assert wert_ausserhalb(parameter, testwert)  # die Regel des Registers, nicht eine zweite
+    antwort = _test_anordnen(client, leute[0], parameter, testwert)
+    inhalt = antwort.content.decode()
+    assert antwort.status_code == 200 and f'nimmt nur ganze Zahlen {bereich}' in inhalt
+    assert not ParameterTest.objects.exists()
+    assert not GremienBeschluss.objects.filter(anlass=Anlass.PARAMETERTEST).exists()
+    assert not ereignisse('gremienbeschluss_angelegt')
+    parameter.refresh_from_db()
+    assert parameter.wert == vorher and parameter.status != 'im_test'
+
+
+def test_ein_testwert_im_wertbereich_wird_weiter_angeordnet(client):
+    """Gegenprobe zu GP-021: Die Grenzen selbst sind zulässig."""
+    from gremien.test_gp_runde1 import _korat, _register, _test_anordnen
+    from parameter.models import ParameterTest
+
+    leute = _korat()
+    parameter = _register('live-hoechstdauer-stunden')
+    assert parameter.wert != '72'
+    _test_anordnen(client, leute[0], parameter, '72')
+    assert ParameterTest.objects.get().testwert == '72'
+
+
+def test_altbestand_ein_geplanter_test_ausserhalb_des_bereichs_beginnt_nicht(client):
+    """GP-021, Altbestand: Ein vor dieser Fassung angeordneter Test mit einem Wert außerhalb des
+    Wertbereichs schriebe ihn mit dem Beschluss des Rates ins Register. Er beginnt nicht — der
+    Beschluss steht, mit dem Vermerk, warum er ohne Wirkung blieb."""
+    from gremien.test_gp_runde1 import _korat, _rat_stimmt, _register, _test_anordnen
+    from parameter.models import Aenderung, ParameterTest, Status, TestStatus
+
+    leute = _korat()
+    parameter = _register('live-hoechstdauer-stunden')
+    vorher = parameter.wert
+    _test_anordnen(client, leute[0], parameter, '48')
+    test = ParameterTest.objects.get()
+    ParameterTest.objects.filter(pk=test.pk).update(testwert='500')  # wie vor dieser Fassung angeordnet
+    beschluss = _rat_stimmt(client, leute, test.beschluss)
+    test.refresh_from_db()
+    parameter.refresh_from_db()
+    assert beschluss.ergebnis == 'dafuer'
+    assert test.status == TestStatus.VERWORFEN and 'Wertbereich' in test.auswertung
+    assert parameter.wert == vorher and parameter.status == Status.GUELTIG
+    assert not Aenderung.objects.filter(parameter=parameter).exists()
+    assert 'Nicht angeordnet' in beschluss.umsetzungsvermerk and 'Wertbereich' in beschluss.umsetzungsvermerk
+    assert not ereignisse('parametertest_begonnen')

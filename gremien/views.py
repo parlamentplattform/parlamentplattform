@@ -64,7 +64,7 @@ from ki.models import Zweck, lauf_ausfuehren
 from mandatare.models import Mandat, Vertrauensfrage, VertrauensfrageArt
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
-from parameter.models import Parameter, ParameterTest, Status, TestStatus
+from parameter.models import Parameter, ParameterTest, Status, TestStatus, wert_ausserhalb
 from plattform_core import Phase, wortdiff
 from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
 from verfahren.chat import abstimmung_stand as _abstimmung_stand
@@ -2122,6 +2122,12 @@ def _test_anordnen(request):
         # Einen unlesbaren Wert läse die Plattform still als den eingebauten Zielwert (`parameter.zahl`) —
         # der Test stünde im Register und mäße nichts (GP-044).
         messages.error(request, _("Der Testwert muss wie der geltende Wert eine ganze Zahl sein."))
+        return redirect("gremien:koordination")
+    ausserhalb = wert_ausserhalb(parameter, testwert)
+    if ausserhalb:
+        # Dieselbe Prüfung wie in der Verwaltung des Registers (GP-021): Was dort kein zulässiger Wert
+        # ist, kommt auch als Test nicht ins Register — sonst wäre der Test der Weg um die Grenze herum.
+        messages.error(request, ausserhalb)
         return redirect("gremien:koordination")
     if testwert == parameter.wert:
         messages.info(request, _("Der Testwert ist der geltende Wert — nichts zu testen."))

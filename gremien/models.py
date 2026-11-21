@@ -36,7 +36,7 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from parameter.models import Aenderung, ParameterTest, Status, TestStatus
+from parameter.models import Aenderung, ParameterTest, Status, TestStatus, wert_ausserhalb
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag
 
 log = logging.getLogger(__name__)
@@ -2994,6 +2994,17 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
         test.status = TestStatus.VERWORFEN
         test.auswertung = (
             f"Nicht angeordnet — das Ende des Tests ({test.ende:%d.%m.%Y}) war erreicht, als der Rat entschied."
+        )
+        test.ausgewertet_am = jetzt
+        test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
+        _vermerken(beschluss, test.auswertung)
+        return
+    if wert_ausserhalb(parameter, test.testwert):
+        # Das Anordnen weist solche Werte ab (GP-021); ein vor dieser Fassung angeordneter Test trägt
+        # ihn vielleicht noch. Die Grenze des Registers gilt auch für ihn: Er beginnt nicht.
+        test.status = TestStatus.VERWORFEN
+        test.auswertung = (
+            f"Nicht angeordnet — der Testwert {test.testwert} liegt außerhalb des Wertbereichs der Stellgröße."
         )
         test.ausgewertet_am = jetzt
         test.save(update_fields=["status", "auswertung", "ausgewertet_am"])

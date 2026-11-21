@@ -16,6 +16,7 @@ BEREICHE = {
     ("verfahren", "umsetzung"): "umsetzung",
     ("verfahren", "umsetzung_json"): "umsetzung",
     ("verfahren", "zukunftswerkstatt"): "zukunftswerkstatt",
+    ("verfahren", "laeufe"): "zukunftswerkstatt",
 }
 APPS = {"mandatare": "mandatare", "uebersicht": "uebersicht", "gremien": "gremien"}
 VERWALTUNG = {("gremien", "rollen"), ("gremien", "rollen_aktion"), ("mandatare", "verwaltung"), ("mandatare", "verwaltung_aktion")}

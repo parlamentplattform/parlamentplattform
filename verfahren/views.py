@@ -2321,3 +2321,43 @@ def zukunftswerkstatt(request):
             "auftragsversionen": auftragsversionen(),
         },
     )
+
+
+def _archivierte_laeufe():
+    """Das öffentliche Lauf-Archiv (GP-149): alle Läufe außer den privaten Vorabvergleichen,
+    nach Laufnummer absteigend — dieselbe Reihenfolge auf jeder Seite."""
+    from ki.models import KILauf, Zweck
+
+    return KILauf.objects.exclude(zweck=Zweck.GEGENUEBERSTELLUNG).order_by("-pk")
+
+
+def _laeufe_je_seite():
+    return max(1, zahl("ki-laeufe-je-seite", 50))
+
+
+@require_safe
+def laeufe(request):
+    """GP-149: seitenweise Liste aller archivierten Läufe mit Nummer und Anker `#lauf-<n>`. Sie zeigt
+    je Lauf dieselben Angaben wie die letzten Läufe der Werkstattseite: Zweck, Antrag, Modell,
+    Auftragsfassung, Verbrauch, Dauer, Zeit, öffentlicher Fehler und Textstand."""
+    from django.core.paginator import Paginator
+
+    from ki.nachlese import textstand
+
+    # Eingabe und Antwort zeigt die Liste nicht; sie werden auch nicht geladen.
+    liste = _archivierte_laeufe().select_related("antrag").defer("eingabe", "antwort")
+    seite = Paginator(liste, _laeufe_je_seite()).get_page(request.GET.get("seite"))
+    for lauf in seite.object_list:
+        lauf.textstand = textstand(lauf)
+    return render(request, "verfahren/laeufe.html", {"seite": seite})
+
+
+@require_safe
+def lauf(request, nummer):
+    """Die Laufnummer einer Einschätzung: leitet auf die Archivseite mit diesem Lauf und seinen Anker."""
+    archiv = _archivierte_laeufe()
+    if not archiv.filter(pk=nummer).exists():
+        raise Http404
+    davor = archiv.filter(pk__gt=nummer).count()
+    ziel = reverse("verfahren:laeufe") + f"?seite={davor // _laeufe_je_seite() + 1}#lauf-{nummer}"
+    return redirect(ziel)

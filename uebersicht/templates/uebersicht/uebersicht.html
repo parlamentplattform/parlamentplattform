@@ -117,6 +117,7 @@ entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte
 </div>
 
 <h2>{% translate "Meistgelesene Anträge" %}</h2>
+<p class="erk"><a href="{% url 'parameter:regeln' %}#regel-meistgelesen">{% translate "Die Regel im Verzeichnis →" %}</a></p>
 <div class="karte">
   {% for m in meistgelesen %}
     <div class="eintrag">

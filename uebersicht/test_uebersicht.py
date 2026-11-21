@@ -217,6 +217,17 @@ def test_z3_die_seite_liest_reihung_und_hoechstzahl_aus_der_kernregel(client, or
     assert gezeigt() == [1, 4]
 
 
+def test_gp134_die_liste_der_meistgelesenen_verlinkt_ihre_regel(client):
+    """GP-134 (RVA-24, RVB-12): Die Liste nannte weder Regel noch Zeitraum. Sie verweist auf ihren
+    Eintrag im Regelverzeichnis; der Anker ist der Modulname ohne Endung (parameter/regeln.html)."""
+    from plattform_core.regelwerk import REGELN
+
+    assert any(r.modul == "meistgelesen.py" for r in REGELN)
+    inhalt = client.get(reverse("uebersicht:index")).content.decode()
+    assert f'href="{reverse("parameter:regeln")}#regel-meistgelesen"' in inhalt
+    assert 'id="regel-meistgelesen"' in client.get(reverse("parameter:regeln")).content.decode()
+
+
 def test_gp126_die_phasenaufstellung_summiert_auf_die_gesamtzahl(client, ordnung):  # noqa: F811
     '''GP-126 (GAST-12, RVB-13): Die Phasenzeile kannte nur fünf Phasen; verfallene, zurückgezogene
     und zurückgewiesene Anträge steckten in „insgesamt“, fehlten aber in der Aufstellung. Mit je

@@ -97,7 +97,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     {% if lage.wartegrund.grund == "budget" %}<p class="erk">{% blocktranslate with datum=lage.wartegrund.ab|date:"d.m.Y" %}Das Monatsbudget der Zukunftswerkstatt ist erschöpft; die Warteschlange rechnet erst nach dem Monatswechsel wieder, frühestens am {{ datum }}.{% endblocktranslate %}</p>{% elif lage.wartegrund.grund == "kontingent" %}<p class="erk">{% blocktranslate with datum=lage.wartegrund.ab|date:"d.m.Y" %}Das Tageskontingent der Zukunftswerkstatt ist aufgebraucht; die Warteschlange rechnet frühestens am {{ datum }} weiter.{% endblocktranslate %}</p>{% endif %}
     {% if lage.mail_zusage %}<p class="erk">{% translate "Sie bekommen eine E-Mail, sobald das Ergebnis da ist." %}</p>{% endif %}
   {% elif lage.zustand == "gescheitert" %}
-    <p class="leer">{% if lage.auftrag.versuche %}{% translate "Lauf gescheitert — alle Versuche aufgebraucht." %}{% if lage.auftrag.fehler %} <span class="meta">{{ lage.auftrag.fehler }}</span>{% endif %}{% else %}{% translate "Der Auftrag konnte nicht vorbereitet werden; es wurde kein Anbieter aufgerufen." %}{% endif %}</p>
+    <p class="leer">{% if lage.auftrag.fehlercode == "abgeschnitten" %}{% translate "Die Modellantwort wurde an der Längengrenze abgeschnitten und nicht als Ergebnis übernommen." %}{% if lage.auftrag.lauf_id %} <span class="meta">{% translate "Lauf" %} #{{ lage.auftrag.lauf_id }}</span>{% endif %}{% elif lage.auftrag.versuche %}{% translate "Lauf gescheitert — alle Versuche aufgebraucht." %}{% if lage.auftrag.fehler %} <span class="meta">{{ lage.auftrag.fehler_oeffentlich }}</span>{% endif %}{% else %}{% translate "Der Auftrag konnte nicht vorbereitet werden; es wurde kein Anbieter aufgerufen." %}{% endif %}</p>
   {% elif lage.zustand == "nicht_pruefbar" %}
     <p class="leer">{% translate "Der gespeicherte Lauf ist nicht eindeutig an den öffentlichen Auftrag gebunden. Seine Antwort wird nicht angezeigt." %}</p>
   {% elif lage.zustand == "nicht_angeschlossen" %}
@@ -127,7 +127,8 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
         <p class="meta">{% translate "Unsicherheit" %}: {{ h.unsicherheit_wort }}</p>
         {% if h.hinweis %}<p class="erk">{{ h.hinweis }}</p>{% endif %}
         {% if h.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=h ohne_unsicherheit=True %}{% include "verfahren/_ki_personalstand.html" with personalstand=h.personalstand %}{% endif %}
-      {% else %}<p class="leer">{% translate "Anbieteraufruf fehlgeschlagen" %} · {{ h.lauf.fehler }}</p>{% endif %}
+      {% elif h.lauf.fehlercode == "abgeschnitten" %}<p class="leer">{{ h.lauf.fehler_oeffentlich }}</p>
+      {% else %}<p class="leer">{% translate "Anbieteraufruf fehlgeschlagen" %} · {{ h.lauf.fehler_oeffentlich }}</p>{% endif %}
       <p class="kennzeichnung">{% translate "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
     </details>
     {% endif %}

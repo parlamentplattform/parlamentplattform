@@ -10,7 +10,9 @@ Takt eine Minute) ruft `abarbeiten`:
 - **Atomare Reservierung** wie beim Postauftrag: ein UPDATE mit Sperrcode, damit zwei Worker nie
   denselben Auftrag zugleich rechnen; eine verlorene Reservierung läuft nach SPERRE_MINUTEN ab.
 - **Rückzug bei Fehlern**: 2, 4, 8, 16, 32 Minuten; nach dem sechsten Fehlschlag (HOECHSTVERSUCHE)
-  gilt der Auftrag als gescheitert (Stempel, nicht gelöscht).
+  gilt der Auftrag als gescheitert (Stempel, nicht gelöscht). Eine an der Längengrenze
+  abgeschnittene Antwort (GP-143) beendet den Auftrag sofort als gescheitert: Dieselbe Grenze
+  bräche wieder ab; Wortlaut und Verbrauch stehen im Lauf-Archiv.
 
 Das Ergebnis bleibt im `KILauf` (Archiv); der Auftrag verweist darauf. Nichts hier entscheidet,
 reiht oder blockiert ein Verfahren — die Werkstatt schlägt vor (Grundregel 5, § 2 Abs 6)."""
@@ -25,7 +27,7 @@ from django.db import transaction
 from django.db.models import F, Q
 from django.utils import timezone
 
-from ki.anbieter import SteckplatzStumm, anbieter_waehlen
+from ki.anbieter import AntwortAbgeschnitten, SteckplatzStumm, anbieter_waehlen
 from ki.betriebszugang import SteckplatzWartet
 from ki.models import Auftragsstatus, KIAuftrag, KILauf, Zweck, einbettung_ausfuehren, lauf_ausfuehren
 
@@ -306,6 +308,16 @@ def auftrag_ausfuehren(pk: int, jetzt=None) -> str:
         stand.update(status=Auftragsstatus.GEPLANT, versuche=F("versuche") - 1,
             fehler=f"{type(fehler).__name__}: {fehler}"[:300], naechster_versuch=None)
         ausgang = "verschoben"
+    except AntwortAbgeschnitten as fehler:
+        # GP-143: Der Anbieter hat geantwortet, aber an der Längengrenze abgebrochen. Ein neuer Versuch
+        # mit derselben Grenze bräche wieder ab und kostete erneut; der Auftrag endet ohne Ergebnis.
+        letzter = KILauf.objects.filter(
+            antrag=auftrag.antrag, zweck=auftrag.zweck,
+            kontext__auftrag=auftrag.pk, kontext__versuch=auftrag.versuche,
+        ).order_by("-erstellt_am", "-pk").first()
+        stand.update(status=Auftragsstatus.GESCHEITERT, naechster_versuch=None, lauf=letzter,
+            fehler=f"{type(fehler).__name__}: {fehler}"[:300])
+        ausgang = "gescheitert"
     except Exception as fehler:  # der Faden darf nie sterben; der Grund steht am Auftrag
         if not isinstance(fehler, SteckplatzStumm):  # ein stummer Steckplatz ist kein Programmfehler
             log.exception("KI-Auftrag %s gescheitert", pk)

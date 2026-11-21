@@ -38,12 +38,18 @@ def antwort_hoechsttokens() -> int:
     return max(1, zahl("ki-antwort-hoechsttokens", ANTWORT_HOECHSTTOKENS))
 
 
+#: Abbruchgründe des Anbieters, an denen die Antwort an einer Längengrenze abgeschnitten ist (GP-143).
+ABBRUCH_LAENGE = frozenset({"length", "model_length"})
+
+
 @dataclass(frozen=True)
 class Antwort:
     text: str
     modell: str
     tokens_ein: int
     tokens_aus: int
+    #: `finish_reason` des Anbieters; leer, wenn er keinen nennt (Attrappe, ältere Schnittstellen).
+    abbruchgrund: str = ""
 
 
 @dataclass(frozen=True)
@@ -63,6 +69,12 @@ class AnbieterFehler(RuntimeError):
 class SteckplatzStumm(RuntimeError):
     """Der Steckplatz kann gerade nicht antworten; args[0] nennt den Grund
     (kein Anbieter angeschlossen, Monatsbudget erschöpft, Anbieterfehler)."""
+
+
+class AntwortAbgeschnitten(SteckplatzStumm):
+    """Der Anbieter hat geantwortet, die Antwort aber an der Längengrenze abgebrochen (GP-143). Der Lauf
+    steht mit Wortlaut und Verbrauch im Archiv, gilt aber nicht als Ergebnis; ein neuer Versuch mit
+    derselben Grenze bräche wieder ab."""
 
 
 class MistralAnbieter:
@@ -90,15 +102,18 @@ class MistralAnbieter:
             **({"zeitgrenze": zeitgrenze} if zeitgrenze is not None else {}),
         )
         try:
-            text = daten["choices"][0]["message"]["content"].strip()
+            wahl = daten["choices"][0]
+            text = wahl["message"]["content"].strip()
             verbrauch = daten.get("usage", {})
-        except (KeyError, IndexError, AttributeError) as fehler:
+        except (KeyError, IndexError, AttributeError, TypeError) as fehler:
             raise AnbieterFehler("Antwortformat unerwartet") from fehler
+        abbruch = wahl.get("finish_reason") if isinstance(wahl, dict) else None
         return Antwort(
             text=text,
             modell=daten.get("model", self.modell),
             tokens_ein=int(verbrauch.get("prompt_tokens", 0)),
             tokens_aus=int(verbrauch.get("completion_tokens", 0)),
+            abbruchgrund=abbruch[:40] if isinstance(abbruch, str) else "",
         )
 
     def einbetten(self, texte: list[str], zeitgrenze: float | None = None) -> Einbettung:

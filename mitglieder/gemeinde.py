@@ -137,7 +137,9 @@ def _gemeinden():
 
 @require_GET
 def start(request):
-    suche = (request.GET.get("ort") or "").strip()[:140]
+    from plattform_core.parlamentlisten import suchtext
+
+    suche = suchtext(request.GET.get("ort"), 140)  # ohne Nullzeichen: geht in `name__icontains`
     seite = None
     if suche:
         orte = Gemeinde.objects.filter(

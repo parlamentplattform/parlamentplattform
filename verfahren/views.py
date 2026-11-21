@@ -972,7 +972,9 @@ def parlament(request):
         kinder_hoechstzahl=zahl("faecher-kinder-hoechstzahl", 3),
     )
     faecher["abos"] = abo_slugs
-    suchtext = (request.GET.get("suche") or "").strip()
+    from plattform_core.parlamentlisten import suchtext as suchtext_lesen
+
+    suchtext = suchtext_lesen(request.GET.get("suche"))  # ohne Nullzeichen: geht in `titel__icontains`
     suchtreffer, suchtreffer_gesamt = _kategorien_suchen(suchtext, request.user) if suchtext else (None, 0)
     # Fokus-Modus (Teil 7): ?fokus=<feld> dehnt ein Feld auf das ganze Raster — serverseitig, damit es
     # ohne JavaScript denselben Zustand gibt wie der ⤢-Knopf mit Alpine. Unbekannte Werte: kein Fokus.
@@ -1863,9 +1865,11 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     chat["antwort_vorgabe"] = _antwort_vorgabe(
         antrag, (chat_entwurf or {}).get("antwort_auf") or request.GET.get("antwort_auf")
     )
+    from plattform_core.parlamentlisten import suchtext as suchtext_lesen
     from verfahren import archiv as archivkern
 
-    archiv = _archiv_lage(antrag, geoeffnet=request.GET.get("archiv") or None)
+    # ohne Nullzeichen: Die gewählte Phase geht in `phase__in` (PostgreSQL nimmt es in keinem Text an)
+    archiv = _archiv_lage(antrag, geoeffnet=suchtext_lesen(request.GET.get("archiv")) or None)
     unterstuetzungen = antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count()
     return render(
         request,

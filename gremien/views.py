@@ -1683,7 +1683,9 @@ def _antragsauswahl(request, basis, schluessel: str) -> dict:
         if antrag is not None:
             auswahl[:] = [antrag] + [a for a in auswahl if a.pk != antrag.pk]
 
-    suche = (request.GET.get("antrag_suche") or "").strip()[:200]
+    from plattform_core.parlamentlisten import suchtext
+
+    suche = suchtext(request.GET.get("antrag_suche"), 200)  # ohne Nullzeichen: geht in `titel__icontains`
     treffer = basis.filter(titel__icontains=suche) if suche else basis
     auswahl = list(treffer.order_by("-phase_beginn", "-pk")[:AUSWAHL_HOECHSTENS])
     if nummer(suche) is not None:  # die Nummer zuerst, dann die Titel, in denen sie vorkommt

@@ -219,6 +219,7 @@ class BotschutzMixin(forms.Form):
         super().__init__(*args, **kwargs)
         self.request = request
         self.botschutz_bestanden = False  # GP-019: Sicherheitsfrage richtig gelöst?
+        self.aufgabe_ersetzt = False  # abgelaufene oder verbrauchte Kennung gegen eine neue getauscht
         aufgabe = aufgabe_lesen(request, self.data.get("pruefung", "")) if self.is_bound else None
         self.fields["rechenfrage"].label = _("Sicherheitsfrage: Ergebnis der Rechnung im Bild")
         self.fields["rechenfrage"].help_text = _(
@@ -236,6 +237,7 @@ class BotschutzMixin(forms.Form):
                 # also muss auch das versteckte Feld die neue Kennung tragen.
                 self.data = self.data.copy()
                 self.data["pruefung"] = kennung
+                self.aufgabe_ersetzt = True
 
     def clean(self):
         daten = super().clean()
@@ -244,8 +246,9 @@ class BotschutzMixin(forms.Form):
             raise forms.ValidationError(fehler)  # Honigtopf gefüllt
         kennung = daten.get("pruefung", "")
         aufgabe = aufgabe_lesen(self.request, kennung)
-        if aufgabe is None:
-            raise forms.ValidationError(fehler)  # unbekannt, abgelaufen oder schon verbraucht
+        if aufgabe is None or self.aufgabe_ersetzt:
+            # Unbekannt, abgelaufen oder schon verbraucht — die neue Aufgabe ist noch ungelöst.
+            raise forms.ValidationError(fehler)
         if time.time() - aufgabe["t"] < mindestzeit():
             # Schneller, als ein Mensch lesen kann — oft ein automatisch ausgefülltes Formular.
             # Der wahre Grund statt „nicht richtig beantwortet“ (GP-188); die Aufgabe bleibt stehen.

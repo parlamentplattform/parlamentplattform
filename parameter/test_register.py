@@ -656,7 +656,7 @@ def test_schema_kopfbeispiel_und_verlauf_reichen_bis_zur_aktuellen_version():
     from plattform_core.schema import SCHEMA_VERSION
 
     dokument = _schema_dokument()
-    kopf = dokument.split("## 2. Der Kopf jedes Exports")[1].split("\n## ")[0]
+    kopf = dokument.split("## 2. Der Kopf der Schema-Exporte")[1].split("\n## ")[0]
     assert f'"schema_version": "{SCHEMA_VERSION}"' in kopf
     verlauf = dokument.split("## 7. Änderungsverlauf")[1]
     zeilen = [z for z in verlauf.splitlines() if z.startswith("| 1.")]

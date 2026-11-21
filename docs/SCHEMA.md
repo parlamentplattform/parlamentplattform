@@ -167,9 +167,12 @@ Seit 1.12 enthält das Register drei Grenzen der lokalen Ähnlichkeitsvorschau: 
 | **Werte bleiben eigen** | Das Schema sagt, *was* eine Stellgröße bedeutet — nie, *wie hoch* sie sein muss. Jede Instanz lernt ihren Wert selbst (Parameterregister, F-68). |
 | **Nie personenbezogen** | Exporte enthalten keine Namen, E-Mails, Pseudonyme, Stimmen einzelner Menschen. Die Prüfung (`pruefe_export`) beanstandet solche Felder. |
 | **Versioniert** | `schema_version` nach SemVer: neue Kennungen → Nebenversion (1.1), umgedeutete Kennungen → Hauptversion (2.0). Leser verarbeiten unbekannte Kennungen tolerant; `pruefe_export` verlangt nur dieselbe Hauptversion. |
-| **Offen** | Alle Exporte sind öffentlich, ohne Anmeldung, mit `Access-Control-Allow-Origin: *`. |
+| **Offen** | Alle Exporte sind öffentlich, ohne Anmeldung, mit `Access-Control-Allow-Origin: *` auf GET und HEAD (`plattform_core.schema.offenes_format`). |
 
-## 2. Der Kopf jedes Exports
+## 2. Der Kopf der Schema-Exporte
+
+`/parameter.json` und `/kennzahlen.json` beginnen mit diesem Kopf. Die weiteren offenen Formate
+(Abschnitt 5) haben ihren eigenen Aufbau und tragen ihn nicht.
 
 ```json
 {

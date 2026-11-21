@@ -127,3 +127,16 @@ def test_gp126_motions_by_phase_summiert_auf_motions_total(ordnung):  # noqa: F8
     assert sum(kennzahlen['motions.by_phase'].values()) == kennzahlen['motions.total']
     assert kennzahlen['motions.by_phase']['zurueckgezogen'] == 1
     assert 'zurueckgewiesen' not in kennzahlen['motions.by_phase']
+
+
+def test_gp199_die_schema_exporte_nutzen_die_gemeinsame_huelle(client):
+    '''GP-199 (RVB-16): Die Kopfzeile setzte eine Hülle nur in parameter/views.py. Beide Exporte
+    tragen sie über plattform_core.schema (oeffnen), auch auf HEAD; eine schreibende Anfrage nicht.'''
+    import inspect
+
+    import parameter.views as ansichten
+
+    for name in ('parameter:export', 'parameter:kennzahlen'):
+        assert client.head(reverse(name))['Access-Control-Allow-Origin'] == '*', name
+        assert 'Access-Control-Allow-Origin' not in client.post(reverse(name)), name
+    assert '"Access-Control-Allow-Origin"' not in inspect.getsource(ansichten)

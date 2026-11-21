@@ -44,7 +44,8 @@ class EinmalToken(models.Model):
     gueltig_bis = models.DateTimeField()
     verbraucht_am = models.DateTimeField(null=True, blank=True)
     # GP-100: die Seite, zu der ein Anmeldelink nach dem Einlösen führt (geprüft in `anmeldeziel`).
-    ziel = models.CharField(max_length=500, blank=True, default="")
+    # db_default: Der Code der Vorfassung legt im Ausrollfenster Tokens ohne diese Spalte an.
+    ziel = models.CharField(max_length=500, blank=True, default="", db_default="")
 
     class Meta:
         verbose_name = "Einmal-Token"

@@ -390,10 +390,11 @@ def sitzungen_beenden(request):
     nächsten Aufruf. `update_session_auth_hash` schreibt der aktuellen Sitzung den neuen Hash,
     darum bleibt genau dieses Gerät angemeldet. Die Beitragsreferenz hängt nicht am Passwort."""
     mitglied = request.user
-    mitglied.set_unusable_password()
-    mitglied.save(update_fields=["password"])
+    with transaction.atomic():  # GP-129: neuer Sitzungs-Hash und Audit-Eintrag gemeinsam oder gar nicht
+        mitglied.set_unusable_password()
+        mitglied.save(update_fields=["password"])
+        _auditieren("sitzungen_beendet", mitglied)
     update_session_auth_hash(request, mitglied)
-    _auditieren("sitzungen_beendet", mitglied)
     messages.success(request, _("Alle anderen Geräte sind abgemeldet — dieses bleibt angemeldet."))
     return redirect("mitglieder:profil")
 
@@ -898,7 +899,8 @@ def export_json(request):
         })
         return redirect("mitglieder:profil")
     inhalt = json.dumps(daten_export(request.user), ensure_ascii=False, indent=2, cls=DjangoJSONEncoder)
-    _auditieren("datenexport", request.user)
+    with transaction.atomic():  # GP-129: der Eintrag ist hier die einzige Schreibhandlung
+        _auditieren("datenexport", request.user)
     antwort = HttpResponse(inhalt, content_type="application/json; charset=utf-8")
     antwort["Content-Disposition"] = 'attachment; filename="meine-daten.json"'
     return antwort

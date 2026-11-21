@@ -54,11 +54,10 @@ from mitglieder.models import (
 )
 from mitglieder.post import freischaltung_senden
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
+from parameter.models import zahl
 from verfahren.models import AuditEintrag
 
 log = logging.getLogger(__name__)
-
-LISTE_SEITENGROESSE = 200  # Konten je Seite der Mitgliederliste (GP-103) — Registerwert folgt
 
 
 def nur_admins(ansicht):
@@ -159,7 +158,8 @@ def liste(request):
     status = request.GET.get("status", "")
     if status in Mitgliedsstatus.values:
         mitglieder = mitglieder.filter(status=status)
-    seite = Paginator(mitglieder, LISTE_SEITENGROESSE).get_page(request.GET.get("seite"))
+    # GP-103: Konten je Seite aus dem Register; Literal, damit der Registerwächter den Aufruf liest
+    seite = Paginator(mitglieder, zahl("verwaltung-liste-seitengroesse", 200)).get_page(request.GET.get("seite"))
     filter_abfrage = urlencode([(k, v) for k, v in (("q", suche), ("status", status)) if v])
     # Testkonten zählen in keiner Mitgliederzahl (Hilfetext am Feld `testkonto`, § 4 Abs 4 lit a);
     # die Liste führt sie weiter, gekennzeichnet.
@@ -197,6 +197,8 @@ def _adresswechsel_beantragen(request, mitglied: Mitglied, neue_email: str) -> b
     try:
         with transaction.atomic():
             wechsel, klar = Adresswechsel.beantragen(mitglied, neue_email, request.user)
+            # GP-129: im selben Block und vor dem Versand — ohne Eintrag kein Antrag und keine Nachricht
+            _auditieren(request, "email_geaendert_beantragt", mitglied)
             link = request.build_absolute_uri(reverse("mitglieder:adresswechsel_einspruch", args=[klar]))
             frist = formats.date_format(timezone.localtime(wechsel.frist_bis), "SHORT_DATETIME_FORMAT")
             send_mail(
@@ -222,7 +224,6 @@ def _adresswechsel_beantragen(request, mitglied: Mitglied, neue_email: str) -> b
             _("Die Adressänderung wurde nicht vorgemerkt: Die Nachricht an die bisherige Adresse ließ sich nicht versenden."),
         )
         return False
-    _auditieren(request, "email_geaendert_beantragt", mitglied)
     messages.success(
         request,
         _(
@@ -391,8 +392,11 @@ def mitglied(request, pk: int):
         from mitglieder.postausgang import beauftragen
 
         art = "willkommen" if person.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT else "freischaltung"
-        if beauftragen(person, art):
-            _auditieren(request, "mitgliederpost", person, art=art)
+        with transaction.atomic():  # GP-129: Auftrag und Audit-Eintrag gemeinsam oder gar nicht
+            beauftragt = beauftragen(person, art)
+            if beauftragt:
+                _auditieren(request, "mitgliederpost", person, art=art)
+        if beauftragt:
             messages.success(request, _("Mitgliederpost wurde beauftragt. Den Versandstand finden Sie unten."))
         else:
             messages.info(request, _("Kein neuer Versandauftrag: bereits beauftragt, versendet oder für dieses Konto nicht zulässig."))

@@ -200,14 +200,15 @@ def registrieren(request):
                     wohnsitz_anwenden(mitglied, form)
                     mitglied.set_unusable_password()
                     mitglied.save()
+                    # GP-129: im selben Block und vor dem Versand — ohne Eintrag kein Konto und keine Mail
+                    AuditEintrag.anhaengen(
+                        {"typ": "registrierung", "mitglied": mitglied.pk, **({"erneut": True} if erneut else {})}
+                    )
                     _bestaetigungslink_senden(request, mitglied)
             except (SMTPException, OSError):
                 log.exception("Bestätigungs-Mail nicht versendbar — Registrierung zurückgerollt.")
                 form.add_error(None, _("Ihre Registrierung wurde nicht gespeichert: %s") % MAIL_STOERUNG)
             else:
-                AuditEintrag.anhaengen(
-                    {"typ": "registrierung", "mitglied": mitglied.pk, **({"erneut": True} if erneut else {})}
-                )
                 return render(
                     request,
                     "mitglieder/mail_gesendet.html",
@@ -233,20 +234,24 @@ def bestaetigen(request, token: str):
         if mitglied is None or not mitglied.parteikonto or not nie_bestaetigt(mitglied):
             return render(request, "mitglieder/token_ungueltig.html", status=400)
         return link_seite(request, _("E-Mail-Adresse bestätigen"), _("Adresse bestätigen"))
-    mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.BESTAETIGUNG)
-    # GP-017: Bestätigen kann nur ein nie bestätigtes Konto — ein ausgeschlossenes oder schon
-    # bestätigtes wird über einen alten Link nicht wieder anmeldbar.
-    if mitglied is None or not mitglied.parteikonto or not nie_bestaetigt(mitglied):
-        return render(request, "mitglieder/token_ungueltig.html", status=400)
-    EinmalToken.entwerten(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
-    mitglied.is_active = True
-    if mitglied.beitritt is None:
-        mitglied.beitritt = timezone.localdate()  # Beginn der Anwartschaft (§ 4 Abs 4), Ortszeit
-    mitglied.save(update_fields=["is_active", "beitritt"])
     from mitglieder.nummern import sicherstellen
-    sicherstellen(mitglied)
+
+    # GP-129: Einlösen, Freischalten, Mitgliedsnummer und Audit-Eintrag gemeinsam oder gar nicht —
+    # scheitert der Eintrag, bleibt der Link gültig und das Konto unverändert.
+    with transaction.atomic():
+        mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.BESTAETIGUNG)
+        # GP-017: Bestätigen kann nur ein nie bestätigtes Konto — ein ausgeschlossenes oder schon
+        # bestätigtes wird über einen alten Link nicht wieder anmeldbar.
+        if mitglied is None or not mitglied.parteikonto or not nie_bestaetigt(mitglied):
+            return render(request, "mitglieder/token_ungueltig.html", status=400)
+        EinmalToken.entwerten(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
+        mitglied.is_active = True
+        if mitglied.beitritt is None:
+            mitglied.beitritt = timezone.localdate()  # Beginn der Anwartschaft (§ 4 Abs 4), Ortszeit
+        mitglied.save(update_fields=["is_active", "beitritt"])
+        sicherstellen(mitglied)
+        AuditEintrag.anhaengen({"typ": "email_bestaetigt", "mitglied": mitglied.pk})
     dj_login(request, mitglied)
-    AuditEintrag.anhaengen({"typ": "email_bestaetigt", "mitglied": mitglied.pk})
     willkommen_senden(mitglied)  # FB-K7: einmal je Konto, Versand ist Höflichkeit
     if mitglied.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT:
         # Die Verwaltung hat die Identität schon vor der Bestätigung festgestellt (etwa in Präsenz):

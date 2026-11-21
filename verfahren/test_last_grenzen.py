@@ -132,7 +132,8 @@ def gemischter_bestand(ordnung, settings):  # noqa: F811
         AntragsFassung.objects.create(antrag=a, nummer=2, wortlaut='Trinkbrunnen Gemeinde öffentlich zugänglich Wasser.')
     Antrag.objects.filter(pk__in=[a.pk for a in antraege[1::9]]).update(phase=Phase.ANGENOMMEN.value)
     Antrag.objects.filter(pk__in=[a.pk for a in antraege[2::11]]).update(art=Antragsart.MANDAT)
-    AntragsFassung.objects.filter(antrag=antraege[5]).delete()
+    # Altbestand ohne Fassung: am Schreibriegel der Fassungen vorbei hergestellt (GP-067).
+    AntragsFassung._base_manager.filter(antrag=antraege[5]).delete()
     modell = AttrappenAnbieter.einbettungsmodell
     for a in antraege[::3]:
         AntragsEinbettung.objects.get_or_create(antrag=a, fassung_nummer=1, modell=modell,
@@ -266,7 +267,10 @@ def test_antragsseite_mit_21_laeufen_bleibt_unter_der_groessengrenze(client, ord
     # 0.114.0: rund 470.000 Bytes in der Zone, je früherem Lauf die volle Eingabe. Jetzt hat ein Eintrag der
     # Historie eine feste Größe, und die Historie ist seitenweise (ki-einschaetzungen-je-seite).
     assert len(zone) < 200_000
-    assert len(q.captured_queries) <= 41
+    # 41 bis 0.115.0; dazu je eine feste Abfrage der Seite, unabhängig von Zahl der Läufe und Fassungen
+    # (mit 3 und 21 Läufen gleich viele): die nicht gezählten Unterstützungen von Testkonten (GP-126)
+    # und die verknüpfte Rechenschaft des Antrags (GP-065).
+    assert len(q.captured_queries) <= 43
     # Der aktuelle Lauf zeigt seine Eingabe weiter, die Historie verweist auf das Archiv
     assert html.count('class="auftragstext"') == 1
     assert reverse('verfahren:archiv_export', args=[antrag.pk, 'md']) in html

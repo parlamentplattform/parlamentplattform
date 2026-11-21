@@ -25,6 +25,7 @@ from django.utils.translation import ngettext
 from django.views.decorators.http import require_POST
 
 from mitglieder import bank
+from mitglieder.anmeldeziel import zur_anmeldung
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.botschutz import tagesdrossel_zuviel
 from mitglieder.models import Bankkopplung, Beitragseingang, Mitglied, Mitgliedsstatus
@@ -53,7 +54,7 @@ def _beitrags_kontext(nutzer) -> dict:
 def beitrag(request):
     """Die dauerhafte Bezahlseite — aus dem Hauptmenü jederzeit erreichbar."""
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     kopplung = Bankkopplung.aktuelle() if bank.eingerichtet() else None
     return render(
         request,
@@ -76,7 +77,7 @@ def _abstand_gewahrt(kopplung: Bankkopplung | None, sekunden: int) -> bool:
 def beitrag_gemeldet(request):
     """„Ich habe überwiesen" — der gezielte Abgleich im richtigen Moment."""
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     kopplung = Bankkopplung.aktuelle()
     if not bank.eingerichtet() or kopplung is None:
         messages.info(

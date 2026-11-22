@@ -27,10 +27,12 @@ from __future__ import annotations
 import logging
 from functools import wraps
 from smtplib import SMTPException
+from urllib.parse import urlencode
 
 from django import forms
 from django.conf import settings
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -39,6 +41,7 @@ from django.utils import formats, timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
+from mitglieder.anmeldeziel import zur_anmeldung
 from mitglieder.auth_flows import EinmalToken
 from mitglieder.mail import send_mail
 from mitglieder.models import (
@@ -51,16 +54,19 @@ from mitglieder.models import (
 )
 from mitglieder.post import freischaltung_senden
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
+from parameter.models import zahl
 from verfahren.models import AuditEintrag
 
 log = logging.getLogger(__name__)
 
 
 def nur_admins(ansicht):
+    # GP-100: Die Umleitung zur Anmeldung trägt die aufgerufene Seite als Ziel — in jedem Paket.
+
     @wraps(ansicht)
     def innen(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect("mitglieder:login")
+            return zur_anmeldung(request)
         if not request.user.hat_adminrechte:
             return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
         return ansicht(request, *args, **kwargs)
@@ -135,7 +141,9 @@ def liste(request):
     from faktenbasis.verwaltung import darf_aktualisieren
 
     Adresswechsel.faellige_anwenden()
-    mitglieder = Mitglied.parteikonten.order_by("-date_joined")
+    # GP-103: offengelegte Reihung (neueste Kontoanlage zuerst, bei Gleichstand die jüngere
+    # Kontonummer) und Seitenwechsel statt eines stummen Endes bei 200.
+    mitglieder = Mitglied.parteikonten.order_by("-date_joined", "-pk")
     suche = request.GET.get("q", "").strip()
     if suche:
         mitglieder = mitglieder.filter(
@@ -148,13 +156,19 @@ def liste(request):
     status = request.GET.get("status", "")
     if status in Mitgliedsstatus.values:
         mitglieder = mitglieder.filter(status=status)
+    # GP-103: Konten je Seite aus dem Register; Literal, damit der Registerwächter den Aufruf liest
+    seite = Paginator(mitglieder, zahl("verwaltung-liste-seitengroesse", 200)).get_page(request.GET.get("seite"))
+    filter_abfrage = urlencode([(k, v) for k, v in (("q", suche), ("status", status)) if v])
+    # Testkonten zählen in keiner Mitgliederzahl (Hilfetext am Feld `testkonto`, § 4 Abs 4 lit a);
+    # die Liste führt sie weiter, gekennzeichnet.
+    bestand = Mitglied.parteikonten.filter(testkonto=False)
     zahlen = {
-        "gesamt": Mitglied.parteikonten.count(),
-        "aktiv": Mitglied.parteikonten.filter(status=Mitgliedsstatus.AKTIV, is_active=True).count(),
-        "pausiert": Mitglied.parteikonten.filter(status=Mitgliedsstatus.PAUSIERT).count(),
-        "ausgeschlossen": Mitglied.parteikonten.filter(status=Mitgliedsstatus.AUSGESCHLOSSEN).count(),
-        "ausgetreten": Mitglied.parteikonten.filter(status=Mitgliedsstatus.AUSGETRETEN).count(),
-        "unbestaetigt": Mitglied.parteikonten.filter(is_active=False)
+        "gesamt": bestand.count(),
+        "aktiv": bestand.filter(status=Mitgliedsstatus.AKTIV, is_active=True).count(),
+        "pausiert": bestand.filter(status=Mitgliedsstatus.PAUSIERT).count(),
+        "ausgeschlossen": bestand.filter(status=Mitgliedsstatus.AUSGESCHLOSSEN).count(),
+        "ausgetreten": bestand.filter(status=Mitgliedsstatus.AUSGETRETEN).count(),
+        "unbestaetigt": bestand.filter(is_active=False)
         .exclude(status__in=(Mitgliedsstatus.AUSGESCHLOSSEN, Mitgliedsstatus.AUSGETRETEN))
         .count(),
     }
@@ -162,7 +176,9 @@ def liste(request):
         request,
         "mitglieder/verwaltung_liste.html",
         {
-            "mitglieder": mitglieder[:200],
+            "mitglieder": seite.object_list,
+            "seite": seite,
+            "filter_abfrage": filter_abfrage,
             "suche": suche,
             "status": status,
             "zahlen": zahlen,
@@ -179,6 +195,8 @@ def _adresswechsel_beantragen(request, mitglied: Mitglied, neue_email: str) -> b
     try:
         with transaction.atomic():
             wechsel, klar = Adresswechsel.beantragen(mitglied, neue_email, request.user)
+            # GP-129: im selben Block und vor dem Versand — ohne Eintrag kein Antrag und keine Nachricht
+            _auditieren(request, "email_geaendert_beantragt", mitglied)
             link = request.build_absolute_uri(reverse("mitglieder:adresswechsel_einspruch", args=[klar]))
             frist = formats.date_format(timezone.localtime(wechsel.frist_bis), "SHORT_DATETIME_FORMAT")
             send_mail(
@@ -204,7 +222,6 @@ def _adresswechsel_beantragen(request, mitglied: Mitglied, neue_email: str) -> b
             _("Die Adressänderung wurde nicht vorgemerkt: Die Nachricht an die bisherige Adresse ließ sich nicht versenden."),
         )
         return False
-    _auditieren(request, "email_geaendert_beantragt", mitglied)
     messages.success(
         request,
         _(
@@ -291,6 +308,11 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
     if aktion in ("pausieren", "ausschliessen", "admin_nehmen") and mitglied.ist_fixer_admin:
         messages.error(request, _("Der satzungsgebende Erstzugang ist unantastbar."))
         return
+    if aktion == "admin_geben" and not mitglied.is_active:
+        # GP-188: Ein Konto, das sich nicht anmelden kann (unbestätigt, ausgeschlossen), bekommt keine
+        # Adminrechte — der Ausschluss nimmt sie ebenso (GP-017).
+        messages.error(request, _("Adminrechte erst für ein anmeldbares Konto."))
+        return
     if aktion in ("pausieren", "ausschliessen") and not grund:
         messages.error(request, _("Bitte eine Begründung angeben — sie steht im Audit-Log."))
         return
@@ -368,8 +390,11 @@ def mitglied(request, pk: int):
         from mitglieder.postausgang import beauftragen
 
         art = "willkommen" if person.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT else "freischaltung"
-        if beauftragen(person, art):
-            _auditieren(request, "mitgliederpost", person, art=art)
+        with transaction.atomic():  # GP-129: Auftrag und Audit-Eintrag gemeinsam oder gar nicht
+            beauftragt = beauftragen(person, art)
+            if beauftragt:
+                _auditieren(request, "mitgliederpost", person, art=art)
+        if beauftragt:
             messages.success(request, _("Mitgliederpost wurde beauftragt. Den Versandstand finden Sie unten."))
         else:
             messages.info(request, _("Kein neuer Versandauftrag: bereits beauftragt, versendet oder für dieses Konto nicht zulässig."))

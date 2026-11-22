@@ -655,8 +655,7 @@ document.addEventListener("alpine:init", function () {
         var merken = drossle(function () { self.merkeStelle(); }, 2000);
         window.addEventListener("scroll", merken, { passive: true });
         window.addEventListener("pagehide", function () { self.merkeStelle(); });
-        // Nach dem Lesen den Lesestand vorrücken — die „neu"-Linie hat ihren Dienst getan
-        if (this.$el.querySelector(".neulinie")) setTimeout(function () { self.gelesen(); }, 4000);
+        // Den Lesestand setzt der Server beim Ausliefern der Seite (GP-068) — kein zweiter Aufruf von hier.
       },
       antworten: function (id, name) {
         this.antwortAuf = id;
@@ -727,16 +726,6 @@ document.addEventListener("alpine:init", function () {
         requestAnimationFrame(function () { requestAnimationFrame(setzen); });
         window.addEventListener("load", setzen);
         setTimeout(setzen, 250);
-      },
-      gelesen: function () {
-        var form = this.$el.querySelector("form[action*='/kommentieren/']");
-        var wert = form ? form.querySelector("[name=csrfmiddlewaretoken]") : null;
-        if (!wert) return;
-        fetch("/antrag/" + antragId + "/chat/gelesen/", {
-          method: "POST",
-          headers: { "X-CSRFToken": wert.value, "HX-Request": "true" },
-          body: new URLSearchParams(),
-        }).catch(function () { /* nicht schlimm: der Stand rückt beim nächsten Mal nach */ });
       }
     };
   });

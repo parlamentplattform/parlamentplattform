@@ -1,0 +1,29 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% comment %}
+GP-149: das Lauf-Archiv der Zukunftswerkstatt, seitenweise, neueste Nummer zuerst. Je Lauf genau die
+Angaben, die die Werkstattseite schon öffentlich zeigt; Eingabe, Antwort und Konto stehen hier nicht.
+{% endcomment %}
+{% block titel %}{% translate "Lauf-Archiv" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Lauf-Archiv" %}</h1>
+<p class="meta"><a href="{% url 'verfahren:zukunftswerkstatt' %}#steckplatz">{% translate "Zur Zukunftswerkstatt →" %}</a></p>
+<div class="karte">
+  {% for l in seite.object_list %}
+  <div class="lauf-eintrag" id="lauf-{{ l.pk }}">
+    <div class="zeile"><span><strong>{% translate "Lauf" %} #{{ l.pk }}</strong> · {{ l.get_zweck_display }}{% if l.antrag %} — <a href="{% url 'verfahren:antrag' l.antrag.pk %}">{{ l.antrag.titel }}</a>{% endif %}
+      <br><span class="meta">{{ l.modell }}{% if l.auftrag_version %} · {{ l.auftrag_version }}{% endif %} · {% blocktranslate with ein=l.tokens_ein aus=l.tokens_aus %}{{ ein }}+{{ aus }} Tokens{% endblocktranslate %} · {% blocktranslate with ms=l.dauer_ms %}{{ ms }} ms{% endblocktranslate %} · {{ l.erstellt_am|date:"d.m.Y H:i" }}{% if not l.erfolgreich %} · {% translate "gescheitert" %}: {{ l.fehler_oeffentlich }}{% endif %}</span></span></div>
+    {% include "verfahren/_ki_textstand.html" with textstand=l.textstand eingabe="" %}
+  </div>
+  {% empty %}
+  <p class="leer">{% translate "noch kein Lauf" %}</p>
+  {% endfor %}
+</div>
+{% if seite.has_other_pages %}
+<nav class="blaettern" aria-label="{% translate 'Seiten' %}">
+  {% if seite.has_previous %}<a href="?seite={{ seite.previous_page_number }}">← {% translate "neuere" %}</a>{% endif %}
+  <span class="meta">{% blocktranslate with n=seite.number von=seite.paginator.num_pages %}Seite {{ n }} von {{ von }}{% endblocktranslate %}</span>
+  {% if seite.has_next %}<a href="?seite={{ seite.next_page_number }}">{% translate "ältere" %} →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

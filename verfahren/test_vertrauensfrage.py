@@ -219,10 +219,16 @@ def test_ein_ausstand_ueber_30_tage_ist_ein_anlass(ordnung, altmandat):  # noqa:
     assert audit("vertrauensfrage_eingebracht")[0]["ausstaende"] == len(kennungen)
 
 
-def test_eine_sperre_wird_als_hinweis_eroeffnet_nicht_abgewiesen(ordnung):  # noqa: F811
-    """lit b und g: Die Software weist nicht ab — sie schreibt den Hinweis, der Integritätsrat stellt fest."""
+def test_eine_sperre_wird_als_hinweis_eroeffnet_nicht_abgewiesen(ordnung, monkeypatch):  # noqa: F811
+    """lit b und g: Die Software weist nicht ab — sie schreibt den Hinweis, der Integritätsrat stellt fest.
+
+    Ein Altmandat (angetreten vor dem Inkrafttreten von Absatz 10) in der Schonfrist, die nach lit j ab dem
+    Inkrafttreten läuft. Beide Tage hängen am Tag des Testlaufs, nicht am Kalender: Mit dem echten
+    Inkrafttreten (15.9.2026) endete die Schonfrist am 14.12.2026, und der Test wäre von da an rot."""
+    heute = timezone.localdate()
+    monkeypatch.setattr(mm, "INKRAFTTRETEN_ABS_10", heute - tage(10))
     frisch = Mandat.objects.create(
-        mitglied=mitglied_anlegen("neu"), bezeichnung="Gemeinderat", ebene="gemeinde", angetreten=date(2026, 1, 1)
+        mitglied=mitglied_anlegen("neu"), bezeichnung="Gemeinderat", ebene="gemeinde", angetreten=heute - tage(250)
     )
     antrag = einbringen(mitglied_anlegen("anna"), frisch, ordnung)
     vf = antrag.vertrauensfrage
@@ -887,7 +893,7 @@ def test_alte_ordnungen_laufen_unveraendert(ordnung):  # noqa: F811
     antrag = antrag_einbringen(anna, **ANTRAG, ordnung=ordnung)
     for feld in ("beratung_entfaellt", "abstimmung_fruehestens_tage", "abstimmung_spaetestens_tage_nach_schwelle"):
         antrag.policy_snapshot.pop(feld, None)
-    antrag.save(update_fields=["policy_snapshot"])
+    Antrag._base_manager.filter(pk=antrag.pk).update(policy_snapshot=antrag.policy_snapshot)  # Altbestand (GP-067)
     for m in (anna, mitglied_anlegen("bert")):
         antrag.unterstuetzungen.create(mitglied=m)
     assert antrag.fortschreiben() is True

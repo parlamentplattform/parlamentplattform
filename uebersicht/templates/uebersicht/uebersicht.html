@@ -9,7 +9,7 @@ ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben pseud
 <div class="hf-grid" style="margin-top:22px">
   <div class="bereich"><span class="bk">{% translate "Mitglieder" %}</span>
     <h2 style="font-size:34px;margin:4px 0 2px">{{ mitglieder_gesamt }}</h2>
-    <p class="erk">{% blocktranslate with neu=mitglieder_neu_woche %}bestätigte Mitglieder · {{ neu }} neu in den letzten 7 Tagen{% endblocktranslate %}</p>
+    <p class="erk">{% blocktranslate with neu=mitglieder_neu_woche %}{{ neu }} neu in den letzten 7 Tagen{% endblocktranslate %}</p>
   </div>
   <div class="bereich"><span class="bk">{% translate "Anträge" %}</span>
     <h2 style="font-size:34px;margin:4px 0 2px">{{ antraege_aktiv }}</h2>
@@ -37,6 +37,13 @@ Laufende Abstimmungen zeigen die Beteiligung — die Tendenz bleibt bis zum Fris
 Sachantrags sie ab erreichter Mindestbeteiligung freigibt (D-D2 b), steht sie da. Ergebnisse gibt es erst für
 entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte Bewerbung.
 {% endcomment %}
+{% if laufende_seite.has_other_pages %}
+<nav class="audit-blaettern" aria-label="{% translate 'Seiten' %}">
+  {% if laufende_seite.has_previous %}<a href="?seite={{ laufende_seite.previous_page_number }}">← {% translate "neuere" %}</a>{% endif %}
+  <span class="meta">{% blocktranslate count n=laufende_seite.paginator.count %}{{ n }} laufende Abstimmung{% plural %}{{ n }} laufende Abstimmungen{% endblocktranslate %} · {% blocktranslate with n=laufende_seite.number von=laufende_seite.paginator.num_pages %}Seite {{ n }} von {{ von }}{% endblocktranslate %}</span>
+  {% if laufende_seite.has_next %}<a href="?seite={{ laufende_seite.next_page_number }}">{% translate "ältere" %} →</a>{% endif %}
+</nav>
+{% endif %}
 {% for z in abstimmungen %}
   <div class="karte">
     <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
@@ -45,6 +52,7 @@ entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte
       {% if z.laeuft %}<span class="badge badge--hell">{% translate "Abstimmung läuft" %}</span>
       {% elif z.ergebnis_wort %}{# § 7 Abs 10 lit e: verloren/gewonnen statt angenommen/abgelehnt #}<span class="badge badge--hell">{{ z.ergebnis_wort }}</span>{% if z.vertrauensfrage.rechtsschutz_stand %} {# lit h: die Aufhebung an denselben Stellen wie das Ergebnis #}<span class="badge badge--hell">{{ z.vertrauensfrage.rechtsschutz_stand }}</span>{% endif %}
       {% elif z.antrag.phase == "angenommen" %}<span class="badge badge-ok">{% translate "angenommen" %}</span>
+      {% elif z.antrag.ergebnis == "kein_beschluss" %}{# GP-049: leerer örtlicher Kreis #}<span class="badge badge--hell">{{ z.antrag.ergebnis_name }}</span>
       {% else %}<span class="badge badge-warn">{% translate "abgelehnt" %}</span>{% endif %}
       {% if z.legende %}<span class="erk vf-legende">{{ z.legende.0 }} · {{ z.legende.1 }}</span>{% endif %}
     </p>
@@ -110,6 +118,7 @@ entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte
 </div>
 
 <h2>{% translate "Meistgelesene Anträge" %}</h2>
+<p class="erk"><a href="{% url 'parameter:regeln' %}#regel-meistgelesen">{% translate "Die Regel im Verzeichnis →" %}</a></p>
 <div class="karte">
   {% for m in meistgelesen %}
     <div class="eintrag">

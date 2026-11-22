@@ -13,6 +13,7 @@ Experimente)."""
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import DatabaseError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext, gettext_noop
@@ -82,14 +83,38 @@ class Parameter(models.Model):
         return f"{self.schluessel} = {self.wert}{(' ' + self.einheit) if self.einheit else ''}"
 
 
+def _aenderung_fest():
+    return ValidationError(_("Eine Änderung im Register bleibt, wie sie geschrieben wurde; die Historie wird nur fortgeschrieben."))
+
+
+class AenderungsQuerySet(models.QuerySet):
+    """Schreibriegel der Registerhistorie (Gesamtprüfung GP-130): anhängen ja, ändern und löschen nie."""
+
+    def update(self, **kwargs):
+        raise _aenderung_fest()
+
+    def delete(self):
+        raise _aenderung_fest()
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise _aenderung_fest()
+
+    def bulk_create(self, objs, *args, **kwargs):
+        if kwargs.get("update_conflicts"):
+            raise _aenderung_fest()
+        return super().bulk_create(objs, *args, **kwargs)
+
+
 class Aenderung(models.Model):
     """Eine Wertänderung im Register (FB-J2) — append-only, öffentlich nachlesbar.
 
     Die Historie stand bisher nur im Audit-Log. Dort ist sie fälschungssicher, aber niemand
     findet sie: Wer wissen will, warum eine Frist heute 21 Tage beträgt, soll das am Parameter
-    selbst sehen. Gelöscht wird hier nichts (Grundregel 7)."""
+    selbst sehen. Gelöscht wird hier nichts (Grundregel 7) — seit GP-130 mit Riegel: `save` schreibt
+    nur neue Zeilen, `delete` gibt es nicht, und der Parameter lässt sich nicht löschen, solange er
+    eine Historie hat (PROTECT)."""
 
-    parameter = models.ForeignKey(Parameter, on_delete=models.CASCADE, related_name="historie")
+    parameter = models.ForeignKey(Parameter, on_delete=models.PROTECT, related_name="historie")
     alter_wert = models.CharField(max_length=100)
     neuer_wert = models.CharField(max_length=100)
     grund = models.TextField(max_length=1000)
@@ -99,6 +124,8 @@ class Aenderung(models.Model):
         help_text="Wer die Änderung veranlasst hat — Rolle oder Organ, nie eine Person.",
     )
 
+    objects = AenderungsQuerySet.as_manager()
+
     class Meta:
         ordering = ["-geaendert_am"]
         verbose_name = "Änderung"
@@ -106,6 +133,15 @@ class Aenderung(models.Model):
 
     def __str__(self) -> str:
         return f"{self.parameter_id}: {self.alter_wert} → {self.neuer_wert}"
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise _aenderung_fest()
+        kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise _aenderung_fest()
 
 
 class TestStatus(models.TextChoices):
@@ -130,7 +166,8 @@ class ParameterTest(models.Model):
     beginnen (§ 5 Abs 5). Laufende Verfahren behalten ihre eingefrorene Ordnung — ein Test,
     der sie erreichte, wäre keiner, sondern ein Eingriff."""
 
-    parameter = models.ForeignKey(Parameter, on_delete=models.CASCADE, related_name="tests")
+    # PROTECT (GP-130): Ein gelöschter Parameter nähme sonst die Geschichte seiner Tests still mit.
+    parameter = models.ForeignKey(Parameter, on_delete=models.PROTECT, related_name="tests")
     testwert = models.CharField(max_length=100)
     alter_wert = models.CharField(
         max_length=100, blank=True, help_text="Der Wert vor dem Test — der Rückweg führt hierher."
@@ -216,6 +253,19 @@ WERTBEREICHE: dict[str, tuple[int, int | None]] = {
     # Mehr als das Tageskontingent der Bank (Bankkopplung.ABRUFE_PRO_TAG, PSD2: vier) lässt sich
     # nicht vorbehalten; das Kontingent selbst ist eine Grenze der Maschine und bleibt im Code.
     "beitrag-abruf-verwaltungsvorbehalt": (0, 4),
+    # Folgewelle 0.115.0 (bisher Modulkonstanten). Bei den beiden Drosseln heißt 0 „keine Grenze“ —
+    # so werden sie ausgeliefert, bis der Gründer die Zahl festlegt; 0 sperrt nie.
+    "gremien-ki-je-stunde": (0, 100),
+    "beanstandung-je-stunde": (0, 1000),
+    "parlament-gruppe-hoechstzahl": (0, 500),
+    "umsetzung-seite-hoechstzahl": (0, 500),
+    "verwaltung-liste-seitengroesse": (10, 1000),
+    "mandatare-liste-seite": (10, 500),
+    "uebersicht-laufende-je-seite": (1, 500),
+    "faktenbasis-bestandsnachweis-warnanteil": (1, 100),
+    "aehnlichkeit-seite-zeilen": (50, 2000),
+    "audit-pruefstand-ueberfaellig-takte": (2, 31),
+    "ki-laeufe-je-seite": (10, 500),
 }
 
 #: Bereich, den die Einheit selbst festlegt.
@@ -266,18 +316,38 @@ NEBENWOHNSITZ_BESCHREIBUNG_ALT = (
     "(§ 5 Abs 6). Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Wirkt sofort."
 )
 SUCHTREFFER_BESCHREIBUNG_ALT = "Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt."
+#: Stand 0.114.0 — ohne die Titelsuche im Parlament (GP-075).
+SUCHTREFFER_BESCHREIBUNG_0_114 = (
+    "Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt. "
+    "Derselbe Wert ist die Seitengröße der Gemeindesuche und der öffentlichen Listen der "
+    "Gemeindemandate: Ratsinitiativen, Projektstände, Haushaltslinks und Sitzungsunterlagen; dort "
+    "wirkt ein Wert unter 1 wie 1. Wirkt sofort."
+)
+#: Stand 0.114.0 — nannte drei der sieben gezählten Sammlungen (GP-147).
+BESTANDSNACHWEIS_BESCHREIBUNG_0_114 = (
+    "Höchstzahl lokaler Norm-, Dokumenttext- und Personalstände für den vollständigen Bestandsnachweis. "
+    "0 deaktiviert den Nachweis; technisch höchstens 10000. Bei Überschreitung oder ungültigem Wert kein "
+    "Teilnachweis und kein Rückfall auf einen Ersatzwert."
+)
+#: Schlüssel → (frühere Systemtexte, ältester zuerst; Grund der Berichtigung). Nur ein Eintrag, dessen
+#: Beschreibung genau einem dieser Texte gleicht, wird auf den Erstbestand nachgezogen.
 ALTE_SYSTEMBESCHREIBUNGEN = {
-    "ki-monatstokens": (KI_MONAT_BESCHREIBUNG_ALT, "KI-Startgrenze statt garantierter Geldobergrenze"),
-    "region-nebenwohnsitz-zaehlt": (NEBENWOHNSITZ_BESCHREIBUNG_ALT, "Nebenwohnsitz nur in der Regionsanzeige"),
-    "suche-treffer-hoechstzahl": (SUCHTREFFER_BESCHREIBUNG_ALT, "Alle Wirkungen der Trefferzahl beschrieben"),
+    "ki-monatstokens": ((KI_MONAT_BESCHREIBUNG_ALT,), "KI-Startgrenze statt garantierter Geldobergrenze"),
+    "region-nebenwohnsitz-zaehlt": ((NEBENWOHNSITZ_BESCHREIBUNG_ALT,), "Nebenwohnsitz nur in der Regionsanzeige"),
+    "suche-treffer-hoechstzahl": (
+        (SUCHTREFFER_BESCHREIBUNG_ALT, SUCHTREFFER_BESCHREIBUNG_0_114), "Alle Wirkungen der Trefferzahl beschrieben"
+    ),
     "anstoss-tagesgrenze": (
-        "Wie viele Anstöße eine Person am Tag senden kann.", "Tages- und Stundengrenze der Anstöße beschrieben"
+        ("Wie viele Anstöße eine Person am Tag senden kann.",), "Tages- und Stundengrenze der Anstöße beschrieben"
+    ),
+    "faktenbasis-bestandsnachweis-hoechstzahl": (
+        (BESTANDSNACHWEIS_BESCHREIBUNG_0_114,), "Alle sieben gezählten Sammlungen beschrieben"
     ),
 }
 
 ERSTBESTAND = [
     {"schluessel": "faktenbasis-bestandsnachweis-hoechstzahl", "wert": "2000", "einheit": gettext_noop("Schnappschüsse"), "gruppe": "ki",
-     "beschreibung": gettext_noop("Höchstzahl lokaler Norm-, Dokumenttext- und Personalstände für den vollständigen Bestandsnachweis. 0 deaktiviert den Nachweis; technisch höchstens 10000. Bei Überschreitung oder ungültigem Wert kein Teilnachweis und kein Rückfall auf einen Ersatzwert."),
+     "beschreibung": gettext_noop("Höchstzahl lokaler Schnappschüsse für den vollständigen Bestandsnachweis. Gezählt werden alle sieben Sammlungen: Normstände, Dokumenttexte, Kundmachungsbelege, Personalstände, Ressorttabellen, VfGH-Metadaten und RIS-Änderungsseiten. 0 deaktiviert den Nachweis; technisch höchstens 10000. Bei Überschreitung oder ungültigem Wert kein Teilnachweis und kein Rückfall auf einen Ersatzwert."),
      "quelle": gettext_noop("Darstellung des gespeicherten Quellenbestands")},
     {"schluessel": "rechtsfolgen-eingabezeichen", "wert": "30000", "einheit": gettext_noop("Zeichen"), "gruppe": "ki",
      "beschreibung": gettext_noop("Gesamtgrenze der vollständigen öffentlichen Rechtsfolgen-Eingabe einschließlich damaliger Norm- und Personalgrundlagen. Technisch 1 bis 100000 Zeichen; bei Überschreitung kein Modelllauf und keine Kürzung, das Verfahren läuft weiter."),
@@ -568,7 +638,8 @@ ERSTBESTAND = [
         "einheit": gettext_noop("Treffer"),
         "gruppe": "faecher",
         "beschreibung": gettext_noop("Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt. "
-        "Derselbe Wert ist die Seitengröße der Gemeindesuche und der öffentlichen Listen der "
+        "Derselbe Wert begrenzt die Antragstreffer der Titelsuche im Parlament, die Gesamtzahl der Treffer "
+        "steht dabei. Er ist auch die Seitengröße der Gemeindesuche und der öffentlichen Listen der "
         "Gemeindemandate: Ratsinitiativen, Projektstände, Haushaltslinks und Sitzungsunterlagen; dort "
         "wirkt ein Wert unter 1 wie 1. Wirkt sofort."),
         "quelle": "§ 5 Abs 10 lit a",
@@ -979,6 +1050,112 @@ ERSTBESTAND = [
         "zuletzt geprüfte unverändert ist. Wirkt beim nächsten Lauf."),
         "quelle": "§ 3 Abs 1 lit c · § 5 Abs 8",
     },
+    # ── Folgewelle 0.115.0: bisherige Modulkonstanten als Registerwerte ──────────────────────────
+    {
+        "schluessel": "gremien-ki-je-stunde",
+        "wert": "0",
+        "einheit": gettext_noop("Aufrufe je Stunde"),
+        "gruppe": "gremien",
+        "beschreibung": gettext_noop("Wie viele Anfragen an die Zukunftswerkstatt ein Konto je Stunde in den "
+        "Räten stellen kann, Einschätzung im Entwurfsfenster und Einschätzung eines Parametertests zusammen. "
+        "0 = keine Grenze. Dieselbe Frage zum selben Stand kostet keinen zweiten Lauf. Wirkt sofort."),
+        "quelle": "Betriebsgrenze der Zukunftswerkstatt in den Räten",
+    },
+    {
+        "schluessel": "beanstandung-je-stunde",
+        "wert": "0",
+        "einheit": gettext_noop("Beanstandungen je Stunde"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Wie viele Beanstandungen einer Einschätzung der Zukunftswerkstatt ein Konto "
+        "je Kalenderstunde absetzen kann. 0 = keine Grenze. Jede Beanstandung bleibt öffentlich am Antrag "
+        "stehen. Wirkt sofort."),
+        "quelle": "Schutz der öffentlichen Einschätzungen am Antrag",
+    },
+    {
+        "schluessel": "parlament-gruppe-hoechstzahl",
+        "wert": "60",
+        "einheit": gettext_noop("Anträge"),
+        "gruppe": "kacheln",
+        "beschreibung": gettext_noop("Wie viele Anträge jede neutrale Gruppe im Parlament höchstens zeigt; die "
+        "Gesamtzahl steht dabei. Derselbe Wert ist die Seitengröße, wenn eine Gruppe ganz geöffnet ist, und "
+        "der Liste eines Lebensbereichs. 0 = alle. Wirkt sofort."),
+        "quelle": "§ 5 Abs 10 (Anzeige)",
+    },
+    {
+        "schluessel": "umsetzung-seite-hoechstzahl",
+        "wert": "50",
+        "einheit": gettext_noop("Einträge"),
+        "gruppe": "kacheln",
+        "beschreibung": gettext_noop("Wie viele Einträge das öffentliche Umsetzungsregister je Seite zeigt; die "
+        "Gesamtzahl steht dabei, jeder Eintrag bleibt erreichbar. 0 = alle. Wirkt sofort."),
+        "quelle": "§ 6 Abs 10 (Anzeige)",
+    },
+    {
+        "schluessel": "verwaltung-liste-seitengroesse",
+        "wert": "200",
+        "einheit": gettext_noop("Konten"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Wie viele Konten die Mitgliederliste der Verwaltung je Seite zeigt. "
+        "Zwischen 10 und 1000. Wirkt sofort."),
+        "quelle": "§ 4 (Anzeige in der Verwaltung)",
+    },
+    {
+        "schluessel": "mandatare-liste-seite",
+        "wert": "50",
+        "einheit": gettext_noop("Mandate"),
+        "gruppe": "mandatare",
+        "beschreibung": gettext_noop("Wie viele Mandate die öffentliche Liste der Mandatare je Seite zeigt; jedes "
+        "Mandat bleibt unter seiner Nummer erreichbar. Zwischen 10 und 500. Wirkt sofort."),
+        "quelle": "§ 7 (Anzeige)",
+    },
+    {
+        "schluessel": "uebersicht-laufende-je-seite",
+        "wert": "50",
+        "einheit": gettext_noop("Anträge"),
+        "gruppe": "kacheln",
+        "beschreibung": gettext_noop("Wie viele laufende Abstimmungen die öffentliche Übersicht je Seite zeigt; "
+        "die Gesamtzahl steht dabei, weitere Seiten folgen. Zwischen 1 und 500. Wirkt sofort."),
+        "quelle": "§ 5 Abs 8 (Anzeige)",
+    },
+    {
+        "schluessel": "faktenbasis-bestandsnachweis-warnanteil",
+        "wert": "100",
+        "einheit": gettext_noop("Prozent"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Ab welchem Anteil der Höchstzahl des Bestandsnachweises die Verwaltung "
+        "gewarnt wird. Bei 100 erst, wenn der nächste Import den Nachweis ausfallen ließe. Zwischen 1 und "
+        "100. Wirkt sofort."),
+        "quelle": "Darstellung des gespeicherten Quellenbestands",
+    },
+    {
+        "schluessel": "aehnlichkeit-seite-zeilen",
+        "wert": "200",
+        "einheit": gettext_noop("Zeilen"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Wie viele Zeilen der Ähnlichkeitsvergleich beim Durchgehen offener Anträge "
+        "und gespeicherter Textvektoren je Datenbankabruf liest. Ändert nur den Speicherbedarf, nie das "
+        "Ergebnis. Zwischen 50 und 2000. Wirkt beim nächsten Vergleich."),
+        "quelle": "§ 5 Abs 10 lit d · Betriebsgrenze",
+    },
+    {
+        "schluessel": "audit-pruefstand-ueberfaellig-takte",
+        "wert": "2",
+        "einheit": gettext_noop("Tage"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Nach wie vielen täglichen Prüftakten ohne neuen Prüfstand das öffentliche "
+        "Audit-Log die Prüfung der Audit-Kette als überfällig ausweist. Zwischen 2 und 31. Wirkt sofort."),
+        "quelle": "§ 3 Abs 1 lit c · § 5 Abs 8",
+    },
+    {
+        "schluessel": "ki-laeufe-je-seite",
+        "wert": "50",
+        "einheit": gettext_noop("Läufe"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Wie viele Läufe das öffentliche Lauf-Archiv der Zukunftswerkstatt je Seite "
+        "zeigt, neueste Nummer zuerst; jeder Lauf bleibt unter seiner Nummer erreichbar. Zwischen 10 und 500. "
+        "Wirkt sofort."),
+        "quelle": "Zukunftswerkstatt / öffentliche Nachlese",
+    },
 ]
 
 
@@ -1009,8 +1186,9 @@ def erstbestand_sicherstellen() -> int:
                 schluessel=eintrag["schluessel"], defaults=vorlage
             )
         neu += int(angelegt)
-        alte_beschreibung, grund = ALTE_SYSTEMBESCHREIBUNGEN.get(parameter.schluessel, (None, None))
-        if not angelegt and parameter.beschreibung == alte_beschreibung:
+        alte_texte, grund = ALTE_SYSTEMBESCHREIBUNGEN.get(parameter.schluessel, ((), None))
+        if not angelegt and parameter.beschreibung in alte_texte:
+            alte_beschreibung = parameter.beschreibung
             from verfahren.models import AuditEintrag
 
             # Nur den nachweislich falschen alten Systemtext berichtigen, niemals

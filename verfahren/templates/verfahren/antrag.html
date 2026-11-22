@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n phasen %}
+{% load i18n phasen lebensbereiche %}
 {% block titel %}{{ antrag.titel }}{% endblock %}
 {% block mainklasse %}breit{% endblock %}
 {% block inhalt %}
@@ -15,16 +15,19 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <p class="zurueck"><a href="{% url 'verfahren:parlament' %}">&larr; {% translate "Parlament" %}</a></p>
   <h1>{{ antrag.titel }}</h1>
   <div class="a-chips">
-    <span class="badge b-{{ antrag.phase }}">{% if vertrauensfrage.ergebnis_wort %}{{ vertrauensfrage.ergebnis_wort }}{% elif vertrauensfrage.ist_bestaetigung and antrag.phase == "unterstuetzung" %}{# § 7 Abs 10 lit f Z 3: keine Unterstützungsphase — die Wartezeit bis zum siebten Tag #}{% translate "Wartezeit bis zur Abstimmung" %}{% else %}{{ antrag.phase|phase_name }}{% endif %}</span>
+    <span class="badge b-{{ antrag.phase }}">{% if vertrauensfrage.ergebnis_wort %}{{ vertrauensfrage.ergebnis_wort }}{% elif vertrauensfrage.ist_bestaetigung and antrag.phase == "unterstuetzung" %}{# § 7 Abs 10 lit f Z 3: keine Unterstützungsphase — die Wartezeit bis zum siebten Tag #}{% translate "Wartezeit bis zur Abstimmung" %}{% else %}{{ antrag|antrag_phase }}{% endif %}</span>
     {% if antrag.art == "mandat" %}<span class="chip klein">{% translate "Mandats-Kandidatur" %}</span>{% elif antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% elif antrag.art == "vertrauensfrage" %}<span class="chip klein">{% if vertrauensfrage.ist_bestaetigung %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}
     {% if antrag.ebene != "bund" %}<span class="chip klein">{{ antrag.get_ebene_display }}{% if antrag.gebiet %} · {{ antrag.gebiet }}{% endif %}</span>{% endif %}
-    {% for k in antrag.kategorien.all %}<a class="chip klein" href="{% url 'verfahren:parlament' %}?fach={{ k.slug }}#feld-favoriten" title="{{ k.pfad_kurz }}">{{ k.name }}</a>{% endfor %}
+    {% for k in antrag.kategorien.all %}<a class="chip klein" href="{% url 'verfahren:parlament' %}?fach={{ k.slug }}#feld-favoriten" title="{{ k|lb_pfad_kurz }}">{{ k|lb_name }}</a>{% endfor %}
     <span class="a-stern">{% include "verfahren/_stern.html" with antrag=antrag %}</span>
   </div>
   {% if oertlicher_teilnehmerkreis %}
   <p class="meldung" id="teilnehmerkreis"><strong>{% translate "Teilnehmerkreis:" %}</strong>
     {% blocktranslate with ort=antrag.gebiet tag=antrag.teilnehmerkreis_am|date:"d.m.Y H:i" fassung=antrag.teilnahmegebiet.fassung %}{{ ort }} · Hauptwohnsitz bei Einbringung am {{ tag }} · Regelstand {{ fassung }}.{% endblocktranslate %}
-    {% if antrag.ebene == "gemeinde" %}{{ antrag.teilnahmegebiet.kennung }}{% endif %}
+    {% if antrag.ebene == "gemeinde" %}{% blocktranslate with k=antrag.teilnahmegebiet.kennung %}Kennung des Kreises: {{ k }}.{% endblocktranslate %}{% endif %}
+    {# GP-057: Kreisgröße am Einbringungstag (aus der Audit-Kette) und Prüfgrundlage des Wohnsitzes #}
+    {% with n=antrag.kreis_stimmberechtigte %}{% if n is None %}{% translate "Stimmberechtigte am Einbringungstag: nicht festgehalten." %}{% else %}{% blocktranslate %}Stimmberechtigte am Einbringungstag: {{ n }}.{% endblocktranslate %}{% endif %}{% endwith %}
+    {% translate "Hauptwohnsitz laut Selbstauskunft, nicht amtlich geprüft." %}
     {% if user.is_authenticated and eigener_teilnehmerkreis %}{% translate "Sie gehören zum örtlichen Kreis; die allgemeinen Voraussetzungen gelten zusätzlich." %}
     {% elif user.is_authenticated %}{% translate "Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis." %}
     {% if ohne_oertliche_zuordnung %}{% translate "Ihr Konto hat keine örtliche Zuordnung; die Bundesebene steht Ihnen offen." %} <a href="{% url 'verfahren:parlament' %}">{% translate "Zum Parlament" %}</a>{% elif wien_ohne_bezirk %}<a href="{% url 'mitglieder:profil' %}#wohnsitz">{% translate "Gemeindebezirk wählen ›" %}</a>{% else %}<a href="{% url 'verfahren:parlament' %}?fokus=region">{% translate "Verfahren Ihrer Region ›" %}</a>{% endif %}{% endif %}
@@ -49,7 +52,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <p class="a-meta">{% if vertrauensfrage.ist_bestaetigung %}{% translate "Bestätigungsantrag von" %}{% else %}{% translate "Vertrauensfrage zu" %}{% endif %} <a href="{% url 'mandatare:detail' vertrauensfrage.mandat.pk %}">{{ vertrauensfrage.mandatar.anzeigename }}</a> ({{ vertrauensfrage.mandat.bezeichnung }})
     · {% translate "eingebracht" %} {{ antrag.eingebracht_am|date:"d.m.Y" }}{% if not vertrauensfrage.ist_bestaetigung %} {% translate "von" %} {{ antrag.eingebracht_von.anzeigename }}
     · {% translate "Anlässe:" %} {{ vertrauensfrage.anzahl_anlaesse }}
-    · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% endif %}{% if frist %}
+    · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% if testkonto_unterstuetzungen %} ({% blocktranslate count n=testkonto_unterstuetzungen %}ohne eine Unterstützung eines Testkontos{% plural %}ohne {{ n }} Unterstützungen von Testkonten{% endblocktranslate %}){% endif %}{% endif %}{% if frist %}
     · {% translate "Frist" %} {{ frist|date:"d.m.Y" }}{% endif %}</p>
   {% if vertrauensfrage.ist_bestaetigung %}
   <div class="band-gold vf-band"><strong>{% translate "Bestätigungsantrag nach § 7 Abs 10 lit f Z 3 — ohne Unterstützungs- und Beratungsphase; die Abstimmung beginnt am siebten Tag nach Einbringung." %}</strong></div>
@@ -74,14 +77,21 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   {% endif %}
   {% else %}
   <p class="a-meta">{% translate "eingebracht" %} {{ antrag.eingebracht_am|date:"d.m.Y" }} {% translate "von" %} {{ antrag.eingebracht_von.anzeigename }}
-    · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% if frist %}
+    · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% if testkonto_unterstuetzungen %} ({% blocktranslate count n=testkonto_unterstuetzungen %}ohne eine Unterstützung eines Testkontos{% plural %}ohne {{ n }} Unterstützungen von Testkonten{% endblocktranslate %}){% endif %}{% if frist %}
     · {% translate "Frist" %} {{ frist|date:"d.m.Y" }}{% endif %}</p>
   {% endif %}
   {% if neu and einschaetzung %}<div class="band-gold neu-band"><a href="#zone-einschaetzung" @click="waehle('einschaetzung', $event)"><strong>{% translate "Einschätzung der Zukunftswerkstatt:" %}</strong> {% translate "betroffene Gesetze zu diesem Antrag →" %}</a></div>{% endif %}
   {% if antrag.hervorgehoben %}<div class="band-gold"><strong>{% translate "Vom Integritätsrat hervorgehoben (§ 5 Abs 10 lit b):" %}</strong> {{ antrag.hervorhebung_begruendung|default:_("Begründung folgt.") }}</div>{% endif %}
   {# § 6 Abs 3 lit d: Die Aussetzung ist zu veröffentlichen — also auch hier, wo die Frist steht (Befund #30) #}
   {% if aussetzung %}<div class="band-gold aussetzung-band"><strong>{% blocktranslate with seit=aussetzung.beginn|date:"d.m.Y" nummer=aussetzung.beschluss.nummer %}Ausgesetzt seit {{ seit }} durch Beschluss {{ nummer }} des Integritätsrats — die Frist ruht (§ 6 Abs 3 lit d).{% endblocktranslate %}</strong> {{ aussetzung.begruendung }} <a href="{% url 'gremien:beschluss' aussetzung.beschluss.nummer %}">{% translate "Zum Beschluss" %}</a></div>{% endif %}
-  {% if antrag.zurueckweisung_begruendung %}<div class="karte"><strong>{% if vertrauensfrage.sperre.stand == "festgestellt" %}{% translate "Nicht eröffnet (§ 7 Abs 10 lit b):" %}{% else %}{% translate "Formal zurückgewiesen (§ 5 Abs 2):" %}{% endif %}</strong> {{ antrag.zurueckweisung_begruendung }}</div>{% endif %}
+  {% if antrag.zurueckweisung_begruendung %}<div class="karte" id="ergebnis-ende"><strong>{% if vertrauensfrage.sperre.stand == "festgestellt" %}{% translate "Nicht eröffnet (§ 7 Abs 10 lit b):" %}{% else %}{% translate "Formal zurückgewiesen (§ 5 Abs 2):" %}{% endif %}</strong> {{ antrag.zurueckweisung_begruendung }}{% if not vertrauensfrage %}
+    {# GP-066: der nächste Schritt — die Zurückweisung ist bekämpfbar (§ 5 Abs 2) #}
+    <br>{% translate "Die Zurückweisung ist beim Parteischiedsgericht bekämpfbar (§ 5 Abs 2)." %}{% endif %}</div>{% endif %}
+  {% if verfall %}
+  {# GP-066: Ende mit Begründung auf der Seite — erreichte Zahl gegen die Schwelle, Fristende, nächster Schritt #}
+  <div class="karte" id="ergebnis-ende"><strong>{% blocktranslate with n=verfall.erreicht frist=verfall.frist|date:"d.m.Y" count m=verfall.schwelle %}Verfallen: {{ n }} von {{ m }} Unterstützung bis zum Fristende am {{ frist }} (§ 5 Abs 3 lit b).{% plural %}Verfallen: {{ n }} von {{ m }} Unterstützungen bis zum Fristende am {{ frist }} (§ 5 Abs 3 lit b).{% endblocktranslate %}</strong>{% if verfall.wieder_ab %}
+    <br>{% if verfall.wieder_offen %}{% blocktranslate with ab=verfall.wieder_ab|date:"d.m.Y" %}Neu einbringen lässt sich der Antrag seit {{ ab }} (§ 5 Abs 3 lit b).{% endblocktranslate %}{% else %}{% blocktranslate with ab=verfall.wieder_ab|date:"d.m.Y" %}Neu einbringen lässt sich der Antrag ab {{ ab }} (§ 5 Abs 3 lit b).{% endblocktranslate %}{% endif %}{% endif %}</div>
+  {% endif %}
 </header>
 
 <nav class="zonenleiste" aria-label="{% translate 'Zonen dieser Seite' %}">
@@ -148,7 +158,9 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     {% elif antrag.phase == "unterstuetzung" %}
     <div class="karte handlung">
       <h3>{% translate "Unterstützen" %}</h3>
-      {% if user.is_authenticated and not eigener_teilnehmerkreis %}
+      {% if sperren.mitwirkung %}
+        {% include "verfahren/_sperre_satz.html" with sperre=sperren.mitwirkung %}
+      {% elif user.is_authenticated and not eigener_teilnehmerkreis %}
         <p>{% translate "Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis." %}</p>
       {% elif user.is_authenticated and vertrauensfrage and not vertrauensfrage.unterstuetzen_erlaubt %}
         <p>{% blocktranslate with tag=vertrauensfrage.stichtag|date:"d.m.Y" %}Unterstützen kann nur, wer am Tag der Einbringung ({{ tag }}) für Personenwahlen stimmberechtigt war (§ 7 Abs 10 lit c).{% endblocktranslate %}</p>
@@ -163,7 +175,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
           {% endif %}
         </form>
       {% else %}
-        <p>{% translate "Zum Unterstützen bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a> {% translate "oder" %} <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>.</p>
+        {% if request.gemeindekonto %}<p class="hilfe">{% include "verfahren/_nur_partei.html" %}</p>{% else %}<p>{% translate "Zum Unterstützen bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a> {% translate "oder" %} <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>.</p>{% endif %}
       {% endif %}
     </div>
     {% endif %}
@@ -179,7 +191,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
           <div class="b-kopf"><strong>{{ b.mitglied.anzeigename }}</strong> · {% translate "beworben am" %} {{ b.erstellt_am|date:"d.m.Y" }}{% if b.rueckgabezusage %} · {% translate "Rückgabezusage:" %} {{ b.get_rueckgabezusage_display }}{% endif %}</div>
           {% if b.vorstellung %}<div>{{ b.vorstellung|linebreaksbr }}</div>{% endif %}
         </div>
-        {% if kandidatur.zustimmen_offen and user.is_authenticated and eigene_oertliche_stimmabgabe %}
+        {% if kandidatur.zustimmen_offen and user.is_authenticated and eigene_oertliche_stimmabgabe and not sperren.stimme %}
         <form method="post" action="{% url 'verfahren:kandidatur_zustimmen' antrag.pk b.pk %}">{% csrf_token %}
           {% if b.pk in kandidatur.meine_zustimmungen %}
             <button type="submit" class="btn">&#10003; {% translate "Zugestimmt" %}</button>
@@ -193,23 +205,27 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
       <p class="leer">{% translate "Noch keine Bewerbung — die erste kann Ihre sein." %}</p>
       {% endfor %}
       {% if kandidatur.zurueckgezogene %}<p class="erk">{% blocktranslate count n=kandidatur.zurueckgezogene|length %}Eine Bewerbung wurde zurückgezogen — dokumentiert im Audit-Log.{% plural %}{{ n }} Bewerbungen wurden zurückgezogen — dokumentiert im Audit-Log.{% endblocktranslate %}</p>{% endif %}
-      {% if kandidatur.zustimmen_offen and user.is_authenticated and not eigene_oertliche_stimmabgabe %}
+      {% if kandidatur.zustimmen_offen and sperren.stimme %}
+      {% include "verfahren/_sperre_satz.html" with sperre=sperren.stimme %}
+      {% elif kandidatur.zustimmen_offen and user.is_authenticated and not eigene_oertliche_stimmabgabe %}
       <p>{% translate "Für Sie ist hier keine Stimmabgabe möglich." %}</p>
       {% elif kandidatur.zustimmen_offen and user.is_authenticated %}
       <p class="hilfe">{% translate "Ihre Zustimmungen werden unter einem Pseudonym erfasst und nach Fristende in der nachrechenbaren Liste veröffentlicht." %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Prüfcode anzeigen" %}</a></p>
       {% elif kandidatur.zustimmen_offen %}
-      <p class="hilfe">{% translate "Zum Zustimmen bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>
+      {% if request.gemeindekonto %}<p class="hilfe">{% include "verfahren/_nur_partei.html" %}</p>{% else %}<p class="hilfe">{% translate "Zum Zustimmen bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>{% endif %}
       {% endif %}
 
       {% if kandidatur.bewerben_offen %}
       <div class="bewerbungsform">
       {% if not user.is_authenticated %}
-        <p class="hilfe">{% translate "Zum Bewerben bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a> {% translate "oder" %} <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>.</p>
+        {% if request.gemeindekonto %}<p class="hilfe">{% include "verfahren/_nur_partei.html" %}</p>{% else %}<p class="hilfe">{% translate "Zum Bewerben bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a> {% translate "oder" %} <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>.</p>{% endif %}
       {% elif kandidatur.meine_bewerbung and not kandidatur.meine_bewerbung.zurueckgezogen %}
         <form method="post" action="{% url 'verfahren:bewerbung_zurueckziehen' antrag.pk %}" class="stimmzeile">{% csrf_token %}
           <span>{% translate "Ihre Bewerbung steht — Sie werden als wählbar geführt." %}</span>
           <button type="submit" class="btn-still">{% translate "Bewerbung zurückziehen" %}</button>
         </form>
+      {% elif sperren.bewerben %}
+        {% include "verfahren/_sperre_satz.html" with sperre=sperren.bewerben %}
       {% elif not eigener_teilnehmerkreis %}
         <p>{% translate "Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis." %}</p>
       {% else %}
@@ -240,8 +256,11 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     <div class="karte handlung" id="abstimmen">
       <h3>{% translate "Abstimmen" %}</h3>
       {% if beteiligung %}<p class="meta">{% blocktranslate with abgegeben=beteiligung.abgegeben berechtigte=beteiligung.berechtigte|default_if_none:"–" %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %}{% if beteiligung.prozent is not None %} ({{ beteiligung.prozent }} % {% translate "Beteiligung" %}){% endif %} · {% include "verfahren/_tendenz.html" with tendenz=beteiligung.tendenz %}</p>{% endif %}
+      {% if beteiligung.mindest %}<p class="meta">{% blocktranslate with prozent=beteiligung.mindest.prozent von=beteiligung.berechtigte count n=beteiligung.mindest.stimmen %}Mindestbeteiligung: {{ n }} Stimme ({{ prozent }} % von {{ von }}){% plural %}Mindestbeteiligung: {{ n }} Stimmen ({{ prozent }} % von {{ von }}){% endblocktranslate %}</p>{% endif %}
       {% if vertrauensfrage.legende %}<p class="erk vf-legende">{{ vertrauensfrage.legende.0 }} · {{ vertrauensfrage.legende.1 }}</p>{% endif %}
-      {% if user.is_authenticated and not eigene_oertliche_stimmabgabe %}
+      {% if sperren.stimme %}
+        {% include "verfahren/_sperre_satz.html" with sperre=sperren.stimme %}
+      {% elif user.is_authenticated and not eigene_oertliche_stimmabgabe %}
         <p>{% translate "Für Sie ist hier keine Stimmabgabe möglich." %}</p>
       {% elif user.is_authenticated %}
         {% if meine_stimme %}<p>{% translate "Ihre aktuelle Stimme:" %} <strong>{{ meine_stimme|phase_name }}</strong> — {% translate "Sie können sie bis zum Fristende ändern." %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Prüfcode anzeigen" %}</a></p>{% endif %}
@@ -252,15 +271,24 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
         </form>
         <p class="hilfe">{% translate "Ihre Stimme wird unter einem Pseudonym erfasst und nach Abstimmungsende in der nachrechenbaren Stimmliste veröffentlicht (§ 5 Abs 3 lit c)." %}</p>
       {% else %}
-        <p>{% translate "Zum Abstimmen bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>
+        {% if request.gemeindekonto %}<p class="hilfe">{% include "verfahren/_nur_partei.html" %}</p>{% else %}<p>{% translate "Zum Abstimmen bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>{% endif %}
       {% endif %}
+    </div>
+    {% endif %}
+
+    {% if angehalten %}
+    {# GP-138: Die Gegenprobe hält die Feststellung an — der Befund mit Zahlen statt der bevorstehenden Auswertung #}
+    <div class="karte handlung" id="auszaehlung-angehalten">
+      <h3>{% translate "Auszählung angehalten" %}</h3>
+      <p><strong>{% translate "Die Stimmliste besteht die Gegenprobe nicht; es wird kein Ergebnis festgestellt." %}</strong></p>
+      <ul>{% for befund in angehalten.befunde %}<li>{{ befund }}</li>{% endfor %}</ul>
     </div>
     {% endif %}
 
     {% if kandidatur.wahl %}
     <div class="karte handlung">
       <h3>{% translate "Ergebnis" %}</h3>
-      <p><strong>{{ kandidatur.wahl.begruendung }}</strong></p>
+      <p><strong>{{ kandidatur.wahl|ergebnis_satz }}</strong></p>
       <div class="tabelle-rollt"><table class="tabelle">
         <thead><tr><th>{% translate "Platz" %}</th><th>{% translate "Bewerbung" %}</th><th>{% translate "Zustimmungen" %}</th></tr></thead>
         <tbody>
@@ -270,6 +298,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
         </tbody>
       </table></div>
       <p>{% translate "Beteiligung" %} {{ kandidatur.wahl.beteiligung }} / {{ kandidatur.wahl.stimmberechtigte }} {% translate "Stimmberechtigte" %}</p>
+      {% if ueberzahl %}<p class="erk">{% blocktranslate with stimmen=kandidatur.wahl.beteiligung n=kandidatur.wahl.stimmberechtigte %}Mehr Stimmen als festgestellte Stimmberechtigte ({{ stimmen }} zu {{ n }}); die Abweichung ist mit dem Ergebnis in der Audit-Kette ausgewiesen.{% endblocktranslate %}</p>{% endif %}
       <p class="hilfe">{% translate "Nachrechnen:" %} <a href="{% url 'verfahren:export' antrag.pk %}">{% translate "Stimmliste exportieren" %}</a>{% if user.is_authenticated %} · <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Meine Stimme in der Liste finden" %}</a>{% endif %}{% if wahlvorschlag_url %} · <a href="{{ wahlvorschlag_url }}">{% translate "Reihung als Wahlvorschlag (Markdown)" %}</a>{% endif %}</p>
     </div>
     {% endif %}
@@ -280,12 +309,13 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
       {% if vertrauensfrage.ergebnis_wort %}
       {# § 7 Abs 10 lit e: verloren, wenn angenommen — sonst gewonnen, auch bei verfehlter Mindestbeteiligung; die Auszählung bleibt dieselbe #}
       <p><strong>{{ vertrauensfrage.ergebnis_wort }}</strong></p>
-      <p class="erk">{% translate "Auszählung:" %} {{ ergebnis.begruendung }}</p>
+      <p class="erk">{% translate "Auszählung:" %} {{ ergebnis|ergebnis_satz }}</p>
       <p class="erk vf-legende">{{ vertrauensfrage.legende.0 }} · {{ vertrauensfrage.legende.1 }}</p>
       {% else %}
-      <p><strong>{{ ergebnis.begruendung }}</strong></p>
+      <p><strong>{{ ergebnis|ergebnis_satz }}</strong></p>
       {% endif %}
       <p>{% translate "Ja" %} {{ ergebnis.ja }} · {% translate "Nein" %} {{ ergebnis.nein }} · {% translate "Enthaltung" %} {{ ergebnis.enthaltung }} · {% translate "Stimmberechtigte" %} {{ ergebnis.stimmberechtigte }}</p>
+      {% if ueberzahl %}<p class="erk">{% blocktranslate with stimmen=ergebnis.abgegeben n=ergebnis.stimmberechtigte %}Mehr Stimmen als festgestellte Stimmberechtigte ({{ stimmen }} zu {{ n }}); die Abweichung ist mit dem Ergebnis in der Audit-Kette ausgewiesen.{% endblocktranslate %}</p>{% endif %}
       <p class="hilfe">{% translate "Nachrechnen:" %} <a href="{% url 'verfahren:export' antrag.pk %}">{% translate "Stimmliste exportieren" %}</a> {% blocktranslate %}und mit <code>verify/nachrechnen.py</code> unabhängig prüfen (§ 5 Abs 8).{% endblocktranslate %}{% if user.is_authenticated %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Meine Stimme in der Liste finden" %}</a>.{% endif %}</p>
     </div>
     {% endif %}
@@ -335,6 +365,14 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
         <span class="hilfe">{% translate "Dauerhaft und auditiert — Einträge werden nie geändert oder gelöscht." %}</span>
       </form>
       {% endif %}
+    </div>
+    {% endif %}
+
+    {% if rechenschaft %}
+    {# GP-065: Wie Mandatare im Vertretungskörper zu diesem Beschluss stimmten — aus dem Rechenschaftsregister (§ 7 Abs 5), nebeneinandergestellt, nicht bewertet #}
+    <div class="karte" id="rechenschaft">
+      <h3>{% translate "Rechenschaft" %}</h3>
+      {% include "verfahren/_rechenschaft_zeilen.html" with eintraege=rechenschaft %}
     </div>
     {% endif %}
 

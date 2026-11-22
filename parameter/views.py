@@ -20,6 +20,7 @@ from parameter.models import (
     erstbestand_sicherstellen,
     wert_ausserhalb,
 )
+from plattform_core.schema import offenes_format
 from verfahren.models import AuditEintrag
 
 #: Kennung der Verfahrensordnung, wenn diese Instanz noch gar keine hat. Gibt es eine geltende
@@ -129,11 +130,10 @@ def bericht(request, jahr: int):
 
 
 def _offen(daten) -> JsonResponse:
-    antwort = JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 1})
-    antwort["Access-Control-Allow-Origin"] = "*"
-    return antwort
+    return JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 1})
 
 
+@offenes_format
 def export_json(request):
     """FB-M5 (§ 12 Abs 5): Stellgrößen und Verfahrensordnung im sprachneutralen Schema
     (docs/SCHEMA.md, ADR-009) — der Austausch zwischen den Landesinstanzen. Die bisherigen
@@ -186,6 +186,7 @@ def export_json(request):
     )
 
 
+@offenes_format
 def kennzahlen_json(request):
     """FB-M5: der aggregierte Lernfortschritt dieser Instanz — Zählungen und Anteile über das
     Ganze, nie über einen Menschen (Art 9 DSGVO). Kennungen nach docs/SCHEMA.md. Dieselbe

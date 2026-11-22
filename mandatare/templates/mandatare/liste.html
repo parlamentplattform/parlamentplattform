@@ -8,6 +8,7 @@
 zeigt hier öffentlich seine aktuellen Aufgaben und Entscheidungsprozesse samt Fristen — und die daraus
 entstehenden, von ihm betreuten Abstimmungen auf dieser Plattform. Die Ergebnisse sind seine Richtschnur;
 das freie Mandat bleibt unberührt (§ 7 Abs 2).{% endblocktranslate %}</p>
+{% if gesamt %}<p class="meta">{% blocktranslate count n=gesamt %}Ein Mandat{% plural %}{{ n }} Mandate{% endblocktranslate %} · {% translate "Reihung: Ebene, Gebiet, Antritt; beendete zuletzt, das zuletzt beendete zuerst" %}</p>{% endif %}
 
 {% if karten %}
 <div class="mandatar-karten">
@@ -33,8 +34,7 @@ das freie Mandat bleibt unberührt (§ 7 Abs 2).{% endblocktranslate %}</p>
   </div>
   {% endfor %}
 </div>
-{% if ehemalige %}<p class="erk" style="margin-top:12px">{% blocktranslate count n=ehemalige %}Ein beendetes Mandat bleibt dokumentiert.{% plural %}{{ n }} beendete Mandate bleiben dokumentiert.{% endblocktranslate %}</p>{% endif %}
-{% else %}
+{% elif not n_offen %}
 <div class="karte">
   <p><strong>{% translate "Noch hält die DDÖ kein öffentliches Mandat." %}</strong>
   {% if kandidaturen %}{% translate "Ehrlich gesagt: Genau dafür bauen wir — und die Wahl unserer Kandidaten läuft bereits, hier auf der ParlamentPlattform (nicht im österreichischen Parlament: Die DDÖ reiht ihre eigenen Wahlvorschläge)." %}
@@ -51,5 +51,23 @@ das freie Mandat bleibt unberührt (§ 7 Abs 2).{% endblocktranslate %}</p>
   <p style="margin-top:14px"><a class="btn" href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>
   <a class="btn-linie" href="{% url 'verfahren:einbringen' %}" style="margin-left:8px">{% translate "Kandidatur-Antrag einbringen" %}</a></p>
 </div>
+{% endif %}
+{% if ehemalige %}
+<div class="karte" id="beendet">
+  <p class="phasen-titel">{% blocktranslate count n=n_beendet %}Ein beendetes Mandat bleibt dokumentiert.{% plural %}{{ n }} beendete Mandate bleiben dokumentiert.{% endblocktranslate %}</p>
+  {% for m in ehemalige %}
+  <div class="zeile"><span><a href="{% url 'mandatare:detail' m.pk %}">{{ m.mitglied.anzeigename }}</a> <span class="meta">· {{ m.bezeichnung }} · {{ m.gebiet|default:m.get_ebene_display }}</span></span>
+    <span class="meta">{% translate "beendet am" %} {{ m.beendet|date:"d.m.Y" }}</span></div>
+  {% endfor %}
+</div>
+{% elif n_beendet %}
+<p class="meta"><a href="?seite={{ beendet_ab_seite }}#beendet">{% blocktranslate count n=n_beendet %}Ein beendetes Mandat bleibt dokumentiert.{% plural %}{{ n }} beendete Mandate bleiben dokumentiert.{% endblocktranslate %}</a></p>
+{% endif %}
+{% if seite.has_other_pages %}
+<nav class="audit-blaettern" aria-label="{% translate 'Seiten' %}">
+  {% if seite.has_previous %}<a href="?seite={{ seite.previous_page_number }}" rel="prev">{% translate "Zurück" %}</a>{% endif %}
+  <span class="meta">{% blocktranslate with n=seite.number von=seite.paginator.num_pages %}Seite {{ n }} von {{ von }}{% endblocktranslate %}</span>
+  {% if seite.has_next %}<a href="?seite={{ seite.next_page_number }}" rel="next">{% translate "Weiter" %}</a>{% endif %}
+</nav>
 {% endif %}
 {% endblock %}

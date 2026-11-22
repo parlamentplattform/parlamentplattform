@@ -31,7 +31,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
-from django.db.models import Exists, OuterRef, Q, Value
+from django.db.models import Exists, OuterRef, Prefetch, Q, Value
 from django.db.models.functions import Concat
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
@@ -41,7 +41,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from mandatare.gemeindeexport import gemeindearbeit_exportieren, mandate_fuer_export
+from mandatare.gemeindeexport import mandat_exportieren, mandate_fuer_export
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_moeglich, ausweis_svg
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.botschutz import drossel_zuviel
@@ -365,6 +365,11 @@ def profil(request):
             # Die Karte „Nachrichten“ nennt ganz Österreich nur, solange Bundesanträge an alle gehen.
             "post_bund": zahl("post-neuer-antrag-bund", 1) == 1,  # Literal: der Registerwächter liest den Aufruf
             "adresswechsel": Adresswechsel.offener(mitglied),
+            # GP-066: die eigenen Anträge mit ihrer Phase — auch verfallene und zurückgewiesene;
+            # Reihung offengelegt: zuletzt eingebracht zuerst.
+            "eigene_antraege": mitglied.antraege.order_by("-eingebracht_am", "-pk").only(
+                "pk", "titel", "phase", "eingebracht_am"
+            ),
             # FB-K8: Vorschau des Mitgliedsausweises (Vorder- und Rückseite) — erst mit geprüftem Nachweis
             **_ausweis_vorschau(mitglied),
         },
@@ -385,10 +390,11 @@ def sitzungen_beenden(request):
     nächsten Aufruf. `update_session_auth_hash` schreibt der aktuellen Sitzung den neuen Hash,
     darum bleibt genau dieses Gerät angemeldet. Die Beitragsreferenz hängt nicht am Passwort."""
     mitglied = request.user
-    mitglied.set_unusable_password()
-    mitglied.save(update_fields=["password"])
+    with transaction.atomic():  # GP-129: neuer Sitzungs-Hash und Audit-Eintrag gemeinsam oder gar nicht
+        mitglied.set_unusable_password()
+        mitglied.save(update_fields=["password"])
+        _auditieren("sitzungen_beendet", mitglied)
     update_session_auth_hash(request, mitglied)
-    _auditieren("sitzungen_beendet", mitglied)
     messages.success(request, _("Alle anderen Geräte sind abgemeldet — dieses bleibt angemeldet."))
     return redirect("mitglieder:profil")
 
@@ -456,6 +462,7 @@ def _gremien_export(m: Mitglied) -> dict:
         EntwurfsBeitrag,
         EntwurfsFassung,
         Fachliste,
+        FachlistenEinwilligung,
         GremienStimme,
         Interessenbindung,
         Pruefung,
@@ -468,6 +475,14 @@ def _gremien_export(m: Mitglied) -> dict:
 
     def beschluss_verweis(b) -> dict:
         return {"gremium": b.gremium, "nummer": b.nummer, "gegenstand": b.gegenstand, "status": b.status}
+
+    def beschluss_mit_umsetzung(b) -> dict:
+        return {
+            **beschluss_verweis(b),
+            "angelegt_am": b.angelegt_am,
+            "umsetzung_frist": b.umsetzung_frist,
+            "umsetzungsvermerk": b.umsetzungsvermerk,
+        }
 
     fachliste = Fachliste.objects.filter(mitglied=m).first()
     return {
@@ -483,6 +498,11 @@ def _gremien_export(m: Mitglied) -> dict:
             "gestrichen_grund": fachliste.gestrichen_grund,
             "einwilligung_widerrufen_am": fachliste.einwilligung_widerrufen_am,
         },
+        # GP-009: die selbst erklärten Einwilligungen zur Fachliste, auch widerrufene (nur anfügend)
+        "fachlisten_einwilligungen": [
+            {"erklaert_am": e.erklaert_am, "widerrufen_am": e.widerrufen_am}
+            for e in FachlistenEinwilligung.objects.filter(mitglied=m).order_by("erklaert_am", "pk")
+        ],
         "interessenbindungen": [
             {"antrag": i.antrag_id, "runde": i.runde, "text": i.text, "erklaert_am": i.erklaert_am}
             for i in Interessenbindung.objects.filter(mitglied=m)
@@ -513,6 +533,9 @@ def _gremien_export(m: Mitglied) -> dict:
                 "ergebnis": p.ergebnis,
                 "begruendung": p.begruendung,
                 "erstellt_am": p.erstellt_am,
+                "korat_entscheid": p.korat_entscheid,
+                "korat_begruendung": p.korat_begruendung,
+                "frist_gehemmt": p.frist_gehemmt,
             }
             for p in Pruefung.objects.filter(durch=m).select_related("entwurf")
         ],
@@ -544,12 +567,8 @@ def _gremien_export(m: Mitglied) -> dict:
             }
             for s in GremienStimme.objects.filter(mitglied=m).select_related("beschluss")
         ],
-        "angelegte_beschluesse": [
-            {**beschluss_verweis(b), "angelegt_am": b.angelegt_am} for b in m.angelegte_beschluesse.all()
-        ],
-        "zugewiesene_umsetzungen": [
-            {**beschluss_verweis(b), "umsetzung_frist": b.umsetzung_frist} for b in m.zugewiesene_umsetzungen.all()
-        ],
+        "angelegte_beschluesse": [beschluss_mit_umsetzung(b) for b in m.angelegte_beschluesse.all()],
+        "zugewiesene_umsetzungen": [beschluss_mit_umsetzung(b) for b in m.zugewiesene_umsetzungen.all()],
         "vollzug": [
             {"antrag": v.antrag_id, "status": v.status, "vermerk": v.vermerk, "erstellt_am": v.erstellt_am}
             for v in Vollzugseintrag.objects.filter(durch=m)
@@ -569,10 +588,18 @@ def _gremien_export(m: Mitglied) -> dict:
             {
                 "parameter": t.parameter.schluessel,
                 "testwert": t.testwert,
+                "alter_wert": t.alter_wert,
                 "hypothese": t.hypothese,
+                "messgroesse": t.messgroesse,
+                "beginn": t.beginn,
                 "ende": t.ende,
+                "rueckweg": t.rueckweg,
                 "status": t.status,
                 "angelegt_am": t.angelegt_am,
+                "werte_vorher": t.werte_vorher,
+                "werte_nachher": t.werte_nachher,
+                "auswertung": t.auswertung,
+                "ausgewertet_am": t.ausgewertet_am,
             }
             for t in ParameterTest.objects.filter(angeordnet_von=m).select_related("parameter")
         ],
@@ -620,6 +647,9 @@ def _gremien_export(m: Mitglied) -> dict:
                 "kontext": a.kontext,
                 "status": a.status,
                 "versuche": a.versuche,
+                "fehler": a.fehler,
+                "zuletzt_versucht_am": a.zuletzt_versucht_am,
+                "naechster_versuch": a.naechster_versuch,
                 "erstellt_am": a.erstellt_am,
                 "erledigt_am": a.erledigt_am,
             }
@@ -636,7 +666,12 @@ def daten_export(mitglied: Mitglied) -> dict:
     Adresswechsel, die dieses Konto als Verwaltung für ANDERE beantragt oder bestätigt hat
     (fremde Vorgänge), und Audit-Zeilen Dritter. Beschlüsse, Ein- und Ausgaben von KI-Läufen
     stehen nur als Verweis (`_gremien_export`). Der Stimmregister-Teil fehlt, solange eine
-    Änderung der Anmeldeadresse offen ist — dieselbe Sperre wie „Meine Stimme prüfen“ (F-51)."""
+    Änderung der Anmeldeadresse offen ist — dieselbe Sperre wie „Meine Stimme prüfen“ (F-51).
+
+    Jede Auslassung steht Feld für Feld mit Grund in `mitglieder/test_export_felder.py`
+    (`AUSNAHMEN_FELDER`); der Wächter dort wird rot, sobald ein gespeichertes Feld weder im
+    Export noch in der Liste steht (GP-089, GP-162)."""
+    from gremien.models import Umsetzungsvermerk
     from mitglieder.models import Gemeindezugang
 
     m = mitglied
@@ -666,10 +701,17 @@ def daten_export(mitglied: Mitglied) -> dict:
             "favoriten_zuerst": m.favoriten_zuerst,
             "registriert_am": m.date_joined,
             "zuletzt_angemeldet": m.last_login,
+            "konto_aktiv": m.is_active,
+            "parteikonto": m.parteikonto,
+            "is_staff": m.is_staff,
+            "is_superuser": m.is_superuser,
         },
         "postauftraege": list(m.postauftrag_set.order_by("pk").values(
             "art", "bezug", "antrag", "erstellt_am", "versandt_am", "anhang_versandt_am", "erledigt", "versuche",
             "naechster_versuch")),
+        # GP-094: je Statuswechsel der Stand davor — daraus liest die Zählung den Stand an einem Stichtag.
+        "statusverlauf": list(m.statusverlauf.order_by("tag", "pk").values(
+            "tag", "status_vorher", "status", "seit_vorher", "konto_aktiv_vorher", "anwartschaft_verschoben_tage")),
         "post": {"willkommen_am": m.willkommen_post_am, "freischaltung_am": m.freischaltung_post_am},
         "mitgliedsnummer": m.mitgliedsnummer,
         "testkonto": m.testkonto,
@@ -679,13 +721,19 @@ def daten_export(mitglied: Mitglied) -> dict:
         "oertliche_verfahrenskreise": list(m.oertliche_verfahrenskreise.order_by("antrag_id").values(
             "antrag_id", "antrag__teilnehmerkreis_am"
         )),
-        "ausweis": {"ausgestellt_am": m.ausweis_ausgestellt_am, "code": m.ausweis_code or None},
+        "ausweis": {
+            "ausgestellt_am": m.ausweis_ausgestellt_am,
+            "code": m.ausweis_code or None,
+            "schluessel": m.ausweis_schluessel,
+        },
         "wohnsitz_art": m.wohnsitz_art_aktuell,
         "wohnsitz": _gemeinde_export(m.wohnsitz) or ({"name": m.gemeinde} if m.gemeinde else None),
+        "bundesland": m.bundesland or None,
         "wiener_bezirk": m.wiener_hauptbezirk or None,
         "nebenwohnsitz": _gemeinde_export(m.nebenwohnsitz),
         "beitraege": [
-            {"betrag": b.betrag, "gebucht_am": b.gebucht_am, "namens_hinweis": b.namens_hinweis}
+            {"betrag": b.betrag, "gebucht_am": b.gebucht_am, "namens_hinweis": b.namens_hinweis,
+             "erfasst_am": b.erfasst_am}
             for b in m.beitraege.all()
         ],
         "adresswechsel": [
@@ -699,8 +747,19 @@ def daten_export(mitglied: Mitglied) -> dict:
             for w in m.adresswechsel.all()
         ],
         "antraege": [
-            {"antrag": a.pk, "titel": a.titel, "art": a.art, "eingebracht_am": a.eingebracht_am, "phase": a.phase}
-            for a in m.antraege.all()
+            {
+                "antrag": a.pk, "titel": a.titel, "art": a.art, "eingebracht_am": a.eingebracht_am, "phase": a.phase,
+                "ebene": a.ebene, "gebiet": a.gebiet,
+                "zurueckweisung_begruendung": a.zurueckweisung_begruendung,
+                "hervorgehoben": a.hervorgehoben, "hervorhebung_begruendung": a.hervorhebung_begruendung,
+                # GP-089: jede Fassung des eigenen Antrags im Wortlaut
+                "fassungen": [
+                    {"nummer": f.nummer, "wortlaut": f.wortlaut, "begruendung": f.begruendung,
+                     "erstellt_am": f.erstellt_am}
+                    for f in a.fassungen.all()
+                ],
+            }
+            for a in m.antraege.prefetch_related("fassungen")
         ],
         "unterstuetzungen": [
             {"antrag": u.antrag_id, "erklaert_am": u.erklaert_am, "zurueckgezogen_am": u.zurueckgezogen_am}
@@ -710,12 +769,19 @@ def daten_export(mitglied: Mitglied) -> dict:
             {
                 "antrag": k.antrag_id,
                 "sitzung": k.sitzung_id,
+                "antwort_auf": k.antwort_auf_id,
                 "text": k.text,
                 "phase": k.phase,
                 "erstellt_am": k.erstellt_am,
                 "bearbeitet_am": k.bearbeitet_am,
                 "geloescht": k.geloescht,
                 "ausgeblendet_am": k.ausgeblendet_am,
+                "ausgeblendet_grund": k.ausgeblendet_grund,
+                "archiviert_am": k.archiviert_am,
+                "bezug_absatz": k.bezug_absatz,
+                "beantwortet_am": k.beantwortet_am,
+                "ist_kritik": k.ist_kritik,
+                "system": k.system,
             }
             for k in m.kommentar_set.all()
         ],
@@ -729,79 +795,24 @@ def daten_export(mitglied: Mitglied) -> dict:
             {"kategorie": a.kategorie_id, "erstellt_am": a.erstellt_am} for a in m.kategorie_abos.all()
         ],
         "filterprofile": [
-            {"name": p.name, "regler": p.regler, "favoriten_zuerst": p.favoriten_zuerst, "aktiv": p.aktiv}
+            {"name": p.name, "regler": p.regler, "favoriten_zuerst": p.favoriten_zuerst, "aktiv": p.aktiv,
+             "geaendert_am": p.geaendert_am}
             for p in m.filterprofile.all()
         ],
+        # Zeitpunkt des letzten Besuchs je Antrag oder Sitzung (FB-G2) — beim Austritt gelöscht
+        "lesestaende": list(m.lesestaende.order_by("pk").values("antrag", "sitzung", "gelesen_bis")),
         "bewerbungen": [
             {
                 "antrag": b.antrag_id,
                 "vorstellung": b.vorstellung,
                 "erstellt_am": b.erstellt_am,
                 "zurueckgezogen": b.zurueckgezogen,
+                "rueckgabezusage": b.rueckgabezusage,
             }
             for b in m.bewerbungen.all()
         ],
-        "mandate": [
-            {
-                "mandat": md.pk,
-                "bezeichnung": md.bezeichnung,
-                "ebene": md.ebene,
-                "gebiet": md.gebiet,
-                "angetreten": md.angetreten,
-                "beendet": md.beendet,
-                "vorstellung": md.vorstellung,
-                "gemeindearbeit": gemeindearbeit_exportieren(md),
-                "aufgaben": [
-                    {
-                        "aufgabe": a.pk,
-                        "titel": a.titel,
-                        "beschreibung": a.beschreibung,
-                        "frist": a.frist,
-                        "sitzungstag": a.sitzungstag,
-                        "status": a.status,
-                        "antrag": a.antrag_id,
-                    }
-                    for a in md.aufgaben.all()
-                ],
-                "berichte": [
-                    {"art": b.art, "monat": b.monat, "text": b.text, "eingereicht_am": b.eingereicht_am}
-                    for b in md.berichte.all()
-                ],
-                "rechenschaft": [
-                    {
-                        "gegenstand": r.gegenstand,
-                        "sitzung_am": r.sitzung_am,
-                        "beschluss_plattform": r.beschluss_plattform,
-                        "stimme": r.stimme,
-                        "begruendung": r.begruendung,
-                        "eingetragen_am": r.eingetragen_am,
-                        "punkt": r.punkt_id,
-                        "nachgetragen_am": r.nachgetragen_am,
-                        "quelle": r.quelle,
-                        "freiwillige_begruendung": r.freiwillige.text if r.freiwillige else None,
-                    }
-                    for r in md.rechenschaft.all()
-                ],
-                # FB-L5: die Sitzungen im Live-Modus mit Tagesordnung und Meldungen
-                "sitzungen": [
-                    {
-                        "sitzung": s.pk,
-                        "aufgabe": s.aufgabe_id,
-                        "beginn": s.beginn,
-                        "ende": s.ende,
-                        "stream": s.stream,
-                        "punkte": [{"nummer": p.nummer, "titel": p.titel, "antrag": p.antrag_id} for p in s.punkte.all()],
-                        "meldungen": [
-                            {"meldung": x.pk, "zeitpunkt": x.zeitpunkt, "punkt": x.punkt_id, "text": x.text,
-                             "stimme": x.stimme, "abgestimmt": x.abgestimmt, "berichtigt": x.berichtigt_id}
-                            for x in s.meldungen.all()
-                        ],
-                    }
-                    for s in md.sitzungen.all()
-                ],
-            }
-            for md in mandate_fuer_export(m)
-        ],
+        # GP-089: der Ordner je Mandat kommt aus mandatare (eine Quelle); Schlüssel bis 0.114.0 bleiben
+        "mandate": [mandat_exportieren(md) for md in mandate_fuer_export(m)],
         "rollen": [
             {
                 "gremium": r.gremium,
@@ -809,9 +820,25 @@ def daten_export(mitglied: Mitglied) -> dict:
                 "endet_am": r.endet_am,
                 "bestaetigt": r.bestaetigt,
                 "beendet_grund": r.beendet_grund,
+                "ruht_seit": r.ruht_seit,
+                "ruht_grund": r.ruht_grund,
                 "antrag": r.antrag_id,
+                # GP-025: Vermerke, die dieser Rolle die Umsetzung eines Beschlusses zuweisen
+                "umsetzungsvermerke": [
+                    {
+                        "beschluss": {"gremium": v.beschluss.gremium, "nummer": v.beschluss.nummer},
+                        "nummer": v.nummer,
+                        "text": v.text,
+                        "frist": v.frist,
+                        "erstellt_am": v.erstellt_am,
+                    }
+                    for v in r.umsetzungsvermerke.all()
+                ],
             }
-            for r in m.rollen.all()
+            for r in m.rollen.prefetch_related(
+                Prefetch("umsetzungsvermerke", queryset=Umsetzungsvermerk.objects.select_related("beschluss")
+                         .order_by("beschluss_id", "nummer"))
+            )
         ],
         "meldungen": [
             {
@@ -820,15 +847,18 @@ def daten_export(mitglied: Mitglied) -> dict:
                 "erlaeuterung": me.erlaeuterung,
                 "erstellt_am": me.erstellt_am,
                 "entscheidung": me.entscheidung,
+                "erledigt_am": me.erledigt_am,
             }
             for me in m.meldung_set.all()
         ],
         "beanstandungen": [
-            {"antrag": b.antrag_id, "text": b.text, "erstellt_am": b.erstellt_am, "erledigt_vermerk": b.erledigt_vermerk}
+            {"antrag": b.antrag_id, "text": b.text, "erstellt_am": b.erstellt_am,
+             "erledigt_vermerk": b.erledigt_vermerk, "erledigt_am": b.erledigt_am}
             for b in m.beanstandung_set.all()
         ],
         "anstoesse": [
-            {"text": a.text, "seite": a.seite, "erstellt": a.erstellt, "status": a.status} for a in m.anstoesse.all()
+            {"text": a.text, "seite": a.seite, "erstellt": a.erstellt, "status": a.status, "vermerk": a.vermerk}
+            for a in m.anstoesse.all()
         ],
         **_gremien_export(m),
     }
@@ -871,7 +901,8 @@ def export_json(request):
         })
         return redirect("mitglieder:profil")
     inhalt = json.dumps(daten_export(request.user), ensure_ascii=False, indent=2, cls=DjangoJSONEncoder)
-    _auditieren("datenexport", request.user)
+    with transaction.atomic():  # GP-129: der Eintrag ist hier die einzige Schreibhandlung
+        _auditieren("datenexport", request.user)
     antwort = HttpResponse(inhalt, content_type="application/json; charset=utf-8")
     antwort["Content-Disposition"] = 'attachment; filename="meine-daten.json"'
     return antwort
@@ -901,8 +932,9 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     und der Fachlisteneintrag werden beendet, ein offener Adresswechsel widerrufen und die
     Adresswerte der gesamten Wechselhistorie geleert; Bewerbungen in Kandidaturen vor der
     Abstimmung werden zurückgezogen (Stempel, kein Löschen)."""
-    from gremien.models import Fachliste
+    from gremien.models import Fachliste, FachlistenEinwilligung
     from mandatare.models import Mandat
+    from mandatare.sitzung import mandatsende_folgen, sitzungen_sperren
 
     # Guard VOR dem Leeren: `ist_fixer_admin` hängt an der E-Mail-Adresse — nach dem Leeren
     # wäre er es nicht mehr, und die Verwaltung stünde herrenlos da.
@@ -910,6 +942,13 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
         raise AustrittFehler(_("Der satzungsgebende Erstzugang kann nicht austreten."))
     jetzt = jetzt or timezone.now()
     heute = timezone.localdate(jetzt)
+
+    # Sperrfolge wie beim Mandatsende: Mandat und offene Sitzungen sperren, BEVOR diese Transaktion
+    # den ersten Audit-Eintrag schreibt (Widerruf des Adresswechsels, `mandat_beendet`). Eine
+    # gleichzeitige Livemeldung sperrt erst die Sitzung und hängt dann an die Kette an; umgekehrt
+    # gereiht warteten beide aufeinander (PostgreSQL: „deadlock detected“).
+    for mandat in Mandat.aktive_von(mitglied):
+        sitzungen_sperren(mandat)
 
     wechsel = Adresswechsel.offener(mitglied)
     if wechsel is not None:
@@ -926,6 +965,9 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
         mandat.beendet = heute
         mandat.save(update_fields=["beendet"])
         AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk})
+        # GP-116: kommende Sprechstunden absagen, eine laufende Sitzung beenden. Anlass ist das neutrale
+        # Mandatsende — das öffentliche Protokoll nennt Mandatsnummer und Anlass, nicht den Austritt.
+        mandatsende_folgen(mandat, "mandat_beendet", jetzt)
     # Das Lichtbild ist ein rein persönliches Datum, kein Verfahrensinhalt — es geht mit dem
     # Menschen (§ 8 Abs 4), auch an längst beendeten Mandaten; Berichte und Rechenschaft bleiben.
     for mandat in mitglied.mandate.exclude(foto_typ=""):
@@ -949,6 +991,9 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
             felder.append("einwilligung_widerrufen_am")
         if felder:
             eintrag.save(update_fields=felder)
+    # GP-009: die eigene offene Erklärung zur Fachliste endet mit dem Austritt. Nur die Erklärung
+    # (mit_eintrag=False): Den Eintrag selbst behandelt der Austritt oben, wie bisher (E-10.8 offen).
+    FachlistenEinwilligung.widerrufen(mitglied, jetzt=jetzt, mit_eintrag=False)
 
     # Bewerbungen in Kandidaturen, die noch nicht in der Abstimmung sind, werden zurückgezogen —
     # derselbe Stempel wie beim freiwilligen Rückzug (§ 7 Abs 1: nur Mitglieder kandidieren).

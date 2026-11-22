@@ -10,6 +10,8 @@ Rundungsfehler über einen Beschluss entscheidet.
 from __future__ import annotations
 
 import enum
+import hashlib
+import json
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -79,6 +81,41 @@ def tendenz_sichtbar(policy: Policy, abgegeben: int, stimmberechtigte: int) -> b
     return mindestbeteiligung_erreicht(abgegeben, stimmberechtigte, policy.mindestbeteiligung)
 
 
+#: Die Ergebniswörter der Auszählung (Gesamtprüfung GP-049). Sie benennen den Ausgang, sie ändern ihn
+#: nicht: Welche Phase folgt, entscheidet weiter allein `angenommen`.
+ERGEBNIS_ANGENOMMEN = "angenommen"
+ERGEBNIS_ABGELEHNT = "abgelehnt"
+#: Der festgehaltene örtliche Kreis hatte bei Abstimmungsbeginn keinen Stimmberechtigten — niemand
+#: konnte stimmen, also wurde nichts beschlossen und nichts abgelehnt.
+ERGEBNIS_KEIN_BESCHLUSS = "kein_beschluss"
+
+
+def ergebnis_wort(angenommen: bool, stimmberechtigte: int | None) -> str:
+    """Wie der Ausgang einer Auszählung heißt — die eine Stelle für Kern, Antrag, Export und Anzeige.
+
+    Von Hand: angenommen heißt „angenommen“. Sonst: Gab es keinen einzigen Stimmberechtigten
+    (Nenner 0, das kommt nur im leeren örtlichen Kreis vor), heißt es „kein_beschluss“; in jedem
+    anderen Fall „abgelehnt“. Ein nie festgestellter Nenner (None, Altbestand) ist kein leerer Kreis."""
+    if angenommen:
+        return ERGEBNIS_ANGENOMMEN
+    if stimmberechtigte == 0:
+        return ERGEBNIS_KEIN_BESCHLUSS
+    return ERGEBNIS_ABGELEHNT
+
+
+#: Welcher Satz die Begründung ist (Gesamtprüfung GP-139): ein Schlüssel neben dem deutschen Satz, damit
+#: eine Anzeige ihn in jeder Sprache aus den Zahlen bauen kann. Der Satz selbst bleibt Urtext in Audit und
+#: Export; der Fall rechnet nichts und ändert kein Ergebnis — er liest dieselben Felder in derselben Reihenfolge
+#: wie die Verzweigung, aus der der Satz stammt.
+FALL_LEERER_KREIS = "leerer_kreis"
+FALL_BETEILIGUNG_VERFEHLT = "beteiligung_verfehlt"
+FALL_ANGENOMMEN = "angenommen"
+FALL_KEINE_MEHRHEIT = "keine_mehrheit"
+FALL_KEINE_BEWERBUNG = "keine_bewerbung"
+FALL_GEWAEHLT = "gewaehlt"
+FALL_KEINE_ZUSTIMMUNG = "keine_zustimmung"
+
+
 class AuszaehlungsFehler(ValueError):
     """Ungültige Eingaben, z. B. doppelte Pseudonyme oder unbekannte Stimmwerte."""
 
@@ -98,6 +135,20 @@ class Auszaehlung:
     @property
     def abgegeben(self) -> int:
         return self.ja + self.nein + self.enthaltung
+
+    @property
+    def ergebnis(self) -> str:
+        """Das Ergebniswort (`ergebnis_wort`): angenommen, abgelehnt oder kein_beschluss."""
+        return ergebnis_wort(self.angenommen, self.stimmberechtigte)
+
+    @property
+    def fall(self) -> str:
+        """Welcher Begründungssatz gilt (GP-139) — dieselbe Reihenfolge wie in `auszaehlen`."""
+        if self.stimmberechtigte == 0:
+            return FALL_LEERER_KREIS
+        if not self.beteiligung_erreicht:
+            return FALL_BETEILIGUNG_VERFEHLT
+        return FALL_ANGENOMMEN if self.angenommen else FALL_KEINE_MEHRHEIT
 
 
 def auszaehlen(
@@ -217,6 +268,25 @@ class Personenwahl:
     gewonnen_id: int | None
     begruendung: str
 
+    @property
+    def ergebnis(self) -> str:
+        """Das Ergebniswort (`ergebnis_wort`) — dieselben drei Wörter wie bei der Sachfrage."""
+        return ergebnis_wort(self.angenommen, self.stimmberechtigte)
+
+    @property
+    def fall(self) -> str:
+        """Welcher Begründungssatz gilt (GP-139) — dieselbe Reihenfolge wie in `personenwahl_auszaehlen`.
+        Ohne Bewerbung gibt es keinen Platz; mit Bewerbung steht jede auf einem Platz."""
+        if not self.plaetze:
+            return FALL_KEINE_BEWERBUNG
+        if self.stimmberechtigte == 0:
+            return FALL_LEERER_KREIS
+        if self.gewonnen_id is not None:
+            return FALL_GEWAEHLT
+        if not self.beteiligung_erreicht:
+            return FALL_BETEILIGUNG_VERFEHLT
+        return FALL_KEINE_ZUSTIMMUNG
+
 
 def personenwahl_auszaehlen(
     zustimmungen: Iterable[tuple[str, int]],
@@ -297,3 +367,73 @@ def personenwahl_auszaehlen(
         gewonnen_id=gewonnen,
         begruendung=begruendung,
     )
+
+
+# ---------------------------------------------------------------------------
+# Gegenprobe und Prüfsumme der Stimmliste (Gesamtprüfung GP-138).
+# Beides steht NEBEN der Auszählung: Ob eine Liste gezählt werden darf, entscheidet die
+# Gegenprobe; wie gezählt wird, bleibt oben unverändert — kein Ergebnis ändert sich.
+# ---------------------------------------------------------------------------
+
+#: Ein Stimmzettel steht in der Liste, zu dem das Stimmregister keinen Eintrag führt.
+OHNE_REGISTERZEILE = "stimmzettel_ohne_registerzeile"
+#: Es haben mehr Menschen gestimmt, als bei Abstimmungsbeginn als stimmberechtigt festgestellt wurden.
+UEBERZAHL = "mehr_stimmen_als_stimmberechtigte"
+#: Die Audit-Kette führt nicht so viele Stimm-Ereignisse, wie Stimmzettel in der Liste stehen.
+EREIGNISSE_WEICHEN_AB = "stimmereignisse_weichen_ab"
+
+#: Die Abweichungen, bei denen kein Ergebnis festgestellt wird. Beide entstehen auf keinem Weg der
+#: Stimmabgabe, nur durch einen Eingriff in die Daten oder einen Defekt. Die Überzahl gehört nicht
+#: dazu: Wer am Stichtag erst nach der Zählung freigeschaltet oder wieder aktiv wird, ist nach der
+#: geltenden Regel stimmberechtigt (§ 4 Abs 4 lit a rechnet in Tagen), steht aber nicht im
+#: festgestellten Nenner. Stimmen dann alle, bestünde die Liste die Probe nie mehr — und niemand ist
+#: zuständig, sie zu klären. Die Überzahl wird deshalb mit dem Ergebnis ausgewiesen (Ereignis
+#: „phasenwechsel“, Feld „abweichungen“), und das Prüfskript rechnet nach und nennt sie als Hinweis;
+#: ob auch sie die Feststellung anhalten soll, ist eine offene Entscheidung.
+HALTEGRUENDE = frozenset({OHNE_REGISTERZEILE, EREIGNISSE_WEICHEN_AB})
+
+
+def gegenprobe(
+    *,
+    stimmzettel: int,
+    waehler: int,
+    ohne_registerzeile: int,
+    stimmberechtigte: int | None,
+    stimmereignisse: int | None,
+) -> tuple[str, ...]:
+    """Prüft eine Stimmliste gegen das, was unabhängig von ihr feststeht — bevor ein Ergebnis
+    festgestellt wird. Rückgabe: die Abweichungen als Kennungen, leer, wenn alles stimmt.
+
+    Von Hand, mit vier Zahlen:
+    - `ohne_registerzeile`: Stimmzettel, deren Pseudonym im Stimmregister des Antrags fehlt. Jede
+      Stimme entsteht mit ihrem Registereintrag; fehlt er, kam der Zettel nicht aus einer Stimmabgabe.
+    - `waehler` gegen `stimmberechtigte`: Es sollen nicht mehr Menschen stimmen, als bei
+      Abstimmungsbeginn festgestellt wurden (§ 4 Abs 4 lit a). `None` heißt: nie festgestellt
+      (Altbestand) — dann entfällt der Vergleich. Diese Abweichung wird ausgewiesen, hält die
+      Feststellung aber nicht an (`HALTEGRUENDE`).
+    - `stimmzettel` gegen `stimmereignisse`: Jede Stimmabgabe schreibt ein Ereignis in die
+      Audit-Kette. Bei Sachfragen ist das die Zahl der Ereignisse „stimme“; bei der Zustimmungswahl
+      die der gegebenen abzüglich der zurückgenommenen Zustimmungen. `None` heißt: Die Abstimmung
+      begann vor dieser Prüfung — dann entfällt der Vergleich.
+
+    Bei Sachfragen ist `waehler` gleich `stimmzettel`; bei der Zustimmungswahl zählt `stimmzettel`
+    die geltenden Zustimmungen und `waehler` die Menschen dahinter."""
+    abweichungen = []
+    if ohne_registerzeile > 0:
+        abweichungen.append(OHNE_REGISTERZEILE)
+    if stimmberechtigte is not None and waehler > stimmberechtigte:
+        abweichungen.append(UEBERZAHL)
+    if stimmereignisse is not None and stimmereignisse != stimmzettel:
+        abweichungen.append(EREIGNISSE_WEICHEN_AB)
+    return tuple(abweichungen)
+
+
+def stimmliste_pruefsumme(zeilen: Iterable[Iterable]) -> str:
+    """SHA-256 über die sortierte Stimmliste — das Siegel, das mit dem Ergebnis in die Audit-Kette
+    kommt. Wer die veröffentlichte Liste später ändert, ändert diese Zahl.
+
+    `zeilen`: je Stimmzettel eine Liste einfacher Werte, bei Sachfragen `[pseudonym, stimme]`.
+    Von Hand: die Zeilen sortieren, als JSON ohne Leerzeichen schreiben (UTF-8), SHA-256 bilden.
+    Die Reihenfolge der Eingabe spielt keine Rolle."""
+    text = json.dumps(sorted(list(zeile) for zeile in zeilen), separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()

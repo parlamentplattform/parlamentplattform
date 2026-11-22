@@ -896,3 +896,180 @@ def test_feldfehler_der_stammdaten_sind_verknuepft(client):
     })
     assert antwort.status_code == 200
     assert verweise_ins_leere(antwort.content.decode()) == []
+
+
+# --- Liste mit Seitenwechsel, Bestand ohne Testkonten (GP-103, KM-18) -------
+
+
+def _konten_anlegen(anzahl):
+    jetzt = timezone.now()
+    Mitglied.objects.bulk_create([
+        Mitglied(username=f'liste{i}@example.org', email=f'liste{i}@example.org',
+                 date_joined=jetzt - timedelta(minutes=i))
+        for i in range(anzahl)
+    ])
+
+
+def test_liste_nennt_n_von_m_und_fuehrt_zur_zweiten_seite(client):
+    client.force_login(admin_anlegen())
+    _konten_anlegen(204)  # mit der Admina 205 Konten
+    url = reverse('mitglieder:verwaltung')
+    html = client.get(url).content.decode()
+    assert '200 von 205' in html
+    assert 'href="?seite=2"' in html
+    assert html.count('öffnen →') == 200
+    zweite = client.get(url, {'seite': 2}).content.decode()
+    assert zweite.count('öffnen →') == 5
+    assert '201–205 von 205' in zweite
+    # die älteste Anlage steht am Ende der zweiten Seite
+    assert zweite.rindex('liste203@example.org') > zweite.index('liste199@example.org')
+
+
+def test_seitenwechsel_behaelt_suche_und_filter(client):
+    client.force_login(admin_anlegen())
+    _konten_anlegen(205)
+    html = client.get(reverse('mitglieder:verwaltung'), {'q': 'liste', 'status': 'aktiv'}).content.decode()
+    assert 'href="?q=liste&amp;status=aktiv&amp;seite=2"' in html
+
+
+def test_bestand_zaehlt_keine_testkonten_und_die_liste_kennzeichnet_sie(client):
+    client.force_login(admin_anlegen())
+    test = mitglied_anlegen('probe')
+    Mitglied.objects.filter(pk=test.pk).update(testkonto=True)
+    antwort = client.get(reverse('mitglieder:verwaltung'))
+    assert antwort.context['zahlen']['gesamt'] == 1
+    assert antwort.context['zahlen']['aktiv'] == 1
+    zeile = antwort.content.decode().split(reverse('mitglieder:verwaltung_mitglied', args=[test.pk]), 1)[1]
+    assert 'Testkonto' in zeile.split('</tr>', 1)[0]
+
+
+def test_blaetterzeile_sagt_dass_sie_testkonten_mitzaehlt(client):
+    """Gesamtprüfung 0.115.0 (oberflaeche): Oben zählt der Bestand ohne Testkonten, die Blätterzeile
+    zählt jede Zeile der Liste — sie sagt deshalb, dass Testkonten darin stehen."""
+    client.force_login(admin_anlegen())
+    test = mitglied_anlegen('probe')
+    Mitglied.objects.filter(pk=test.pk).update(testkonto=True)
+    antwort = client.get(reverse('mitglieder:verwaltung'))
+    assert antwort.context['zahlen']['gesamt'] == 1
+    assert 'Konten 1–2 von 2, Testkonten eingeschlossen, neueste Kontoanlage zuerst' in antwort.content.decode()
+
+
+# --- GP-188 Punkte 3 und 4 (KM-26) -------------------------------------------
+
+
+def test_auswahltexte_von_status_und_identitaet_sind_uebersetzbar():
+    # Die englische Fassung folgt mit dem Katalog; hier zählt, dass jeder Text durch gettext läuft.
+    from django.utils.functional import Promise
+
+    for wahl in (Mitgliedsstatus, Identitaetsstufe):
+        for wert in wahl:
+            assert isinstance(wert.label, Promise), wert
+    assert str(Mitgliedsstatus.PAUSIERT.label) == 'pausiert (Beitrag ausständig)'
+
+
+def test_unbestaetigtes_konto_hat_den_freischaltknopf_und_wird_nicht_admin(client):
+    client.force_login(admin_anlegen())
+    offen = Mitglied.objects.create(username='offen@example.org', email='offen@example.org', is_active=False)
+    html = client.get(detail(offen.pk)).content.decode()
+    assert 'value="reaktivieren"' in html and 'Ohne E-Mail-Bestätigung freischalten' in html
+    assert 'value="admin_geben"' not in html
+    client.post(detail(offen.pk), {'aktion': 'admin_geben'})
+    offen.refresh_from_db()
+    assert not offen.ist_admin
+    assert not AuditEintrag.objects.filter(ereignis__aktion='admin_geben').exists()
+    client.post(detail(offen.pk), {'aktion': 'reaktivieren'})
+    offen.refresh_from_db()
+    assert offen.is_active and offen.beitritt is not None
+
+
+# --- Satzungsverweis beim Ausschluss (GP-176, OCR-16) -------------------------
+
+
+def test_ausschluss_verweist_auf_paragraf_4_absatz_5():
+    from pathlib import Path
+
+    from django.conf import settings
+
+    hilfe = Mitglied._meta.get_field('status_grund').help_text
+    assert '§ 4 Abs 5' in hilfe and '§ 4 Abs 6' not in hilfe
+    konzept = Path(settings.BASE_DIR, 'docs', 'CONCEPT.md').read_text(encoding='utf-8')
+    zeile = next(z for z in konzept.splitlines() if z.startswith('| F-51 |'))
+    assert '§ 4 Abs 6' not in zeile and '§ 4 Abs 5' in zeile
+
+
+# --- Wartefrist des Adresswechsels klammert nach unten (GP-021, RVA-01) -------
+
+
+@pytest.mark.parametrize('wert', ['0', '-1', '-72'])
+def test_wartefrist_des_adresswechsels_faellt_nie_unter_eine_stunde(wert):
+    from parameter.models import WERTBEREICHE, Parameter
+
+    Parameter.objects.update_or_create(
+        schluessel='adresswechsel-wartefrist-stunden',
+        defaults={'wert': wert, 'einheit': 'Stunden', 'beschreibung': 'Wartefrist', 'quelle': '§ 4'},
+    )
+    # Die Untergrenze führt das Register; hebt es sie an, folgt die Lesestelle — und dieser Test.
+    untergrenze = max(1, WERTBEREICHE['adresswechsel-wartefrist-stunden'][0])
+    assert Adresswechsel.wartefrist_stunden() == untergrenze >= 1
+
+
+def test_wartefrist_des_adresswechsels_folgt_einem_gueltigen_registerwert():
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(
+        schluessel='adresswechsel-wartefrist-stunden',
+        defaults={'wert': '48', 'einheit': 'Stunden', 'beschreibung': 'Wartefrist', 'quelle': '§ 4'},
+    )
+    assert Adresswechsel.wartefrist_stunden() == 48
+
+
+def test_seitengroesse_der_liste_kommt_aus_dem_register(client):
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(
+        schluessel='verwaltung-liste-seitengroesse', defaults={'wert': '10', 'beschreibung': 'Test', 'quelle': 'Test'}
+    )
+    client.force_login(admin_anlegen())
+    _konten_anlegen(14)  # mit der Admina 15 Konten
+    html = client.get(reverse('mitglieder:verwaltung')).content.decode()
+    assert '10 von 15' in html and html.count('öffnen →') == 10
+    assert client.get(reverse('mitglieder:verwaltung'), {'seite': 2}).content.decode().count('öffnen →') == 5
+
+
+# ── GP-100, Schlusspflege 0.115.0: jede Verwaltungsseite schickt Gäste mit Ziel zur Anmeldung ───────
+
+
+@pytest.mark.parametrize('name', [
+    'mitglieder:verwaltung', 'mitglieder:verwaltung_beitraege', 'anstoss:verwaltung', 'faktenbasis:verwaltung',
+    'gremien:rollen', 'gremien:fachliste_verwaltung', 'mandatare:verwaltung', 'parameter:verwaltung',
+])
+def test_gast_kommt_von_jeder_verwaltungsseite_mit_ziel_zur_anmeldung(client, name):
+    from urllib.parse import urlencode
+
+    pfad = reverse(name)
+    antwort = client.get(pfad)
+    assert antwort.status_code == 302
+    assert antwort['Location'] == reverse('mitglieder:login') + '?' + urlencode({'next': pfad})
+
+
+def test_schreibende_verwaltungswege_schicken_ohne_ziel_zur_anmeldung(client):
+    for name in ('parameter:verwaltung_aktion', 'mandatare:verwaltung_aktion', 'gremien:rollen_aktion'):
+        antwort = client.post(reverse(name), {})
+        assert antwort.status_code == 302 and antwort['Location'] == reverse('mitglieder:login'), name
+
+
+def test_keine_umleitung_zur_anmeldung_ohne_ziel_im_code():
+    '''Gäste kommen über `mitglieder.anmeldeziel.zur_anmeldung` (oder `login_required`) zur Anmeldung;
+    ein blankes `redirect('mitglieder:login')` verlöre bei einem Lesezugriff die aufgerufene Seite.'''
+    import pathlib
+    import re
+
+    wurzel = pathlib.Path(__file__).resolve().parent.parent
+    muster = re.compile(r'''redirect\(\s*(?:reverse\(\s*)?["']mitglieder:login["']''')
+    funde = [
+        str(datei.relative_to(wurzel))
+        for datei in wurzel.rglob('*.py')
+        if not set(datei.parts) & {'venv', '.venv', 'migrations'} and not datei.name.startswith('test_')
+        and muster.search(datei.read_text(encoding='utf-8'))
+    ]
+    assert funde == []

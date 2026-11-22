@@ -60,5 +60,7 @@ heißen ausdrücklich nicht angegeben. Deutsch/Englisch sowie Bedienung ohne Jav
 `.../ressorts/<id>/nachweis.json` enthält Stichtag, Datenjahr, Einheit, alle Originalwerte,
 Publikation, Quelle, Tabellen-/Methodikseite, Originalhash, Parserfassung und Erfassungszeit.
 Keine Einzelpersonen oder lokale Dateipfade. Der bisherige Personal-Aggregatexport bleibt
-unverändert. Ressorttabellen gelangen nicht automatisch in Modellaufträge oder alte Eingaben.
+unverändert. Neue Rechtsfolgenaufträge der Zukunftswerkstatt erhalten Aggregat und Ressorttabelle als
+Bestandsrahmen in ihrem festgehaltenen Kontext (`ki/folgenkontext.py`, `faktenbasis/personalrahmen.py`);
+laufende Aufträge, alte Eingaben und frühere Einschätzungen bleiben unverändert.
 Rechtsfolgen, Stellenbedarf, freie Kapazität, Prognosespannen und S11-Gesamtabnahme bleiben offen.

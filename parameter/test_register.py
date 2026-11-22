@@ -332,7 +332,8 @@ VERSIONSSCHILDER = {"kategorien-regel", "weicherfilter-regel", "faecher-regel", 
 
 #: Stellgrößen, deren lesende Stelle noch in einem anderen Bauschritt liegt. Sobald eine Stelle
 #: liest, gehört ihr Schlüssel hier gestrichen; der Wächter wird dann für sie scharf.
-NOCH_NICHT_ANGEBUNDEN: set[str] = set()  # seit 0.46 liest jede Stellgröße eine Stelle im Code
+# Seit 0.46 liest jede Stellgröße eine Stelle im Code (seit der Schlusspflege 0.115.0 wieder leer).
+NOCH_NICHT_ANGEBUNDEN: set[str] = set()
 
 
 def _gelesene_schluessel() -> set[str]:
@@ -370,6 +371,28 @@ def test_jede_stellgroesse_wird_vom_code_gelesen():
     fehlend = sorted(stellgroessen - gelesen - NOCH_NICHT_ANGEBUNDEN)
     assert not fehlend, f"Im Register, aber kein Code liest sie: {fehlend}"
     assert "ki-antwort-hoechsttokens" in gelesen  # Cluster D hat seine Stelle angebunden
+
+
+def test_jeder_gelesene_schluessel_steht_im_erstbestand():
+    """Gegenlesen der Schlusspflege 0.115.0, die Gegenrichtung: Ein Schlüssel, den der Code per Literal aus
+    dem Register liest, steht im Erstbestand. Sonst gälte still der Rückfallwert des Aufrufs, und die
+    Registerseite wüsste von der Stellgröße nichts (so stand `ki-laeufe-je-seite` bis zur Schlusspflege da)."""
+    import pathlib
+    import re
+
+    wurzel = pathlib.Path(__file__).resolve().parent.parent
+    muster = re.compile(r"(?:\bzahl|_registerzahl|_register)\(\s*[\"']([a-z0-9-]+)[\"']")
+    gelesen: dict[str, str] = {}
+    for datei in wurzel.rglob("*.py"):
+        teile = set(datei.parts)
+        if teile & {".venv", "venv", "migrations", "tests", "docs"} or datei.name.startswith("test_"):
+            continue
+        for schluessel in muster.findall(datei.read_text(encoding="utf-8")):
+            gelesen.setdefault(schluessel, datei.relative_to(wurzel).as_posix())
+    im_register = {e["schluessel"] for e in ERSTBESTAND}
+    fehlend = {schluessel: ort for schluessel, ort in sorted(gelesen.items()) if schluessel not in im_register}
+    assert not fehlend, f"Gelesen, aber nicht im Erstbestand: {fehlend}"
+    assert "ki-laeufe-je-seite" in gelesen  # die Suche findet die Lesestellen — sonst bewiese die Zeile oben nichts
 
 
 def test_versionsschilder_sind_als_solche_gekennzeichnet():
@@ -632,7 +655,7 @@ def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
 
     zeilen = _schema_dokument().splitlines()
     assert f"Schema-Version **{SCHEMA_VERSION}**" in zeilen[2]
-    eintrag = next(z for z in zeilen if z.startswith(f"| {SCHEMA_VERSION} |"))
+    eintrag = next(z for z in zeilen if z.startswith("| 1.30 |"))
     for wort in (
         "`status`", "`test_bis`", "`test_hypothese`", "`wert_vor_test`", "`nur_tag`", "`zurueckgenommen`",
         "`gremienbeschluss_geschlossen`", "`vollzugsbezug_gesetzt`", "`interessenbindung_erklaert`",
@@ -647,6 +670,39 @@ def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
         assert f"| `{schluessel}` |" in tabelle, schluessel
     audit = next(z for z in zeilen if z.startswith("| `/audit.json`"))
     assert "`nur_tag`" in audit
+    # Folgewelle 0.115.0 (Schema 1.31): neue Kennungen, Export- und Audit-Felder stehen in ihrer Verlaufszeile
+    eintrag = next(z for z in zeilen if z.startswith(f"| {SCHEMA_VERSION} |"))
+    assert SCHEMA_VERSION == "1.31" and "| 0.115.0 |" in eintrag
+    for wort in (
+        "`council.ai_requests_per_account_hour`", "`ai.objections_per_account_hour`", "`parliament.group_limit`",
+        "`implementation.entries_per_page`", "`administration.members_per_page`", "`mandate.list_per_page`",
+        "`overview.running_votes_per_page`", "`sources.inventory_warning_percent`", "`similarity.rows_per_fetch`",
+        "`audit.check_overdue_days`", "`ai.archive_runs_per_page`", "`zurueckgezogen`", "`stichtag`", "`stimmliste_sha256`", "`wortlaut_sha256`",
+        "`regeln_sha256`", "`auszaehlung_angehalten`", "`gremienbeschluss_vermerkt`", "`fachliste_einwilligung`",
+        "`fachliste_wieder_aufgenommen`", "`mandat_berichtigt`", "`anstoss_status`", "`anstoss_ausfuhr`",
+        "`eintraege[].beschluss_quelle`", "`umsetzungsvermerke`", "`register[].rechenschaft`", "`beanstandungen`",
+        "`ergebnislos`", "`gremien_ki_lauf`", "`ki_auftrag_gescheitert`", "`teilnehmerkreis_festgehalten`",
+    ):
+        assert wort in eintrag, wort
+
+
+def test_schema_kopfbeispiel_und_verlauf_reichen_bis_zur_aktuellen_version():
+    """GP-135 (RVB-15, Rest): Das Kopfbeispiel nannte 1.10, der Änderungsverlauf ließ 1.12, 1.13 und
+    1.17 bis 1.29 aus. Das Kopfbeispiel nennt SCHEMA_VERSION; der Verlauf hat je Nebenversion bis
+    zur aktuellen genau eine Zeile, aufsteigend geordnet."""
+    from plattform_core.schema import SCHEMA_VERSION
+
+    dokument = _schema_dokument()
+    kopf = dokument.split("## 2. Der Kopf der Schema-Exporte")[1].split("\n## ")[0]
+    assert f'"schema_version": "{SCHEMA_VERSION}"' in kopf
+    verlauf = dokument.split("## 7. Änderungsverlauf")[1]
+    zeilen = [z for z in verlauf.splitlines() if z.startswith("| 1.")]
+    versionen = [z.split(" | ")[0].lstrip("| ").strip() for z in zeilen]
+    haupt, neben = SCHEMA_VERSION.split(".")
+    assert versionen == [f"{haupt}.{n}" for n in range(int(neben) + 1)]
+    for zeile in zeilen:
+        version, datum, plattform, aenderung = zeile.strip().strip("|").split(" | ", 3)
+        assert datum.strip() and plattform.strip().startswith("0.") and aenderung.strip(), version
 
 
 def _tabellenzeilen(abschnitt: str) -> list[list[str]]:

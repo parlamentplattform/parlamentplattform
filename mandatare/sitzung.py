@@ -51,8 +51,10 @@ def stream_pruefen(url: str) -> str:
 
 
 def _gesperrt(sitzung: Sitzung, jetzt) -> Sitzung:
-    """Die Sitzung unter Zeilensperre neu laden und prüfen, dass sie läuft und geschrieben werden darf."""
-    frisch = Sitzung.objects.select_for_update().select_related("mandat").get(pk=sitzung.pk)
+    """Die Sitzung unter Zeilensperre neu laden und prüfen, dass sie läuft und geschrieben werden darf.
+    Gesperrt wird nur die Sitzung, nicht das Mandat: Das Mandatsende hält die Mandatszeile und sperrt
+    dann die Sitzungen — eine Meldung, die beide in umgekehrter Folge sperrte, verklemmte sich mit ihm."""
+    frisch = Sitzung.objects.select_for_update(of=("self",)).select_related("mandat").get(pk=sitzung.pk)
     if not darf_live_melden(frisch.mandat):
         raise SitzungFehler(_("Der Live-Modus steht nur einem aktiven Mandat mit nicht ruhender Befugnis offen."))
     if not frisch.laeuft(jetzt):
@@ -197,9 +199,10 @@ def stream_setzen(sitzung: Sitzung, url: str, jetzt=None) -> None:
     sitzung.stream = url
 
 
-def sitzung_beenden(sitzung: Sitzung, jetzt=None) -> None:
+def sitzung_beenden(sitzung: Sitzung, jetzt=None, anlass: str = "") -> None:
     """Den Live-Modus beenden — das Ende wird einmal gesetzt, danach ist die Seite das Protokoll.
-    Ein Mandatar, dessen Befugnis inzwischen ruht, darf trotzdem beenden: Beenden schreibt nichts Neues."""
+    Ein Mandatar, dessen Befugnis inzwischen ruht, darf trotzdem beenden: Beenden schreibt nichts Neues.
+    `anlass` nennt im Audit, warum die Plattform beendet hat (etwa „mandat_beendet“, GP-116)."""
     jetzt = jetzt or timezone.now()
     with transaction.atomic():
         frisch = Sitzung.objects.select_for_update().get(pk=sitzung.pk)
@@ -207,5 +210,64 @@ def sitzung_beenden(sitzung: Sitzung, jetzt=None) -> None:
             raise SitzungFehler(_("Die Sitzung ist schon beendet."))
         frisch.ende = jetzt
         frisch.save(update_fields=["ende"])
-        AuditEintrag.anhaengen({"typ": "sitzung_beendet", "mandat": frisch.mandat_id, "sitzung": frisch.pk})
+        ereignis = {"typ": "sitzung_beendet", "mandat": frisch.mandat_id, "sitzung": frisch.pk}
+        if anlass:
+            ereignis["anlass"] = anlass
+        AuditEintrag.anhaengen(ereignis)
     sitzung.ende = jetzt
+
+
+#: Die Anlässe, mit denen die Plattform Sprechstunden absagt und eine laufende Sitzung beendet (GP-116).
+#: Sie stehen im öffentlichen Protokoll und nennen nur, was am Mandat ohnehin öffentlich ist: dass es
+#: endete, dass die Vertretung endete, dass es einem anderen Ort zugeordnet wurde. Warum ein Mandat
+#: endete — Austritt, Sperre, Ausschluss —, steht dort nie.
+ANLASS_MANDATSENDE = "mandat_beendet"
+ANLASS_VERTRETUNGSENDE = "vertretung_beendet"
+ANLASS_ZUORDNUNG = "gemeinde_zuordnung"
+OEFFENTLICHE_ANLAESSE = frozenset({ANLASS_MANDATSENDE, ANLASS_VERTRETUNGSENDE, ANLASS_ZUORDNUNG})
+
+
+def sitzungen_sperren(mandat: Mandat) -> None:
+    """Die offenen Sitzungen eines Mandats sperren — aufzurufen vor dem ersten Audit-Eintrag einer
+    Transaktion, die sie später beendet (Mandatsende, Ende der Vertretung). Eine Livemeldung sperrt
+    zuerst die Sitzung und hängt dann an die Kette an; wer zuerst anhängt und dann die Sitzung sperrt,
+    wartet auf sie, während sie auf seinen Eintrag wartet (PostgreSQL: „deadlock detected“).
+
+    Zuerst die Mandatszeile, dann die Sitzungen — in der Folge, in der auch `sitzung_beginnen` sperrt
+    (Mandat, dann über `Sitzung.fortschreiben` eine überfällige offene Sitzung). Umgekehrt hielte ein
+    Mandatsende die Sitzung und wartete auf das Mandat, während der Sitzungsbeginn das Mandat hält und
+    auf die Sitzung wartet."""
+    list(Mandat.objects.select_for_update().filter(pk=mandat.pk).values_list("pk", flat=True))
+    list(Sitzung.objects.select_for_update().filter(mandat=mandat, ende__isnull=True).values_list("pk", flat=True))
+
+
+def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=None, *, termine: bool = True) -> None:
+    """Was mit dem Ende eines Mandats oder der Vertretung geschieht (GP-116): Kommende Sprechstunden
+    werden mit Anlass abgesagt und bleiben bis zu ihrem Ende als abgesagt sichtbar; eine laufende
+    Sitzung endet, damit Live-Status und Chat nicht bis zur Höchstdauer offen stehen.
+
+    Das Mandat darf schon beendet, das Konto schon inaktiv sein (Austritt: erst das Ende, dann die
+    Folgen) — gelesen werden nur die Termine und Sitzungen des Mandats. Ein zweiter Aufruf findet
+    nichts mehr und schreibt nichts. Absagen und Sitzungsende stehen gemeinsam oder gar nicht.
+    `anlass` ist eines der `OEFFENTLICHE_ANLAESSE`; jedes andere Wort wird zu `ANLASS_MANDATSENDE`,
+    damit kein Aufrufer den Grund des Endes ins öffentliche Protokoll schreibt. `termine=False` lässt
+    die Sprechstunden stehen (ausgeblendet über `aktive_gemeindemandate`): beim Ende der Vertretung,
+    solange eine rechtzeitige Anfechtung offen ist — eine Aufhebung stellt sie dann wieder her."""
+    from mandatare.sprechstunden import termine_absagen
+
+    if anlass not in OEFFENTLICHE_ANLAESSE:
+        anlass = ANLASS_MANDATSENDE
+    jetzt = jetzt or timezone.now()
+    with transaction.atomic():
+        if termine:
+            termine_absagen(mandat, anlass, jetzt)
+        for sitzung in Sitzung.objects.filter(mandat=mandat, ende__isnull=True).order_by("pk"):
+            if sitzung.laeuft(jetzt):
+                try:
+                    sitzung_beenden(sitzung, jetzt, anlass=anlass)
+                except SitzungFehler:
+                    # Gleichzeitig von anderer Seite beendet (der Mandatar, die Höchstdauer): Das Ziel ist
+                    # erreicht, Austritt oder Mandatsende laufen weiter. Läuft sie doch noch, ist es ein
+                    # anderer Fehler, und er bleibt einer.
+                    if Sitzung.objects.get(pk=sitzung.pk).laeuft(jetzt):
+                        raise

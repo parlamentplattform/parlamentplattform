@@ -20,6 +20,11 @@ automatisch. Alle Besetzungen stehen hier — jede Berufung, Bestätigung und Be
     {% empty %}
     <p class="leer">{% translate "Noch unbesetzt." %}</p>
     {% endfor %}
+    {# Die öffentlichen Unterlagen des Rates (GP-030): ohne diese Zeile nur über die Adresse auffindbar. #}
+    <p class="meta"><a href="{% url 'gremien:beschluesse' %}?gremium={{ b.wert }}">{% translate "Beschlüsse" %}</a>
+      · <a href="{% url 'gremien:protokoll' b.wert jahr %}">{% blocktranslate with j=jahr %}Sitzungsprotokoll {{ j }} als JSON →{% endblocktranslate %}</a>
+      {% if b.wert == "integritaetsrat" %}{% for j in berichtsjahre %} · <a href="{% url 'gremien:integritaet_bericht' j %}">{% blocktranslate %}Öffentlicher Bericht {{ j }} →{% endblocktranslate %}</a>{% endfor %}{% endif %}
+      {% if b.wert == "expertenrat1" or b.wert == "expertenrat2" %} · <a href="{% url 'gremien:fachliste' %}">{% translate "Fachliste" %}</a>{% endif %}</p>
   </div>
   {% endfor %}
 </div>

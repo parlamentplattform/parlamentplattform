@@ -10,6 +10,7 @@ from __future__ import annotations
 from bisect import bisect_right
 from datetime import timedelta
 
+from django.core.paginator import Paginator
 from django.db.models import Count, Sum
 from django.shortcuts import render
 from django.utils import timezone
@@ -26,6 +27,7 @@ from verfahren.models import Antrag, Antragsart, Stimmabgabe
 
 OFFEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 ENTSCHIEDEN = [Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value]
+
 
 
 def _mitglieder_verlauf(heute) -> list[tuple[str, float]]:
@@ -76,7 +78,7 @@ def _besuche_je_tag(heute, tage: int = 30) -> list[tuple[str, float]]:
     ]
 
 
-def _abstimmungen() -> tuple[list[dict], int]:
+def _abstimmungen(seite=None) -> tuple[list[dict], int, object]:
     """Je Abstimmung eine Zeile — laufende zuerst, dann die jüngsten entschiedenen.
 
     Laufende Abstimmungen zeigen die Beteiligung: Die Tendenz bleibt bis zum Fristende
@@ -87,13 +89,22 @@ def _abstimmungen() -> tuple[list[dict], int]:
     Ergebnisse erscheinen erst für entschiedene Anträge, und zwar begrenzt auf einen
     Registerwert: Entschiedenes verschwindet nie (Grundregel 7), die Seite muss also selbst
     eine Grenze ziehen. Die Stimmen aller gezeigten Anträge kommen aus je einer Abfrage,
-    nicht aus einer je Antrag. Rückgabe: (Zeilen, Zahl der nicht gezeigten Entscheidungen).
+    nicht aus einer je Antrag. Laufende Abstimmungen stehen seitenweise da (`?seite=`, GP-191),
+    damit die Antwort nicht mit dem Bestand wächst; die entschiedenen nur auf der ersten Seite.
+    Rückgabe: (Zeilen, Zahl der nicht gezeigten Entscheidungen, Seite der laufenden).
     """
-    laufende = list(Antrag.objects.filter(phase=Phase.ABSTIMMUNG.value).order_by("-phase_beginn"))
-    hoechstzahl = max(1, zahl("uebersicht-abstimmungen", 20))
-    entschiedene_alle = Antrag.objects.filter(phase__in=ENTSCHIEDEN).order_by("-phase_beginn")
-    entschiedene = list(entschiedene_alle[:hoechstzahl])
-    weitere = max(0, entschiedene_alle.count() - len(entschiedene))
+    # GP-191: laufende Abstimmungen je Seite aus dem Register (1 bis 500; ein Wert darunter wirkt wie 1)
+    je_seite = max(1, zahl("uebersicht-laufende-je-seite", 50))
+    blatt = Paginator(
+        Antrag.objects.filter(phase=Phase.ABSTIMMUNG.value).order_by("-phase_beginn", "-pk"), je_seite
+    ).get_page(seite)
+    laufende = list(blatt.object_list)
+    entschiedene, weitere = [], 0
+    if blatt.number == 1:
+        hoechstzahl = max(1, zahl("uebersicht-abstimmungen", 20))
+        entschiedene_alle = Antrag.objects.filter(phase__in=ENTSCHIEDEN).order_by("-phase_beginn")
+        entschiedene = list(entschiedene_alle[:hoechstzahl])
+        weitere = max(0, entschiedene_alle.count() - len(entschiedene))
 
     abgegeben = abgegeben_je_antrag(laufende + entschiedene)
     # § 7 Abs 10: Vertrauensfragen tragen Chip, Legende und das Ergebnis in Satzungsworten
@@ -173,12 +184,12 @@ def _abstimmungen() -> tuple[list[dict], int]:
                 ),
             )
         zeilen.append(zeile)
-    return zeilen, weitere
+    return zeilen, weitere, blatt
 
 
 def index(request):
     heute = timezone.localdate()
-    abstimmungen, weitere = _abstimmungen()
+    abstimmungen, weitere, laufende_seite = _abstimmungen(request.GET.get("seite"))
     je_phase = dict(Antrag.objects.values_list("phase").annotate(n=Count("id")))
     woche_start = heute - timedelta(days=6)
 
@@ -207,10 +218,14 @@ def index(request):
             (_("in Abstimmung"), je_phase.get(Phase.ABSTIMMUNG.value, 0)),
             (_("angenommen"), je_phase.get(Phase.ANGENOMMEN.value, 0)),
             (_("abgelehnt"), je_phase.get(Phase.ABGELEHNT.value, 0)),
+            (_("verfallen"), je_phase.get(Phase.VERFALLEN.value, 0)),
+            (_("zurückgezogen"), je_phase.get(Phase.ZURUECKGEZOGEN.value, 0)),
+            (_("zurückgewiesen"), je_phase.get(Phase.ZURUECKGEWIESEN.value, 0)),
         ],
         "neu_diese_woche": Antrag.objects.filter(eingebracht_am__date__gte=woche_start).count(),
         "abstimmungen": abstimmungen,
         "abstimmungen_weitere": weitere,
+        "laufende_seite": laufende_seite,
         "aufrufe_heute": (TagesZahl.objects.filter(datum=heute).values_list("aufrufe", flat=True).first())
         or 0,
         "besucher_heute": TagesBesucher.objects.filter(datum=heute).count(),

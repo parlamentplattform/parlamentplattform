@@ -42,7 +42,7 @@ sobald die Plattform Gliederungen führt (§ 14 Abs 4). Das staatliche Mandat be
     {% for z in anlaesse %}
     <label class="ankreuz" for="anlass-{{ z.r.pk }}"><input type="checkbox" id="anlass-{{ z.r.pk }}" name="anlass" value="{{ z.r.pk }}"{% if z.r.pk|stringformat:"s" in gewaehlte_anlaesse %} checked{% endif %}>
       <span><strong>{{ z.r.gegenstand }}</strong> · {% translate "Sitzung am" %} {{ z.r.sitzung_am|date:"d.m.Y" }}
-      <br><span class="meta">{% translate "Beschluss der Plattform:" %} {{ z.beschluss_name }} · {% translate "Stimme:" %} {{ z.r.get_stimme_display }} · <span class="abweichung">{% translate "weicht ab" %}</span></span>
+      <br><span class="meta">{% translate "Beschluss der Plattform:" %} {% include "mandatare/_beschluss.html" %} · {% translate "Stimme:" %} {{ z.r.get_stimme_display }} · <span class="abweichung">{% translate "weicht ab" %}</span></span>
       <br><span class="meta" style="white-space:pre-line">{{ z.r.begruendung }}</span></span></label>
     {% endfor %}
     {% for a in ausstaende %}

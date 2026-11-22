@@ -39,7 +39,10 @@ def test_alle_kennungen_haben_das_format_und_sind_eindeutig():
 
     # 1.30: Teststatus in /parameter.json, nur_tag in /audit.json, neue Audit-Arten und drei Drosseln als
     # Registerwerte (Gesamtprüfung, erste und zweite Behebungsrunde).
-    assert SCHEMA_VERSION == "1.30"
+    # 1.31: zehn bisherige Konstanten als Registerwerte, neue Export- und Audit-Felder (Folgewelle 0.115.0).
+    assert SCHEMA_VERSION == "1.31"
+    assert schema_key("gremien-ki-je-stunde") == "council.ai_requests_per_account_hour"
+    assert schema_key("uebersicht-laufende-je-seite") == "overview.running_votes_per_page"
     assert schema_key("datenexport-je-stunde") == "account.data_exports_per_hour"
     assert schema_key("live-takt-sekunden") == "live.refresh_seconds"
     assert schema_key("live-hoechstdauer-stunden") == "live.max_session_hours"

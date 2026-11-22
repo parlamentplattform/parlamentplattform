@@ -23,7 +23,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <dd>{% if einschaetzung.lauf %}{{ einschaetzung.lauf.erstellt_am|date:"d.m.Y, H:i" }}{% else %}{% translate "noch kein Lauf" %}{% endif %}</dd>
     {% if einschaetzung.lauf %}
     <dt>{% translate "Lauf" %}</dt>
-    <dd>#{{ einschaetzung.lauf.pk }} · <a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Lauf-Archiv" %}</a></dd>
+    <dd>{% if einschaetzung.lauf.pk %}<a href="{% url 'verfahren:lauf' einschaetzung.lauf.pk %}">#{{ einschaetzung.lauf.pk }}</a> · {% endif %}<a href="{% url 'verfahren:laeufe' %}">{% translate "Lauf-Archiv" %}</a></dd>
     {% endif %}
   </dl>
   {% if user.is_authenticated %}
@@ -66,6 +66,12 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     {% with e=lage.ergebnis %}
     {% include "verfahren/_ki_folgenreihung.html" with ergebnis=e %}
     {% if e.folgenbericht %}{% include "verfahren/_ki_folgenformat.html" with formatstand=e.formatpruefung %}{% else %}{% include "verfahren/_ki_formatstand.html" with formatstand=e.formatpruefung %}{% endif %}
+    {% if e.formatpruefung and not e.formatpruefung.gueltig %}
+    <p class="hilfe">{% translate "Weg zur Korrektur: den Bericht beanstanden; die zuständige Gruppe 1 kann ihn nachrechnen lassen." %}</p>
+    {% for b in einschaetzung.beanstandungen %}{% if b.lauf_id == e.lauf.pk and b.korrekturstand.ergebnis.formatpruefung.gueltig %}
+    <p class="hilfe"><a href="#beanstandung-{{ b.pk }}">{% blocktranslate with n=b.korrekturstand.auftrag.pk %}Nachrechnung #{{ n }} zu diesem Bericht lesen{% endblocktranslate %}</a></p>
+    {% endif %}{% endfor %}
+    {% endif %}
     {% if e.normen %}
     <ul class="normen">
       {% for n in e.normen %}
@@ -87,7 +93,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <dl class="lauf-daten">
       <dt>{% translate "Unsicherheit" %}</dt><dd>{{ e.unsicherheit_wort }}</dd>
       <dt>{% translate "Modell" %}</dt><dd>{{ e.modell }} · {{ e.auftrag_version }}</dd>
-      <dt>{% translate "Stand" %}</dt><dd>{{ e.stand|date:"d.m.Y, H:i" }}{% if e.fassung %} · {% blocktranslate with n=e.fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% if e.frueher %} <span class="badge badge-warn">{% translate "zu einer früheren Fassung" %}</span>{% endif %}{% endif %} · <a href="{% url 'verfahren:zukunftswerkstatt' %}#steckplatz">{% translate "Lauf" %} #{{ e.lauf.pk }}</a></dd>
+      <dt>{% translate "Stand" %}</dt><dd>{{ e.stand|date:"d.m.Y, H:i" }}{% if e.fassung %} · {% blocktranslate with n=e.fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% if e.frueher %} <span class="badge badge-warn">{% translate "zu einer früheren Fassung" %}</span>{% endif %}{% endif %} · <a href="{% url 'verfahren:lauf' e.lauf.pk %}">{% translate "Lauf" %} #{{ e.lauf.pk }}</a></dd>
     </dl>
     {% include "verfahren/_ki_textstand.html" with textstand=e.textstand eingabe=e.lauf.eingabe %}
     <p class="kennzeichnung">{% translate "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
@@ -97,7 +103,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     {% if lage.wartegrund.grund == "budget" %}<p class="erk">{% blocktranslate with datum=lage.wartegrund.ab|date:"d.m.Y" %}Das Monatsbudget der Zukunftswerkstatt ist erschöpft; die Warteschlange rechnet erst nach dem Monatswechsel wieder, frühestens am {{ datum }}.{% endblocktranslate %}</p>{% elif lage.wartegrund.grund == "kontingent" %}<p class="erk">{% blocktranslate with datum=lage.wartegrund.ab|date:"d.m.Y" %}Das Tageskontingent der Zukunftswerkstatt ist aufgebraucht; die Warteschlange rechnet frühestens am {{ datum }} weiter.{% endblocktranslate %}</p>{% endif %}
     {% if lage.mail_zusage %}<p class="erk">{% translate "Sie bekommen eine E-Mail, sobald das Ergebnis da ist." %}</p>{% endif %}
   {% elif lage.zustand == "gescheitert" %}
-    <p class="leer">{% if lage.auftrag.versuche %}{% translate "Lauf gescheitert — alle Versuche aufgebraucht." %}{% if lage.auftrag.fehler %} <span class="meta">{{ lage.auftrag.fehler }}</span>{% endif %}{% else %}{% translate "Der Auftrag konnte nicht vorbereitet werden; es wurde kein Anbieter aufgerufen." %}{% endif %}</p>
+    <p class="leer">{% if lage.auftrag.fehlercode == "abgeschnitten" %}{% translate "Die Modellantwort wurde an der Längengrenze abgeschnitten und nicht als Ergebnis übernommen." %}{% if lage.auftrag.lauf_id %} <span class="meta">{% translate "Lauf" %} #{{ lage.auftrag.lauf_id }}</span>{% endif %}{% elif lage.auftrag.versuche %}{% translate "Lauf gescheitert — alle Versuche aufgebraucht." %}{% if lage.auftrag.fehler %} <span class="meta">{{ lage.auftrag.fehler_oeffentlich }}</span>{% endif %}{% else %}{% translate "Der Auftrag konnte nicht vorbereitet werden; es wurde kein Anbieter aufgerufen." %}{% endif %}</p>
   {% elif lage.zustand == "nicht_pruefbar" %}
     <p class="leer">{% translate "Der gespeicherte Lauf ist nicht eindeutig an den öffentlichen Auftrag gebunden. Seine Antwort wird nicht angezeigt." %}</p>
   {% elif lage.zustand == "nicht_angeschlossen" %}
@@ -117,7 +123,8 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <details class="klappe">
       <summary>{% translate "Lauf" %} #{{ h.lauf.pk }} · {{ h.stand|date:"d.m.Y H:i" }} · {% if h.lauf.erfolgreich %}{% translate "erledigt" %}{% else %}{% translate "gescheitert" %}{% endif %}</summary>
       <p class="meta">{{ h.modell }} · {{ h.auftrag_version }}</p>
-      {% include "verfahren/_ki_textstand.html" with textstand=h.textstand eingabe=h.lauf.eingabe %}
+      {% include "verfahren/_ki_textstand.html" with textstand=h.textstand eingabe="" %}
+      {% if h.lauf.eingabe %}<p class="meta"><a href="{% url 'verfahren:archiv_export' antrag.pk 'md' %}">{% translate "Tatsächlich verwendeten Text im Antragsarchiv nachlesen" %}</a> · {% translate "Lauf" %} #{{ h.lauf.pk }}</p>{% endif %}
       {% include "verfahren/_ki_quellenstand.html" with quellenstand=h.quellenstand %}
       {% if h.lauf.erfolgreich %}
         {% include "verfahren/_ki_folgenreihung.html" with ergebnis=h %}
@@ -127,7 +134,8 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
         <p class="meta">{% translate "Unsicherheit" %}: {{ h.unsicherheit_wort }}</p>
         {% if h.hinweis %}<p class="erk">{{ h.hinweis }}</p>{% endif %}
         {% if h.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=h ohne_unsicherheit=True %}{% include "verfahren/_ki_personalstand.html" with personalstand=h.personalstand %}{% endif %}
-      {% else %}<p class="leer">{% translate "Anbieteraufruf fehlgeschlagen" %} · {{ h.lauf.fehler }}</p>{% endif %}
+      {% elif h.lauf.fehlercode == "abgeschnitten" %}<p class="leer">{{ h.lauf.fehler_oeffentlich }}</p>
+      {% else %}<p class="leer">{% translate "Anbieteraufruf fehlgeschlagen" %} · {{ h.lauf.fehler_oeffentlich }}</p>{% endif %}
       <p class="kennzeichnung">{% translate "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
     </details>
     {% endif %}

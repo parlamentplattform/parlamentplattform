@@ -17,6 +17,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from django.conf import settings
+from django.db import transaction
 from django.utils import formats, timezone, translation
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_noop
@@ -52,6 +53,7 @@ MATT = "#5E6F7A"
 
 LOGO = Path(__file__).resolve().parent / "static" / "mitglieder" / "ddoe-logo.png"
 CODE_LAENGE = 10  # Hex-Zeichen des Prüfcodes
+SCHLUESSEL_LAENGE = 24  # Hex-Zeichen des Adressschlüssels (96 Bit) — alleiniger Schlüssel der Prüfadresse
 
 #: Der Nachweis in Kartenlänge — die Auswahltexte des Modells sind Sätze. „geprüft (Beitragseingang
 #: verbucht)“ ist kein Ausweis-Nachweis, sondern die Selbsteinschätzung nach § 4 Abs 3; die Karte
@@ -118,36 +120,70 @@ def ausweis_gueltig(mitglied: Mitglied | None, code: str) -> bool:
     Mitgliedschaft mit geprüfter Stufe besteht — nach Austritt, Ausschluss oder Rücknahme der Stufe
     sagt sie „nicht gültig“. Verglichen wird byteweise in konstanter Zeit; ein Code außerhalb von
     ASCII kann nie stimmen und fällt ohne Fehler durch."""
+    return code_passt(mitglied, code) and ausweis_stand(mitglied) == "gueltig"
+
+
+def code_passt(mitglied: Mitglied | None, code: str) -> bool:
+    """Alte Adressform gedruckter Karten (Konto-ID und Prüfcode): Stimmt der Code zum Konto?"""
     return (
         mitglied is not None
         and bool(mitglied.ausweis_code)
         and isinstance(code, str)
         and code.isascii()
         and secrets.compare_digest(mitglied.ausweis_code.encode(), code.encode())
-        and ausweis_moeglich(mitglied)
-        and mitglied.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT
     )
 
 
+def mitglied_zum_schluessel(schluessel: str) -> Mitglied | None:
+    """Neue Adressform (GP-091): das Konto zum Adressschlüssel — oder None. Nur ein Wert in der Form
+    vergebener Schlüssel wird überhaupt nachgeschlagen; ein leeres Feld trifft so nie."""
+    if not (
+        isinstance(schluessel, str)
+        and len(schluessel) == SCHLUESSEL_LAENGE
+        and all(z in "0123456789abcdef" for z in schluessel)
+    ):
+        return None
+    return Mitglied.objects.filter(ausweis_schluessel=schluessel).first()
+
+
+def ausweis_stand(mitglied: Mitglied) -> str:
+    """Was die Prüfseite zu einem Konto sagt, dessen Code oder Schlüssel stimmt: „gueltig“,
+    „ausstaendig“ (Anmeldung bestätigt, Freischaltung offen) oder „ungueltig“."""
+    if not ausweis_moeglich(mitglied):
+        return "ungueltig"
+    return "ausstaendig" if mitglied.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT else "gueltig"
+
+
+@transaction.atomic  # GP-129: Vergabe und Audit-Eintrag gemeinsam oder gar nicht
 def ausweis_code_sicherstellen(mitglied: Mitglied, jetzt=None) -> str:
-    """Vergibt den Prüfcode einmal je Konto — mit dem ersten Ausweis; danach bleibt er, damit
-    QR-Codes gedruckter Karten weiter stimmen. Die bedingte UPDATE-Anweisung ist atomar: Zwei
-    gleichzeitige erste Aufrufe vergeben genau einen Code. Audit nur mit der Mitgliedsnummer."""
-    if mitglied.ausweis_code:
-        return mitglied.ausweis_code
-    neu = secrets.token_hex(CODE_LAENGE // 2)
-    getroffen = Mitglied.objects.filter(pk=mitglied.pk, ausweis_code="").update(
-        ausweis_code=neu, ausweis_ausgestellt_am=jetzt or timezone.now()
-    )
-    mitglied.refresh_from_db(fields=["ausweis_code", "ausweis_ausgestellt_am"])
-    if getroffen:
-        AuditEintrag.anhaengen({"typ": "ausweis_ausgestellt", "mitglied": mitglied.pk})
+    """Vergibt Prüfcode und Adressschlüssel je einmal je Konto — mit dem ersten Ausweis; danach
+    bleiben sie, damit QR-Codes gedruckter Karten weiter stimmen. Die bedingten UPDATE-Anweisungen
+    sind atomar: Zwei gleichzeitige erste Aufrufe vergeben genau einen Wert. Audit nur mit der
+    Mitgliedsnummer. Ein Konto mit Code aus der Zeit vor dem Schlüssel (GP-091) bekommt den
+    Schlüssel dazu — das ist keine neue Ausstellung."""
+    if not mitglied.ausweis_code:
+        neu = secrets.token_hex(CODE_LAENGE // 2)
+        getroffen = Mitglied.objects.filter(pk=mitglied.pk, ausweis_code="").update(
+            ausweis_code=neu, ausweis_ausgestellt_am=jetzt or timezone.now()
+        )
+        mitglied.refresh_from_db(fields=["ausweis_code", "ausweis_ausgestellt_am"])
+        if getroffen:
+            AuditEintrag.anhaengen({"typ": "ausweis_ausgestellt", "mitglied": mitglied.pk})
+    if not mitglied.ausweis_schluessel:
+        Mitglied.objects.filter(pk=mitglied.pk, ausweis_schluessel__isnull=True).update(
+            ausweis_schluessel=secrets.token_hex(SCHLUESSEL_LAENGE // 2)
+        )
+        mitglied.refresh_from_db(fields=["ausweis_schluessel"])
     return mitglied.ausweis_code
 
 
 def pruef_url(mitglied: Mitglied) -> str:
+    """Die Adresse hinter dem QR-Code: allein der Adressschlüssel (GP-091). Die Konto-ID steht
+    nicht darin — aus ihr bildet sich der öffentliche Platzhalter „Mitglied n“, und wer die Karte
+    mit dem Klarnamen sieht, fände darüber alle Beiträge desselben Menschen (§ 5 Abs 3 lit a).
+    Setzt `ausweis_code_sicherstellen` voraus."""
     basis = settings.DDOE_BASIS_URL.rstrip("/")
-    return f"{basis}/ausweis/{mitglied.pk}/{mitglied.ausweis_code}/"
+    return f"{basis}/ausweis/{mitglied.ausweis_schluessel}/"
 
 
 def ausweis_daten(mitglied: Mitglied) -> Ausweis:

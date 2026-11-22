@@ -21,6 +21,7 @@
       <li><a href="{% url 'gemeinde:ort' ort.kennziffer %}">{{ ort.anzeige }} · {{ ort.get_bundesland_display }} · {{ ort.kennziffer }}</a></li>
       {% endfor %}
     </ul>
+    <p class="hilfe">{% translate "Treffer erscheinen alphabetisch nach Gemeindename, dann nach Bezirk und Kennziffer." %}</p>
     {% if trefferseite.has_previous %}
       <a href="?ort={{ suche|urlencode }}&amp;seite={{ trefferseite.previous_page_number }}">{% translate "Vorherige Seite" %}</a>
     {% endif %}

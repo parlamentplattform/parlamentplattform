@@ -34,7 +34,9 @@ def test_testkonto_ist_in_kachel_und_view_gleich_gesperrt(client, ordnung):  # n
     antrag = antrag_einbringen(mitglied_anlegen("autorin"), **ANTRAG, ordnung=ordnung)
     probe = _testkonto()
     assert mitwirkungssperre(probe) == "testkonto"
-    assert kachel_sperre("testkonto") == {"code": "testkonto", "kurz": "Testkonto", "link": None, "link_text": ""}
+    assert kachel_sperre("testkonto") == {
+        "code": "testkonto", "kurz": "Testkonto", "text": "Testkonto — ohne Mitwirkung.", "link": None, "link_text": "",
+    }
     client.force_login(probe)
     feld = _feld(client, "filter")
     assert f'id="u-filter-{antrag.pk}"' not in feld and 'sperre">Testkonto</span>' in feld

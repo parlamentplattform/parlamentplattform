@@ -166,7 +166,9 @@ def test_meldung_nach_dem_bearbeitungsfenster_nennt_den_registerwert(client, ord
     antwort = client.post(
         reverse("verfahren:beitrag_bearbeiten", args=[antrag.pk, beitrag.pk]), {"text": "Zu spät."}
     )
-    assert [str(m) for m in get_messages(antwort.wsgi_request)] == [meldung]
+    # Der Fehler steht im Chat der neu gezeichneten Seite, nicht als Meldung für später (GP-071)
+    assert [str(m) for m in get_messages(antwort.wsgi_request)] == []
+    assert f'<p class="chat-fehler" role="alert">{meldung}</p>' in antwort.content.decode()
     beitrag.refresh_from_db()
     assert beitrag.text == "Erst so gemeint."
 
@@ -346,6 +348,8 @@ def test_nach_verfahrensende_bleibt_der_chat_lesbar_aber_geschlossen(client, ord
     client.force_login(anna)
     inhalt = _seite(client, antrag)
     assert "Das Verfahren ist beendet — der Chat bleibt lesbar." in inhalt
+    # Sichtprüfung 0.115.0: Ein geschlossener leerer Chat lädt nicht zum ersten Beitrag ein
+    assert "der erste kann Ihrer sein" not in inhalt
 
 
 # ── Meine Gespräche (FB-G3) ───────────────────────────────────────────────────
@@ -520,6 +524,7 @@ def test_antragsseite_fragt_unabhaengig_von_der_zahl_der_beitraege(client, ordnu
 
     client.force_login(leute[1])
     schreiben(3, 0)
+    abfragen()  # der erste Besuch legt den Lesestand an (GP-068) — gemessen werden die folgenden
     wenig, _sql = abfragen()
     schreiben(40, 100)
     viel, sql = abfragen()

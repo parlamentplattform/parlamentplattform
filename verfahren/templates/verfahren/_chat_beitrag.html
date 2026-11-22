@@ -16,7 +16,7 @@ Erwartet b (aus chat.faden) und antrag.
     </div>
     <div class="blase-text{% if b.k.geloescht or b.k.ausgeblendet_am %} entfernt{% endif %}">{% if b.k.system %}{{ b.systemtext }}{% else %}{{ b.k.sichtbarer_text|urlize|linebreaksbr }}{% endif %}</div>
     <div class="blase-fuss">
-      {% if chat.offen and user.is_authenticated and not b.k.system and not b.k.geloescht and not b.k.ausgeblendet_am %}
+      {% if chat.offen and user.is_authenticated and not chat.sperre and not b.k.system and not b.k.geloescht and not b.k.ausgeblendet_am %}
       {# Ohne JavaScript ein Link: die Seite belegt das Antwortfeld über ?antwort_auf= vor (Grundregel 3) #}
       <a class="blase-knopf" href="{% url 'verfahren:antrag' antrag.pk %}?antwort_auf={{ b.k.pk }}#chat-eingabe" @click.prevent="antworten({{ b.k.pk }}, '{{ b.k.mitglied.anzeigename|escapejs }}')">{% translate "Antworten" %}</a>
       {% endif %}
@@ -32,7 +32,7 @@ Erwartet b (aus chat.faden) und antrag.
         {% endif %}
       </form>
       {% else %}
-        {% if b.zustimmungen %}<span class="blase-knopf zustimmen still" title="{% if chat.abstimmung and not chat.darf_reagieren %}{% translate 'Reagieren können die Unterstützer dieses Antrags' %}{% else %}{% translate 'Zustimmungen' %}{% endif %}">&#128077; {{ b.zustimmungen }}</span>{% endif %}
+        {% if b.zustimmungen %}<span class="blase-knopf zustimmen still" title="{% if chat.sperre %}{{ chat.sperre.kurz }}{% elif chat.abstimmung and not chat.darf_reagieren %}{% translate 'Reagieren können die Unterstützer dieses Antrags' %}{% else %}{% translate 'Zustimmungen' %}{% endif %}">&#128077; {{ b.zustimmungen }}</span>{% endif %}
         {% if b.ablehnungen %}<span class="blase-knopf ablehnen still" title="{% translate 'Ablehnungen' %}">&#128078; {{ b.ablehnungen }}</span>{% endif %}
       {% endif %}
       {% if b.eigener and not b.k.geloescht %}

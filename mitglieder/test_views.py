@@ -757,3 +757,127 @@ def test_feldfehler_von_anmeldung_und_registrierung_sind_verknuepft(client):
     assert verweise_ins_leere(html) == []
     html = client.post(reverse("mitglieder:registrieren"), {"email": "keine-adresse"}).content.decode()
     assert verweise_ins_leere(html) == []
+
+
+# --- Ziel der Anmeldung (GP-100, GAST-03/KM-13) -------------------------------
+
+
+def _aktives_konto(email='ziel@example.org', **extra):
+    m = Mitglied.objects.create(username=email, email=email, is_active=True, **extra)
+    m.set_unusable_password()
+    m.save()
+    return m
+
+
+def _link_mit_ziel(client, ziel):
+    """Fordert den Anmeldelink über die Anmeldeseite mit `?next=` an und gibt den Link zurück."""
+    from urllib.parse import urlencode
+
+    seite = reverse('mitglieder:login') + '?' + urlencode({'next': ziel})
+    html = client.get(seite).content.decode()
+    feld = re.search(r'name="ziel" value="([^"]*)"', html)
+    weiter = feld.group(1) if feld else ''
+    mail.outbox.clear()
+    client.post(seite, {'email': 'ziel@example.org', 'ziel': weiter, **botschutz(client, url=seite)})
+    assert len(mail.outbox) == 1
+    return link_aus_mail(mail.outbox[0]), weiter
+
+
+def test_anmeldung_fuehrt_zur_angefragten_seite_zurueck(client):
+    from django.test import Client
+
+    _aktives_konto()
+    umleitung = client.get(reverse('mitglieder:profil'))
+    assert umleitung.status_code == 302 and 'next=/profil/' in umleitung['Location']
+    html = client.get(umleitung['Location']).content.decode()
+    assert 'name="ziel" value="/profil/"' in html
+    assert 'Der Anmeldelink führt Sie danach dorthin.' in html
+    link, _ = _link_mit_ziel(client, '/profil/')
+    anderes_geraet = Client()  # der Link wird oft im Mailprogramm eines anderen Geräts geöffnet
+    antwort = anderes_geraet.post(link)
+    assert antwort.status_code == 302 and antwort['Location'] == '/profil/'
+
+
+@pytest.mark.parametrize('ziel', [
+    'https://fremd.example/profil/', '//fremd.example/profil/', '/\t/fremd.example/',
+    '/abmelden/', '/antrag/1/unterstuetzen/', '/gibt-es-nicht/', '/anmelden/',
+])
+def test_anmeldung_verwirft_fremde_und_schreibende_ziele(client, ziel):
+    _aktives_konto()
+    link, weiter = _link_mit_ziel(client, ziel)
+    assert weiter == ''
+    antwort = client.post(link)
+    assert antwort['Location'] == reverse('verfahren:parlament')
+
+
+def test_untergeschobenes_ziel_im_formular_wird_ebenso_verworfen(client):
+    _aktives_konto()
+    seite = reverse('mitglieder:login')
+    client.post(seite, {'email': 'ziel@example.org', 'ziel': '/abmelden/', **botschutz(client, url=seite)})
+    assert client.post(link_aus_mail(mail.outbox[-1]))['Location'] == reverse('verfahren:parlament')
+
+
+def test_alter_anmeldelink_ohne_ziel_fuehrt_wie_bisher_ins_parlament(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    konto = _aktives_konto()
+    token = EinmalToken.ausstellen(konto, EinmalToken.Zweck.LOGIN)
+    antwort = client.post(reverse('mitglieder:login_einloesen', args=[token]))
+    assert antwort['Location'] == reverse('verfahren:parlament')
+
+
+def test_einloesen_leert_das_gemerkte_ziel(client):
+    """Gesamtprüfung 0.115.0 (datenschutz): Das Ziel samt Abfrageteil bleibt nach dem Einlösen nicht am
+    Konto stehen — gelesen wird es vorher, geleert in derselben Anweisung, die den Link entwertet."""
+    from django.test import Client
+
+    from mitglieder.auth_flows import EinmalToken
+
+    konto = _aktives_konto()
+    token = EinmalToken.ausstellen(konto, EinmalToken.Zweck.LOGIN, ziel='/parlament/?suche=geheimes+thema')
+    antwort = client.post(reverse('mitglieder:login_einloesen', args=[token]))
+    assert antwort['Location'] == '/parlament/?suche=geheimes+thema'
+    zeile = EinmalToken.objects.get(mitglied=konto)
+    assert zeile.verbraucht_am is not None and zeile.ziel == ''
+    # Ein zweiter Klick auf denselben Link findet nichts mehr und führt nicht mehr dorthin.
+    assert Client().post(reverse('mitglieder:login_einloesen', args=[token])).status_code == 400
+
+
+def test_entwerten_leert_die_gemerkten_ziele(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    konto = _aktives_konto()
+    EinmalToken.ausstellen(konto, EinmalToken.Zweck.LOGIN, ziel='/parlament/?suche=geheimes+thema')
+    assert EinmalToken.entwerten(konto) == 1
+    assert list(EinmalToken.objects.filter(mitglied=konto).values_list('ziel', flat=True)) == ['']
+
+
+@pytest.mark.parametrize('pfad', ['/beitrag/', '/verwaltung/', '/willkommen/'])
+def test_eigene_umleitungen_zur_anmeldung_tragen_das_ziel(client, pfad):
+    antwort = client.get(pfad)
+    assert antwort.status_code == 302
+    assert antwort['Location'] == reverse('mitglieder:login') + '?next=' + pfad.replace('/', '%2F')
+
+
+def test_gemeindekonto_kehrt_nur_auf_gemeindewege_zurueck(client):
+    from mitglieder.anmeldeziel import ziel_pruefen
+    from mitglieder.auth_flows import EinmalToken
+
+    konto = _aktives_konto(parteikonto=False)
+    token = EinmalToken.ausstellen(konto, EinmalToken.Zweck.LOGIN, ziel='/profil/')
+    assert client.post(reverse('mitglieder:login_einloesen', args=[token]))['Location'] == reverse('gemeinde:konto')
+    ziel = reverse('gemeinde:export')
+    assert ziel_pruefen(ziel) == ziel
+    token = EinmalToken.ausstellen(konto, EinmalToken.Zweck.LOGIN, ziel=ziel)
+    assert client.post(reverse('mitglieder:login_einloesen', args=[token]))['Location'] == ziel
+
+
+# --- GP-188 Punkt 1: zu schnelles Absenden nennt den wahren Grund (KM-26) ----
+
+
+def test_zu_schnelles_absenden_nennt_den_wartesatz(client):
+    antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client, alter=0.5)})
+    html = antwort.content.decode()
+    assert 'bitte einen Moment warten und erneut absenden' in html
+    assert 'Die Sicherheitsfrage wurde nicht richtig beantwortet' not in html
+    assert Mitglied.objects.count() == 0

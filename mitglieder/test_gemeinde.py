@@ -524,6 +524,7 @@ GEMEINDEEXPORT_AUSNAHMEN = {
     "willkommen_post_am": "Parteipost; ein Gemeindekonto bekommt keine",
     "freischaltung_post_am": "Parteipost; ein Gemeindekonto bekommt keine",
     "ausweis_ausgestellt_am": "Mitgliedsausweis; ein Gemeindekonto bekommt keinen",
+    "ausweis_schluessel": "Mitgliedsausweis; ein Gemeindekonto bekommt keinen",
     "beitrag_zuletzt_am": "Mitgliedsbeitrag; ein Gemeindekonto zahlt keinen",
     **{f: "Datenbankregel gemeindekonto_ohne_parteidaten: beim Gemeindekonto stets leer" for f in (
         "beitritt", "mitgliedsnummer", "beitragsreferenz_stamm", "ausweis_code", "identitaetsstufe",
@@ -592,3 +593,115 @@ def test_datenschutzerklaerung_verweist_nicht_auf_sich_selbst(client, ort):
     assert f'href="{url}"' not in hauptteil
     formular = client.get(reverse("gemeinde:anmelden")).content.decode()
     assert f'href="{url}"' in formular.split('<main id="inhalt"', 1)[1].split("</main>", 1)[0]
+
+
+# --- 403 des Gemeindekontos als ganze Seite (GP-095, GE-04/GE-06) -----------
+
+
+@pytest.mark.parametrize("sprache", ["de", "en"])
+def test_gemeindekonto_bekommt_beim_parteischreibweg_eine_ganze_seite(client, buerger, sprache):
+    from django.utils import translation
+
+    client.force_login(buerger)
+    with translation.override(sprache):
+        antwort = client.post("/antrag/999/unterstuetzen/", HTTP_ACCEPT_LANGUAGE=sprache)
+    assert antwort.status_code == 403
+    html = antwort.content.decode()
+    assert '<html' in html and f'lang="{sprache}"' in html
+    hauptteil = html.split('<main id="inhalt"', 1)[1].split('</main>', 1)[0]
+    assert 'href="/gemeinde/konto/"' in hauptteil
+    if sprache == 'de':
+        assert 'Gemeindekonto' in hauptteil
+
+
+def test_beitrittsformular_nennt_dem_gemeindekonto_den_naechsten_schritt(client, buerger):
+    client.force_login(buerger)
+    html = client.get(reverse('mitglieder:registrieren')).content.decode()
+    hauptteil = html.split('<main id="inhalt"', 1)[1].split('</main>', 1)[0]
+    assert 'Gemeindekonto' in hauptteil and 'href="/gemeinde/konto/"' in hauptteil
+    assert 'Gemeindekonto' not in Client().get(reverse('mitglieder:registrieren')).content.decode().split(
+        '<main id="inhalt"', 1)[1].split('</main>', 1)[0]
+
+
+# --- GP-188 Punkte 2 und 5 (KM-26) -------------------------------------------
+
+
+def test_wechsel_auf_ohne_festen_wohnsitz_braucht_keinen_meldehaken(client, buerger):
+    client.force_login(buerger)
+    r = client.post(reverse('gemeinde:konto'), {'wohnsitz_art': 'ohne_festen_wohnsitz'})
+    assert r.status_code == 302
+    buerger.refresh_from_db()
+    assert buerger.wohnsitz_id is None
+
+
+def test_wohnsitz_in_oesterreich_verlangt_den_meldehaken_weiter(client, buerger, ort):
+    client.force_login(buerger)
+    r = client.post(reverse('gemeinde:konto'), {'wohnsitz_art': 'oesterreich', 'gemeinde': ort.anzeige})
+    assert r.status_code == 200
+    assert 'meldung' in r.context['form'].errors
+
+
+def test_ortssuche_nennt_ihre_reihung(client, ort):
+    html = client.get(reverse('gemeinde:start'), {'ort': 'Marien'}).content.decode()
+    assert 'alphabetisch nach Gemeindename' in html
+
+
+# --- Gemeindekonto auf geschützten Parteiseiten (GP-078, GE-05/GAST-16) -------
+
+
+@pytest.mark.parametrize('pfad', ['/profil/', '/einbringen/', '/beitrag/', '/verwaltung/'])
+def test_geschuetzte_parteiseite_nennt_dem_gemeindekonto_den_weg_statt_der_anmeldung(client, buerger, pfad):
+    client.force_login(buerger)
+    antwort = client.get(pfad)
+    assert antwort.status_code == 403
+    assert '/anmelden/' not in antwort.get('Location', '')
+    hauptteil = antwort.content.decode().split('<main id="inhalt"', 1)[1].split('</main>', 1)[0]
+    assert 'Gemeindekonto' in hauptteil and 'href="/gemeinde/konto/"' in hauptteil
+
+
+def test_anmeldeseite_nennt_dem_angemeldeten_gemeindekonto_seinen_zugang(client, buerger):
+    client.force_login(buerger)
+    html = client.get(reverse('mitglieder:login')).content.decode()
+    hauptteil = html.split('<main id="inhalt"', 1)[1].split('</main>', 1)[0]
+    assert 'Sie sind mit Ihrem Gemeindekonto angemeldet.' in hauptteil and 'href="/gemeinde/konto/"' in hauptteil
+
+
+def test_gast_wird_weiter_zur_anmeldung_geschickt(client):
+    antwort = client.get('/profil/')
+    assert antwort.status_code == 302 and antwort['Location'].startswith('/anmelden/')
+
+
+# --- Formularfehler oben im Hauptteil (GP-060, ZB-02) -------------------------
+
+
+def test_falsche_gemeinde_meldet_sich_oben_als_alert_mit_sprungverweis(client, buerger):
+    client.force_login(buerger)
+    antwort = client.post(reverse('gemeinde:konto'), {
+        'wohnsitz_art': 'oesterreich', 'gemeinde': 'Entenhausen an der Gans', 'meldung': 'on',
+    })
+    assert antwort.status_code == 200
+    html = antwort.content.decode()
+    assert html.split('<title>', 1)[1].startswith('Fehler:')
+    hauptteil = html.split('<main id="inhalt"', 1)[1]
+    alarm = hauptteil.split('role="alert"', 1)
+    assert len(alarm) == 2 and '<form' not in alarm[0]
+    assert 'href="#id_gemeinde"' in alarm[1].split('</div>', 1)[0]
+
+
+def test_ohne_fehler_kein_alert(client, buerger):
+    client.force_login(buerger)
+    html = client.get(reverse('gemeinde:konto')).content.decode()
+    assert 'role="alert"' not in html.split('<main id="inhalt"', 1)[1]
+    assert not html.split('<title>', 1)[1].startswith('Fehler:')
+
+
+def test_sprachwechsel_auf_der_anmeldeseite_bleibt_dem_gemeindekonto_offen(client, buerger):
+    """Gegenlesen GP-078: Nur eine Umleitung, die das Gemeindekonto als Gast von einer Parteiseite zur
+    Anmeldung schickt, wird zur Auskunft. Der Sprachwechsel auf der Anmeldeseite leitet ebenfalls auf
+    /anmelden/ um — er ist ein erlaubter Weg und muss samt Sprach-Cookie durchgehen."""
+    from django.conf import settings
+
+    client.force_login(buerger)
+    antwort = client.post(reverse('set_language'), {'language': 'en', 'next': '/anmelden/?next=/profil/'})
+    assert antwort.status_code == 302 and antwort['Location'] == '/anmelden/?next=/profil/'
+    assert antwort.cookies[settings.LANGUAGE_COOKIE_NAME].value == 'en'

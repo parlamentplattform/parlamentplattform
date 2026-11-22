@@ -115,7 +115,7 @@ def _verschobene_spalte():
     AuditEintrag.anhaengen({'typ': 'phasenwechsel', 'antrag': 3, 'neue_phase': 'abstimmung'})
     AuditEintrag.anhaengen({'typ': 'phasenwechsel', 'antrag': 3, 'neue_phase': 'angenommen'})
     zweiter = AuditEintrag.objects.order_by('lfd')[1]
-    AuditEintrag.objects.filter(pk=zweiter.pk).update(zeit=zweiter.zeit - timedelta(days=400))
+    AuditEintrag._base_manager.filter(pk=zweiter.pk).update(zeit=zweiter.zeit - timedelta(days=400))
     return zweiter
 
 

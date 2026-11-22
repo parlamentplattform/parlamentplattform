@@ -1,9 +1,11 @@
 {% extends "verfahren/base.html" %}
 {% load i18n phasen %}
+{% block titelvorsatz %}{% if form.errors %}{% translate "Fehler:" %} {% endif %}{% endblock %}
 {% block titel %}{% translate "Antrag einbringen" %}{% endblock %}
 {% block inhalt %}
 <p><a href="{% url 'verfahren:parlament' %}">&larr; {% translate "Zum Parlament" %}</a></p>
 <h1>{% translate "Antrag einbringen" %}</h1>
+{% include "verfahren/_formularfehler.html" %}
 <p>{% blocktranslate with policy_id=ordnung.policy_id version=ordnung.version %}Jedes bestätigte Mitglied kann Anträge einbringen (§ 5 Abs 1). Es gilt die
 Verfahrensordnung <strong>{{ policy_id }} v{{ version }}</strong> — sie wird
 beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum Ende (§ 5 Abs 5).{% endblocktranslate %}</p>
@@ -34,6 +36,8 @@ beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum End
       {% if feld.errors %}<ul class="fehlerliste" id="{{ feld.auto_id }}_error">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
       {% endif %}
     {% endfor %}
+    {# Z-5 (E-05): nur ein Hinweis, keine Sperre — die Schwelle verlangt mehr, als es im Kreis Unterstützungsberechtigte gibt #}
+    {% if schwelle_hinweise %}<div class="hilfe" id="schwelle-hinweis">{% for h in schwelle_hinweise %}<p>{% blocktranslate with gebiet=h.gebiet n=h.schwelle %}{{ gebiet }}: Die Unterstützungsschwelle von {{ n }} Unterstützungen ist dort derzeit nicht erreichbar, weil weniger Mitglieder unterstützen dürfen.{% endblocktranslate %}</p>{% endfor %}</div>{% endif %}
     <p class="hilfe">{% translate "Für neue örtliche Anträge zählt ausschließlich der gemeldete Hauptwohnsitz bei Einbringung." %}</p>
     {% if form.gebiet_kennung %}<p class="hilfe">{% translate "Ein örtlicher Antrag zeigt öffentlich, dass Ihr Hauptwohnsitz in diesem Gebiet liegt." %}</p>{% endif %}
     {% if form.ohne_region %}<p class="hilfe">{% translate "Ihr Konto hat keine örtliche Zuordnung; die Bundesebene steht Ihnen offen." %}</p>{% endif %}

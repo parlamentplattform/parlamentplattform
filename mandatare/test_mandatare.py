@@ -176,6 +176,12 @@ def test_verwaltung_verknuepft_die_kandidatur_und_uebernimmt_ebene_und_gebiet(cl
     kandidatur = antrag_einbringen(
         anna, "Listenreihung Landtag", "Reihung.", "", ordnung, art=Antragsart.MANDAT, ebene="land", gebiet="Oberösterreich"
     )
+    # Eine entschiedene Kandidatur mit Bewerbung des Mitglieds (GP-115)
+    from plattform_core import Phase
+    from verfahren.models import Antrag, Bewerbung
+
+    Bewerbung.objects.create(antrag=kandidatur, mitglied=anna)
+    Antrag.objects.filter(pk=kandidatur.pk).update(phase=Phase.ANGENOMMEN.value)
     client.force_login(admin_anlegen())
     client.post(
         reverse("mandatare:verwaltung_aktion"),
@@ -315,3 +321,242 @@ def test_verwaltungsseite_laedt_aufgaben_samt_antrag_gebuendelt(client):
     eins = zaehlen()
     anlegen(19)
     assert zaehlen() <= eins + 5
+
+
+# ── GP-115: Mandat anlegen mit Prüfung, Schutz vor Doppelabsendung und Berichtigung ───────────
+
+
+def _anlegen(client, mitglied, **extra):
+    from django.contrib.messages import get_messages
+
+    daten = {"aktion": "anlegen", "mitglied": mitglied.pk, "bezeichnung": "Gemeinderat", "ebene": "gemeinde",
+             "gebiet": "Wels", "angetreten": timezone.localdate().isoformat(), "vorstellung": "", **extra}
+    antwort = client.post(reverse("mandatare:verwaltung_aktion"), daten)
+    return " ".join(str(m) for m in get_messages(antwort.wsgi_request))
+
+
+def test_zweiter_gleicher_absendeversuch_legt_kein_zweites_mandat_an(client):
+    from verfahren.models import AuditEintrag
+
+    anna = mitglied_anlegen("anna")
+    client.force_login(admin_anlegen())
+    _anlegen(client, anna)
+    meldung = _anlegen(client, anna)
+    assert Mandat.objects.count() == 1 and "bereits angelegt" in meldung
+    assert AuditEintrag.objects.filter(ereignis__typ="mandat_angelegt").count() == 1
+    # ein anderes Mandat derselben Person bleibt möglich, ebenso ein gleiches nach dem Ende des ersten
+    _anlegen(client, anna, bezeichnung="Vizebürgermeisterin")
+    Mandat.objects.filter(bezeichnung="Gemeinderat").update(beendet=timezone.localdate())
+    _anlegen(client, anna)
+    assert Mandat.objects.count() == 3
+
+
+def test_kandidatur_ohne_bewerbung_oder_noch_laufend_wird_gemeldet(client, ordnung):  # noqa: F811
+    from plattform_core import Phase
+    from verfahren.models import Antrag, Bewerbung
+
+    anna = mitglied_anlegen("anna")
+    kandidatur = antrag_einbringen(
+        mitglied_anlegen("bert"), "Listenreihung Landtag", "Reihung.", "", ordnung, art=Antragsart.MANDAT,
+        ebene="land", gebiet="Oberösterreich",
+    )
+    client.force_login(admin_anlegen())
+    meldung = _anlegen(client, anna, ebene="", gebiet="", kandidatur=kandidatur.pk)
+    assert Mandat.objects.count() == 0 and "keine Bewerbung" in meldung
+    Bewerbung.objects.create(antrag=kandidatur, mitglied=anna)
+    meldung = _anlegen(client, anna, ebene="", gebiet="", kandidatur=kandidatur.pk)
+    assert Mandat.objects.count() == 0 and "läuft noch" in meldung
+    Antrag.objects.filter(pk=kandidatur.pk).update(phase=Phase.ANGENOMMEN.value)
+    _anlegen(client, anna, ebene="", gebiet="", kandidatur=kandidatur.pk)
+    assert Mandat.objects.get().kandidatur_id == kandidatur.pk
+
+
+def test_antritt_in_der_zukunft_wird_gemeldet(client):
+    anna = mitglied_anlegen("anna")
+    client.force_login(admin_anlegen())
+    meldung = _anlegen(client, anna, angetreten=(timezone.localdate() + timedelta(days=1)).isoformat())
+    assert Mandat.objects.count() == 0 and "Zukunft" in meldung
+
+
+def test_berichtigung_der_bezeichnung_steht_mit_alt_und_neu_im_audit(client):
+    from verfahren.models import AuditEintrag
+
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), bezeichnung="Gemeinerat")
+    admin = admin_anlegen()
+    client.force_login(admin)
+    seite = client.get(reverse("mandatare:verwaltung")).content.decode()
+    assert 'value="berichtigen"' in seite
+    client.post(reverse("mandatare:verwaltung_aktion"),
+                {"aktion": "berichtigen", "mandat": mandat.pk, "bezeichnung": "Gemeinderat", "gebiet": mandat.gebiet})
+    mandat.refresh_from_db()
+    assert mandat.bezeichnung == "Gemeinderat"
+    (e,) = [x.ereignis for x in AuditEintrag.objects.filter(ereignis__typ="mandat_berichtigt")]
+    assert (e["feld"], e["alt"], e["neu"], e["durch"]) == ("bezeichnung", "Gemeinerat", "Gemeinderat", admin.pk)
+    # ohne Änderung kein Vermerk; leere Bezeichnung wird abgewiesen
+    client.post(reverse("mandatare:verwaltung_aktion"),
+                {"aktion": "berichtigen", "mandat": mandat.pk, "bezeichnung": "Gemeinderat", "gebiet": mandat.gebiet})
+    client.post(reverse("mandatare:verwaltung_aktion"),
+                {"aktion": "berichtigen", "mandat": mandat.pk, "bezeichnung": " ", "gebiet": mandat.gebiet})
+    mandat.refresh_from_db()
+    assert mandat.bezeichnung == "Gemeinderat"
+    assert AuditEintrag.objects.filter(ereignis__typ="mandat_berichtigt").count() == 1
+
+
+def test_der_alte_wortlaut_einer_berichtigung_steht_nicht_im_oeffentlichen_protokoll(client):
+    """Datenschutz-Fund: Wird eine Bezeichnung berichtigt, weil sie Persönliches enthielt, stand der alte
+    Wortlaut dauerhaft in /audit.json. Öffentlich ist „alt“ geschwärzt; der neue Wert steht ohnehin am Mandat."""
+    from django.test import Client
+
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), bezeichnung="Gemeinderat Max Muster (krank)")
+    client.force_login(admin_anlegen())
+    client.post(reverse("mandatare:verwaltung_aktion"),
+                {"aktion": "berichtigen", "mandat": mandat.pk, "bezeichnung": "Gemeinderat", "gebiet": mandat.gebiet})
+    antwort = Client().get(reverse("verfahren:audit_json"))
+    assert "Max Muster" not in antwort.content.decode()
+    (e,) = [x for x in antwort.json()["eintraege"] if x["ereignis"].get("typ") == "mandat_berichtigt"]
+    assert e["ereignis"]["alt"] == "•" and e["ereignis"]["neu"] == "Gemeinderat" and e["ereignis"]["feld"] == "bezeichnung"
+
+
+# ── GP-113 (Rest): Enddatum als Eingabe mit Grenzen, Berichtigung als eigener Vermerk ─────────
+
+
+def test_enddatum_ist_eine_eingabe_mit_grenzen(client):
+    from django.contrib.messages import get_messages
+
+    heute = timezone.localdate()
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), angetreten=heute - timedelta(days=100))
+    client.force_login(admin_anlegen())
+    url = reverse("mandatare:verwaltung_aktion")
+    assert 'name="datum"' in client.get(reverse("mandatare:verwaltung")).content.decode()
+    for falsch in (heute + timedelta(days=1), heute - timedelta(days=101), "kein Datum"):
+        wert = falsch.isoformat() if hasattr(falsch, "isoformat") else falsch
+        antwort = client.post(url, {"aktion": "beenden", "mandat": mandat.pk, "datum": wert})
+        mandat.refresh_from_db()
+        assert mandat.beendet is None, falsch
+        assert "zwischen dem Antritt" in " ".join(str(m) for m in get_messages(antwort.wsgi_request))
+    client.post(url, {"aktion": "beenden", "mandat": mandat.pk, "datum": (heute - timedelta(days=5)).isoformat()})
+    mandat.refresh_from_db()
+    assert mandat.beendet == heute - timedelta(days=5)
+    # Der eingegebene Tag steht im Audit — er weicht nun vom Zeitpunkt des Eintrags ab (Gegenlesen GP-113)
+    from verfahren.models import AuditEintrag
+
+    (e,) = [x.ereignis for x in AuditEintrag.objects.filter(ereignis__typ="mandat_beendet")]
+    assert e["beendet"] == (heute - timedelta(days=5)).isoformat()
+
+
+def test_berichtigung_des_enddatums_steht_als_eigener_vermerk_mit_alt_und_neu(client):
+    from verfahren.models import AuditEintrag
+
+    heute = timezone.localdate()
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), angetreten=heute - timedelta(days=100), beendet=heute - timedelta(days=2))
+    client.force_login(admin_anlegen())
+    url = reverse("mandatare:verwaltung_aktion")
+    daten = {"aktion": "berichtigen", "mandat": mandat.pk, "bezeichnung": mandat.bezeichnung, "gebiet": mandat.gebiet}
+    client.post(url, {**daten, "beendet": (heute + timedelta(days=3)).isoformat()})  # außerhalb der Grenzen
+    mandat.refresh_from_db()
+    assert mandat.beendet == heute - timedelta(days=2)
+    client.post(url, {**daten, "beendet": (heute - timedelta(days=9)).isoformat()})
+    mandat.refresh_from_db()
+    assert mandat.beendet == heute - timedelta(days=9)
+    (e,) = [x.ereignis for x in AuditEintrag.objects.filter(ereignis__typ="mandat_berichtigt")]
+    assert (e["feld"], e["alt"], e["neu"]) == ("beendet", (heute - timedelta(days=2)).isoformat(), (heute - timedelta(days=9)).isoformat())
+    assert not AuditEintrag.objects.filter(ereignis__typ="mandat_beendet").exists()
+
+
+def test_offenes_mandat_kann_ueber_die_berichtigung_nicht_beendet_werden(client):
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), angetreten=timezone.localdate() - timedelta(days=10))
+    client.force_login(admin_anlegen())
+    client.post(reverse("mandatare:verwaltung_aktion"),
+                {"aktion": "berichtigen", "mandat": mandat.pk, "bezeichnung": mandat.bezeichnung, "gebiet": mandat.gebiet,
+                 "beendet": timezone.localdate().isoformat()})
+    mandat.refresh_from_db()
+    assert mandat.beendet is None
+
+
+# ── GP-191: Seitenteilung der öffentlichen Liste ────────────────────────────────────────────
+
+
+def test_liste_mit_400_mandaten_blaettert_ohne_javascript_und_nennt_die_gesamtzahl(client):
+    """GP-191 (SU-09): 400 offene und 5 beendete Mandate — jede Seite bleibt unter 150 KiB, nennt die Gesamtzahl
+    und verweist mit einem gewöhnlichen Link auf die nächste; über alle Seiten steht jedes Mandat genau einmal."""
+    import re
+
+    from mitglieder.models import Mitglied
+
+    heute = timezone.localdate()
+    leute = Mitglied.objects.bulk_create(
+        Mitglied(username=f'gp191m{i}', email=f'gp191m{i}@example.org', beitritt=heute) for i in range(405)
+    )
+    Mandat.objects.bulk_create(
+        Mandat(
+            mitglied=m, bezeichnung='Gemeinderat', ebene='gemeinde', gebiet=f'Ort {i:03d}',
+            beendet=heute - timedelta(days=i) if i >= 400 else None,
+        )
+        for i, m in enumerate(leute)
+    )
+    gesehen, seiten, url = [], 0, reverse('mandatare:liste')
+    while url:
+        antwort = client.get(url)
+        assert antwort.status_code == 200
+        html = antwort.content.decode()
+        assert len(antwort.content) < 150 * 1024, (url, len(antwort.content))
+        assert '405 Mandate' in html, url
+        gesehen += re.findall(r'href="/mandatare/(\d+)/"', html)
+        weiter = re.search(r'<a href="(\?seite=\d+)" rel="next"', html)
+        url = reverse('mandatare:liste') + weiter.group(1) if weiter else None
+        seiten += 1
+        assert seiten < 50
+    assert seiten > 1
+    assert sorted(set(gesehen), key=int) == sorted((str(m.pk) for m in Mandat.objects.all()), key=int)
+    erste = client.get(reverse('mandatare:liste')).content.decode()
+    assert re.search(r'href="\?seite=\d+#beendet"', erste)
+
+
+# ── Folgewelle: Die Seitengröße der Liste ist ein Registerwert ────────────────────────────
+
+
+def _seitengroesse(wert):
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(schluessel='mandatare-liste-seite', defaults={'wert': str(wert)})
+
+
+def test_seitengroesse_der_liste_kommt_aus_dem_register(client):
+    """`mandatare-liste-seite` (Startwert 50): Der Test setzt den Wert selbst und hängt nicht am Erstbestand.
+    Zwölf offene und drei beendete Mandate bei zehn je Seite — zwei Seiten, die beendeten beginnen auf der
+    zweiten."""
+    import re
+
+    from mandatare import views
+    from mitglieder.models import Mitglied
+    from parameter.models import Parameter
+
+    heute = timezone.localdate()
+    leute = Mitglied.objects.bulk_create(
+        Mitglied(username=f'seite{i}', email=f'seite{i}@example.org', beitritt=heute) for i in range(15)
+    )
+    Mandat.objects.bulk_create(
+        Mandat(
+            mitglied=m, bezeichnung='Gemeinderat', ebene='gemeinde', gebiet=f'Ort {i:03d}',
+            beendet=heute - timedelta(days=i) if i >= 12 else None,
+        )
+        for i, m in enumerate(leute)
+    )
+    url = reverse('mandatare:liste')
+    _seitengroesse(10)
+    erste = client.get(url).content.decode()
+    assert len(set(re.findall(r'href="/mandatare/(\d+)/"', erste))) == 10
+    assert 'href="?seite=2" rel="next"' in erste and 'href="?seite=2#beendet"' in erste
+    zweite = client.get(url + '?seite=2').content.decode()
+    assert len(set(re.findall(r'href="/mandatare/(\d+)/"', zweite))) == 5 and 'rel="next"' not in zweite
+    _seitengroesse(500)
+    alle = client.get(url).content.decode()
+    assert len(set(re.findall(r'href="/mandatare/(\d+)/"', alle))) == 15 and 'rel="next"' not in alle
+    # ohne Eintrag gilt der Startwert; ein unlesbarer oder unsinniger Wert bricht die Seite nicht
+    Parameter.objects.filter(schluessel='mandatare-liste-seite').delete()
+    assert views.mandate_je_seite() == 50
+    for unsinn in ('0', '-3', 'viele'):
+        _seitengroesse(unsinn)
+        assert views.mandate_je_seite() >= 1
+        assert client.get(url).status_code == 200
+    assert not hasattr(views, 'MANDATE_SEITE')  # keine harte Zahl neben dem Register

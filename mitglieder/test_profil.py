@@ -7,6 +7,7 @@ from decimal import Decimal
 
 import pytest
 from django.core import mail
+from django.core.serializers.json import DjangoJSONEncoder
 from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
@@ -291,7 +292,11 @@ def test_export_enthaelt_eigene_daten_und_eigene_stimme_aber_nichts_fremdes(clie
     assert daten["mitglied"] == anna.pk and daten["system_id"] and daten["exportiert_am"]
     assert daten["stammdaten"]["email"] == anna.email and daten["stammdaten"]["nachname"] == "Adler"
     assert daten["wohnsitz"]["name"] == anna.gemeinde
-    assert daten["beitraege"] == [{"betrag": "12.50", "gebucht_am": str(timezone.localdate()), "namens_hinweis": False}]
+    assert daten["beitraege"] == [{
+        "betrag": "12.50", "gebucht_am": str(timezone.localdate()), "namens_hinweis": False,
+        "erfasst_am": daten["beitraege"][0]["erfasst_am"],
+    }]
+    assert daten["beitraege"][0]["erfasst_am"]
     assert [u["antrag"] for u in daten["unterstuetzungen"]] == [antrag.pk]
     eigene = StimmRegister.objects.get(antrag=antrag, mitglied=anna)
     assert daten["stimmen"] == [
@@ -847,56 +852,89 @@ def test_nebenwohnsitz_satz_liest_den_registerwert_bei_0_und_1(client):
     assert "(heute: 1)" in inhalt and "(heute: 0)" not in inhalt
 
 
+#: Direkte Rückbeziehungen des Mitglieds mit eigenem Ordner im Export: „Modell.feld“ → Schlüssel.
+#: Der Feld-Wächter (`test_export_felder.py`) liest dieselbe Liste.
+DIREKT_ORDNER = {
+    "Gemeindezugang.konto": "gemeindezugang",
+    "OertlicheTeilnahme.mitglied": "oertliche_verfahrenskreise",
+    "Postauftrag.mitglied": "postauftraege",
+    "Statusverlauf.mitglied": "statusverlauf",
+    "Adresswechsel.mitglied": "adresswechsel",
+    "Beitragseingang.mitglied": "beitraege",
+    "Antrag.eingebracht_von": "antraege",
+    "Unterstuetzung.mitglied": "unterstuetzungen",
+    "StimmRegister.mitglied": "stimmen",
+    "KategorieAbo.mitglied": "abos",
+    "Favorit.mitglied": "favoriten",
+    "FilterProfil.mitglied": "filterprofile",
+    "Lesestand.mitglied": "lesestaende",
+    "Bewerbung.mitglied": "bewerbungen",
+    "Kommentar.mitglied": "kommentare",
+    "Reaktion.mitglied": "reaktionen",
+    "Meldung.mitglied": "meldungen",
+    "Beanstandung.mitglied": "beanstandungen",
+    "Anstoss.nutzer": "anstoesse",
+    "Mandat.mitglied": "mandate",
+    "Rolle.mitglied": "rollen",
+    "EntwurfsFassung.verfasst_von": "entwurfsfassungen",
+    "EntwurfsBeitrag.mitglied": "entwurfsbeitraege",
+    "EinreichStimme.mitglied": "einreichstimmen",
+    "Pruefung.durch": "pruefungen",
+    "UnterstuetzerVotum.mitglied": "unterstuetzer_voten",
+    "GremienBeschluss.umsetzung_durch": "zugewiesene_umsetzungen",
+    "GremienBeschluss.angelegt_von": "angelegte_beschluesse",
+    "GremienStimme.mitglied": "gremienstimmen",
+    "Fachliste.mitglied": "fachliste",
+    "FachlistenEinwilligung.mitglied": "fachlisten_einwilligungen",
+    "KILauf.angefordert_von": "ki_laeufe",
+    "KIAuftrag.angefordert_von": "ki_auftraege",
+    "Vergleichsanfrage.angefordert_von": "private_textvergleiche",
+    "Interessenbindung.mitglied": "interessenbindungen",
+    "Ueberlastungsmeldung.gemeldet_von": "ueberlastungsmeldungen",
+    "Vollzugseintrag.durch": "vollzug",
+    "ParameterTest.angeordnet_von": "parametertests",
+}
+
+
+def test_export_fuehrt_die_lesestaende_je_antrag_und_sitzung(client, ordnung):  # noqa: F811
+    """Gesamtprüfung 0.115.0 (datenschutz): Der Zeitpunkt des letzten Besuchs je Antrag und je Sitzung
+    ist ein Datum über das Konto und steht im Export; fremde Lesestände nicht."""
+    from datetime import UTC, datetime
+
+    from mandatare.models import Aufgabe, Sitzung
+    from mandatare.test_mandatare import mandat_anlegen
+    from verfahren.models import Lesestand
+
+    anna, berta = mitglied_anlegen("anna"), mitglied_anlegen("berta")
+    antrag = antrag_einbringen(berta, **ANTRAG, ordnung=ordnung)
+    mandat = mandat_anlegen(berta)
+    tag = Aufgabe.objects.create(mandat=mandat, titel="Sitzungstag", sitzungstag=True,
+                                 frist=datetime(2026, 1, 5, 18, tzinfo=UTC))
+    sitzung = Sitzung.objects.create(mandat=mandat, aufgabe=tag, beginn=datetime(2026, 1, 5, 17, tzinfo=UTC))
+    Lesestand.objects.create(mitglied=anna, antrag=antrag, gelesen_bis=datetime(2026, 2, 3, 4, 5, tzinfo=UTC))
+    Lesestand.objects.create(mitglied=anna, sitzung=sitzung, gelesen_bis=datetime(2026, 3, 4, 5, 6, tzinfo=UTC))
+    Lesestand.objects.create(mitglied=berta, antrag=antrag, gelesen_bis=datetime(2026, 4, 5, 6, 7, tzinfo=UTC))
+    client.force_login(anna)
+    staende = sorted(json.loads(client.get(EXPORT).content)["lesestaende"], key=lambda z: z["gelesen_bis"])
+    assert staende == [
+        {"antrag": antrag.pk, "sitzung": None, "gelesen_bis": "2026-02-03T04:05:00Z"},
+        {"antrag": None, "sitzung": sitzung.pk, "gelesen_bis": "2026-03-04T05:06:00Z"},
+    ]
+
+
 def test_export_deckt_jede_rueckbeziehung_des_mitglieds_ab(client, ordnung):  # noqa: F811
     """Wächter zu Befund FP-14: Für jede Rückbeziehung von `Mitglied` (auch die mit
     `related_name="+"`) liefert der Export einen Schlüssel — oder sie steht hier mit Grund als
     Ausnahme. Wer ein Modell mit Mitgliedsbezug ergänzt, muss den Export mitziehen."""
     from mitglieder.auth_flows import EinmalToken  # noqa: F401 — das Modell muss geladen sein
 
-    ORDNER = {
-        "Gemeindezugang.konto": "gemeindezugang",
-        "OertlicheTeilnahme.mitglied": "oertliche_verfahrenskreise",
-        "Postauftrag.mitglied": "postauftraege",
-        "Adresswechsel.mitglied": "adresswechsel",
-        "Beitragseingang.mitglied": "beitraege",
-        "Antrag.eingebracht_von": "antraege",
-        "Unterstuetzung.mitglied": "unterstuetzungen",
-        "StimmRegister.mitglied": "stimmen",
-        "KategorieAbo.mitglied": "abos",
-        "Favorit.mitglied": "favoriten",
-        "FilterProfil.mitglied": "filterprofile",
-        "Bewerbung.mitglied": "bewerbungen",
-        "Kommentar.mitglied": "kommentare",
-        "Reaktion.mitglied": "reaktionen",
-        "Meldung.mitglied": "meldungen",
-        "Beanstandung.mitglied": "beanstandungen",
-        "Anstoss.nutzer": "anstoesse",
-        "Mandat.mitglied": "mandate",
-        "Rolle.mitglied": "rollen",
-        "EntwurfsFassung.verfasst_von": "entwurfsfassungen",
-        "EntwurfsBeitrag.mitglied": "entwurfsbeitraege",
-        "EinreichStimme.mitglied": "einreichstimmen",
-        "Pruefung.durch": "pruefungen",
-        "UnterstuetzerVotum.mitglied": "unterstuetzer_voten",
-        "GremienBeschluss.umsetzung_durch": "zugewiesene_umsetzungen",
-        "GremienBeschluss.angelegt_von": "angelegte_beschluesse",
-        "GremienStimme.mitglied": "gremienstimmen",
-        "Fachliste.mitglied": "fachliste",
-        "KILauf.angefordert_von": "ki_laeufe",
-        "KIAuftrag.angefordert_von": "ki_auftraege",
-        "Vergleichsanfrage.angefordert_von": "private_textvergleiche",
-        "Interessenbindung.mitglied": "interessenbindungen",
-        "Ueberlastungsmeldung.gemeldet_von": "ueberlastungsmeldungen",
-        "Vollzugseintrag.durch": "vollzug",
-        "ParameterTest.angeordnet_von": "parametertests",
-    }
+    ORDNER = DIREKT_ORDNER
     AUSNAHMEN = {
         "EinmalToken.mitglied": "Anmelde-Token: nur Hashes mit Ablauf, Schlüssel und kein Datum über den Menschen",
         "Adresswechsel.beantragt_von": "fremde Vorgänge: Adressen anderer Mitglieder, die dieses Konto als Verwaltung beantragt hat",
         "Adresswechsel.bestaetigt_von": "fremde Vorgänge: Adressen anderer Mitglieder, die dieses Konto als Verwaltung bestätigt hat",
         "WunschVermerk.durch": "Vermerk der Gruppe 2 an einem fremden Kommentar — Verfahrensprotokoll, kein Datum über den Menschen",
         "Hinweis.erledigt_von": "Erledigungsvermerk an einem Hinweis der Zukunftswerkstatt — Verfahrensprotokoll",
-        "Lesestand.mitglied": "Lesestände: technischer Zeiger, beim Austritt gelöscht, kein Inhalt",
         "LogEntry.user": "Django-Admin-Protokoll: die Admin-Oberfläche ist nicht eingebunden, die Tabelle bleibt leer",
         "Mitglied_groups.mitglied": "Django-Gruppen: nicht verwendet — Rechte laufen über ist_admin und Rollen",
         "Mitglied_user_permissions.mitglied": "Django-Einzelrechte: nicht verwendet — Rechte laufen über ist_admin und Rollen",
@@ -1235,12 +1273,18 @@ MITTELBAR_ORDNER = {
     "Mandat > Bericht.mandat": "mandate.berichte",
     "Mandat > Rechenschaft.mandat": "mandate.rechenschaft",
     "Mandat > Sitzung.mandat": "mandate.sitzungen",
+    "Mandat > Vertrauensfrage.mandat": "mandate.vertrauensfragen",
+    "Vertrauensfrage > Stellungnahme.vertrauensfrage": "mandate.vertrauensfragen.stellungnahmen",
+    "Vertrauensfrage > Vertrauensfrage_anlaesse.vertrauensfrage": "mandate.vertrauensfragen.anlaesse",
+    "Rechenschaft > Vertrauensfrage.anlaesse": "mandate.vertrauensfragen.anlaesse",
+    "Rechenschaft > Vertrauensfrage_anlaesse.rechenschaft": "mandate.vertrauensfragen.anlaesse",
+    "Antrag > AntragsFassung.antrag": "antraege.fassungen",
     "Mandat > Sprechstunde.mandat": "mandate.gemeindearbeit.sprechstunden",
     "Mandat > Ratsinitiative.mandat": "mandate.gemeindearbeit.ratsinitiativen",
     "Mandat > Gemeindeprojekt.mandat": "mandate.gemeindearbeit.projekte",
     "Mandat > Gemeindehaushaltsquelle.mandat": "mandate.gemeindearbeit.haushaltsquellen",
-    "Aufgabe > Bericht.aufgabe": "mandate.berichte",
-    "Aufgabe > Rechenschaft.aufgabe": "mandate.rechenschaft",
+    "Aufgabe > Bericht.aufgabe": "mandate.berichte.aufgabe",
+    "Aufgabe > Rechenschaft.aufgabe": "mandate.rechenschaft.aufgabe",
     "Aufgabe > Sitzung.aufgabe": "mandate.sitzungen.aufgabe",
     "Aufgabe > Gemeindesitzungsquelle.aufgabe": "mandate.gemeindearbeit.sitzungsquellen",
     "Sitzung > Tagesordnungspunkt.sitzung": "mandate.sitzungen.punkte",
@@ -1252,6 +1296,8 @@ MITTELBAR_ORDNER = {
     "Ratsinitiative > Ratsmeldung.initiative": "mandate.gemeindearbeit.ratsinitiativen.meldungen",
     "Gemeindeprojekt > Gemeindeprojektstand.projekt": "mandate.gemeindearbeit.projekte.staende",
     "Fachliste > Fachliste_fachgebiete.fachliste": "fachliste.fachgebiete",
+    # GP-025: Vermerke, die einer eigenen Rolle die Umsetzung zuweisen — Angabe über die Person
+    "Rolle > Umsetzungsvermerk.rolle": "rollen.umsetzungsvermerke",
     "KILauf > EntwurfsBeitrag.ki_lauf": "entwurfsbeitraege.ki_lauf",
     "KILauf > Vergleichsanfrage.lauf": "private_textvergleiche.lauf",
 }
@@ -1283,6 +1329,8 @@ MITTELBAR_AUSNAHMEN = {
         "Aussetzung.beschluss", "GremienStimme.beschluss", "ParameterTest.beschluss",
         "ParameterTest.einfuehrung_beschluss", "Pruefung.beschluss", "Pruefung.korat_beschluss",
         "Regelpruefung.beschluss", "Ueberlastungsmeldung.beschluss", "Vertrauensfrage.sperre_beschluss",
+        # GP-025: ohne Verfasser am Vermerk; weist er einer eigenen Rolle die Umsetzung zu, steht er unter rollen
+        "Umsetzungsvermerk.beschluss",
     )},
     **{kind: _KI for kind in (
         "KILauf > Beanstandung.lauf", "KILauf > KIAuftrag.lauf", "KILauf > KIAuftrag.ursprung",
@@ -1295,18 +1343,13 @@ MITTELBAR_AUSNAHMEN = {
     "Kommentar > Reaktion.kommentar": "Reaktionen anderer; eigene stehen unter reaktionen",
     "Kommentar > WunschVermerk.kommentar": "Vermerk der Gruppe 2 am Kommentar — Verfahrensprotokoll",
     "Sitzung > Kommentar.sitzung": "Beiträge anderer in der Live-Sitzung; eigene stehen unter kommentare",
-    "Sitzung > Lesestand.sitzung": "Lesestände: technischer Zeiger, kein Inhalt",
+    "Sitzung > Lesestand.sitzung": "Lesestände anderer zur Sitzung; eigene stehen unter lesestaende",
     "ParameterTest > Hinweis.parametertest": "Hinweis der Zukunftswerkstatt zum Test — Verfahrensprotokoll",
-    # Bekannte Lücken, offen in GP-089 (zweite Runde) — ausdrücklich benannt, damit nichts still dazukommt.
-    "Mandat > Vertrauensfrage.mandat": "offen in GP-089: Vertrauensfragen samt eigener Stellungnahme fehlen im Export",
-    "Rechenschaft > Vertrauensfrage.anlaesse": "offen in GP-089: Anlass einer Vertrauensfrage",
-    "Rechenschaft > Vertrauensfrage_anlaesse.rechenschaft": "offen in GP-089: Anlass einer Vertrauensfrage",
-    "Antrag > AntragsFassung.antrag": "offen in GP-089: Fassungen des eigenen Antrags fehlen im Export",
 }
 #: Direkte Rückbeziehungen ohne eigenen Ordner (siehe AUSNAHMEN oben) — dort steigt der Wächter nicht ab.
 DIREKT_OHNE_ORDNER = {
     "EinmalToken.mitglied", "Adresswechsel.beantragt_von", "Adresswechsel.bestaetigt_von", "WunschVermerk.durch",
-    "Hinweis.erledigt_von", "Lesestand.mitglied", "LogEntry.user", "Mitglied_groups.mitglied",
+    "Hinweis.erledigt_von", "LogEntry.user", "Mitglied_groups.mitglied",
     "Mitglied_user_permissions.mitglied",
 }
 
@@ -1360,3 +1403,153 @@ def test_export_deckt_jede_mittelbare_rueckbeziehung_ab(client, ordnung):  # noq
                 break
             assert teil in knoten, (schluessel, pfad, teil)
             knoten = knoten[teil]
+
+
+# --- Eigene Anträge im Profil (GP-066, AF-13) ---------------------------------
+
+
+def test_profil_nennt_die_eigenen_antraege_mit_phase(client, ordnung):  # noqa: F811
+    anna = mitglied_anlegen('anna')
+    bert = mitglied_anlegen('bert')
+    eigener = antrag_einbringen(anna, titel='Annas Antrag', wortlaut='W', begruendung='B', ordnung=ordnung)
+    Antrag.objects.filter(pk=eigener.pk).update(phase='verfallen')
+    antrag_einbringen(bert, titel='Berts Antrag', wortlaut='W', begruendung='B', ordnung=ordnung)
+    client.force_login(anna)
+    html = client.get(reverse('mitglieder:profil')).content.decode()
+    karte = html.split('id="meine-antraege"', 1)[1].split('</div>', 1)[0]
+    assert f'href="{reverse("verfahren:antrag", args=[eigener.pk])}"' in karte
+    assert 'Annas Antrag' in karte and 'verfallen' in karte
+    assert 'Berts Antrag' not in karte
+
+
+def test_profil_ohne_eigene_antraege_bleibt_ruhig(client):
+    client.force_login(mitglied_anlegen('anna'))
+    html = client.get(reverse('mitglieder:profil')).content.decode()
+    karte = html.split('id="meine-antraege"', 1)[1].split('</div>', 1)[0]
+    assert 'Noch keine eigenen Anträge.' in karte
+
+
+# --- Formularfehler oben im Hauptteil (GP-060, ZB-02) -------------------------
+
+
+def test_profilfehler_steht_oben_als_alert_mit_sprungverweis(client):
+    client.force_login(mitglied_anlegen('anna'))
+    antwort = profil_speichern(client, wohnsitz_art='oesterreich', gemeinde='Entenhausen an der Gans')
+    assert antwort.status_code == 200
+    html = antwort.content.decode()
+    assert html.split('<title>', 1)[1].startswith('Fehler:')
+    hauptteil = html.split('<main id="inhalt"', 1)[1]
+    alarm = hauptteil.split('role="alert"', 1)
+    assert len(alarm) == 2 and '<form' not in alarm[0]  # vor dem ersten Formular
+    assert 'href="#id_gemeinde"' in alarm[1].split('</div>', 1)[0]
+
+
+# --- Export: Einwilligung zur Fachliste, Umsetzungsvermerke, Mandatsordner (GP-009, GP-025, GP-089) -----
+
+
+def test_export_fuehrt_einwilligungen_umsetzungsvermerke_der_eigenen_rolle_und_den_mandatsordner():
+    from gremien.models import FachlistenEinwilligung, GremienBeschluss, Gremium, Rolle, Umsetzungsvermerk
+    from mandatare.gemeindeexport import mandat_exportieren, mandate_fuer_export
+    from mandatare.models import Mandat
+    from mitglieder.profil import daten_export
+
+    anna, bert = mitglied_anlegen('anna'), mitglied_anlegen('bert')
+    FachlistenEinwilligung.erklaeren(anna)
+    FachlistenEinwilligung.widerrufen(anna, mit_eintrag=False)
+    FachlistenEinwilligung.erklaeren(anna)
+    FachlistenEinwilligung.erklaeren(bert)
+    ende = timezone.localdate() + timedelta(days=300)
+    eigene = Rolle.objects.create(mitglied=anna, gremium=Gremium.KOORDINATIONSRAT, endet_am=ende)
+    fremde = Rolle.objects.create(mitglied=bert, gremium=Gremium.KOORDINATIONSRAT, endet_am=ende)
+    beschluss = GremienBeschluss.objects.create(
+        gremium=Gremium.KOORDINATIONSRAT, gegenstand='Probe',
+        optionen=[{'wert': 'dafuer', 'name': 'dafür'}, {'wert': 'dagegen', 'name': 'dagegen'}], angelegt_von=bert,
+    )
+    Umsetzungsvermerk.objects.create(beschluss=beschluss, nummer=1, text='Anna übernimmt', rolle=eigene)
+    Umsetzungsvermerk.objects.create(beschluss=beschluss, nummer=2, text='Bert übernimmt', rolle=fremde)
+    Mandat.objects.create(mitglied=anna, bezeichnung='Gemeinderätin', gebiet='Eferding')
+
+    daten = json.loads(json.dumps(daten_export(anna), cls=DjangoJSONEncoder))
+    einwilligungen = daten['fachlisten_einwilligungen']
+    assert len(einwilligungen) == 2
+    assert einwilligungen[0]['widerrufen_am'] is not None and einwilligungen[1]['widerrufen_am'] is None
+    vermerke = daten['rollen'][0]['umsetzungsvermerke']
+    assert [(v['nummer'], v['text']) for v in vermerke] == [(1, 'Anna übernimmt')]
+    assert vermerke[0]['beschluss'] == {'gremium': beschluss.gremium, 'nummer': beschluss.nummer}
+    assert 'Bert übernimmt' not in json.dumps(daten, ensure_ascii=False)  # nichts über Dritte
+    erwartet = json.loads(json.dumps([mandat_exportieren(md) for md in mandate_fuer_export(anna)], cls=DjangoJSONEncoder))
+    assert daten['mandate'] == erwartet
+    for alt in ('mandat', 'bezeichnung', 'vertrauensfragen', 'gemeindearbeit', 'aufgaben', 'berichte', 'rechenschaft',
+                'sitzungen', 'foto_typ', 'vertretung_beendet_am'):
+        assert alt in daten['mandate'][0]  # Schlüssel bis 0.114.0 bleiben
+
+
+# --- Fachliste: Einwilligung im Profil, Widerruf beim Austritt (GP-009) -------
+
+
+def test_profil_zeigt_die_karte_zur_fachliste_nur_wem_der_endpunkt_sie_erlaubt(client):
+    ziel = reverse('gremien:fachliste_einwilligung')
+    aktiv = mitglied_anlegen('aktiv')
+    pausiert = mitglied_anlegen('pausiert')
+    pausiert.status = Mitgliedsstatus.PAUSIERT
+    pausiert.save(update_fields=['status'])
+    testkonto = mitglied_anlegen('testkonto')
+    Mitglied.objects.filter(pk=testkonto.pk).update(testkonto=True)
+    gemeindekonto = Mitglied.objects.create_user('einwohner', email='einwohner@example.org', parteikonto=False)
+    gesehen = {}
+    for konto in (aktiv, pausiert, Mitglied.objects.get(pk=testkonto.pk), gemeindekonto):
+        client.force_login(konto)
+        html = client.get(PROFIL, follow=True).content.decode()
+        gesehen[konto.username] = 'id="fachliste-einwilligung"' in html
+        if gesehen[konto.username]:
+            assert f'action="{ziel}"' in html
+        darf = client.post(ziel, {'aktion': 'erklaeren'}).status_code != 403
+        assert gesehen[konto.username] == darf, konto.username
+    assert gesehen == {'aktiv': True, 'pausiert': False, 'testkonto': False, 'einwohner': False}
+
+
+def test_austritt_widerruft_die_offene_einwilligung_zur_fachliste_in_derselben_transaktion(monkeypatch):
+    from gremien.models import FachlistenEinwilligung
+
+    anna = mitglied_anlegen('anna')
+    FachlistenEinwilligung.erklaeren(anna)
+    FachlistenEinwilligung.erklaeren(mitglied_anlegen('bert'))
+    # Bricht der Austritt danach ab, bleibt auch die Erklärung offen (alles oder nichts).
+    monkeypatch.setattr(Mitglied, 'set_unusable_password', lambda self: (_ for _ in ()).throw(RuntimeError('Abbruch')))
+    with pytest.raises(RuntimeError):
+        austreten(Mitglied.objects.get(pk=anna.pk))
+    assert FachlistenEinwilligung.liegt_vor(anna)
+    monkeypatch.undo()
+    austreten(Mitglied.objects.get(pk=anna.pk))
+    assert not FachlistenEinwilligung.liegt_vor(anna)
+    assert FachlistenEinwilligung.objects.filter(mitglied=anna).count() == 1  # nur angefügt, nichts gelöscht
+    assert FachlistenEinwilligung.offene().filter(mitglied__username='bert').exists()  # fremde bleibt
+
+
+# --- Austritt: Folgen des Mandatsendes (GP-116) -------------------------------
+
+
+def test_austritt_sagt_kommende_sprechstunden_ab_und_beendet_die_laufende_sitzung_ohne_austritt_als_anlass():
+    from mandatare.models import Mandat, Sitzung, Sprechstunde
+    from mandatare.sitzung import sitzung_beginnen
+    from mandatare.test_sitzung_modelle import sitzungstag
+
+    anna = mitglied_anlegen('anna')
+    ort = Gemeinde.objects.filter(bundesland='oberoesterreich').order_by('kennziffer').first()
+    mandat = Mandat.objects.create(mitglied=anna, bezeichnung='Gemeinderätin', gemeinde=ort)
+    jetzt = timezone.now()
+    termin = Sprechstunde.objects.create(mandat=mandat, gemeinde=ort, beginn=jetzt + timedelta(days=2),
+                                         ende=jetzt + timedelta(days=2, hours=1), treffpunkt='Raum A')
+    sitzung = sitzung_beginnen(mandat, sitzungstag(mandat), punkte=['Budget'])
+    assert Sitzung.objects.get(pk=sitzung.pk).laeuft()
+
+    austreten(Mitglied.objects.get(pk=anna.pk))
+
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is not None
+    assert not Sitzung.objects.get(pk=sitzung.pk).laeuft()
+    (absage,) = audit('sprechstunde_abgesagt', mandat=mandat.pk)
+    (ende,) = audit('sitzung_beendet', mandat=mandat.pk)
+    assert absage['anlass'] == ende['anlass'] == 'mandat_beendet'
+    zum_mandat = [e for e in AuditEintrag.objects.all() if e.ereignis.get('mandat') == mandat.pk]
+    assert zum_mandat and all('austritt' not in json.dumps(e.ereignis).lower() for e in zum_mandat)

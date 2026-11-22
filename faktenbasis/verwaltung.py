@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
 from faktenbasis import importieren, volltext
+from faktenbasis.bestandsnachweis import grenzstand
 from faktenbasis.landesrecht import BUNDESLAENDER
 from faktenbasis.models import Norm
 from faktenbasis.ris import RisFehler
@@ -83,6 +84,14 @@ def _audit(request, aktion, **daten):
     AuditEintrag.anhaengen({"typ": "verwaltung", "aktion": aktion, "durch": request.user.pk, **daten})
 
 
+def _grenzmeldung(request):
+    """Nach einem Import über die Nachweisgrenze: den Ausfall des öffentlichen Nachweises nennen (GP-147)."""
+    stand = grenzstand()
+    if stand["ausfall"] and stand["grenze"] is not None:
+        messages.warning(request, _("Der öffentliche Bestandsnachweis fällt aus: %(bestand)s Schnappschüsse bei einer Nachweisgrenze von %(grenze)s. Die Grenze steht im Parameterregister.")
+                         % {"bestand": stand["bestand"], "grenze": stand["grenze"]})
+
+
 def _fehlermeldung(request, fehler):
     if fehler.code == "abruf_belegt":
         text = _("Ein Quellenabruf läuft noch oder ist gerade beendet worden. Bitte kurz warten.")
@@ -117,9 +126,11 @@ def metadaten(request):
             _audit(request, "faktenbasis_metadaten", **daten, erfolgreich=True, importlauf=lauf.pk)
             messages.success(request, _("Metadaten übernommen: %(gelesen)s Dokumente gelesen, %(neu)s neue Schnappschüsse. RIS-Seite: %(seite)s.")
                              % {"gelesen": lauf.gelesen, "neu": lauf.neu, "seite": lauf.seite})
+            _grenzmeldung(request)
         return redirect("faktenbasis:index")
     return render(request, "faktenbasis/verwaltung.html", {
         "formular": formular, "stundenkontingent": max(0, zahl("faktenbasis-manuelle-abrufe-je-stunde", 10)),
+        "grenzstand": grenzstand(),
     })
 
 
@@ -136,4 +147,5 @@ def dokumenttext(request, pk):
     else:
         _audit(request, "faktenbasis_dokumenttext", norm=norm.pk, abruf=lauf.pk, erfolgreich=True)
         messages.success(request, _("Der amtliche Dokumenttext wurde übernommen. Frühere Texte bleiben erhalten."))
+        _grenzmeldung(request)
     return redirect("faktenbasis:norm", pk=norm.pk)

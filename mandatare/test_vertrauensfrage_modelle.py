@@ -153,10 +153,13 @@ def test_ein_liegengebliebener_angenommener_bestaetigungsantrag_hebt_die_sperre_
 
 
 def test_anlass_ausstaende_nur_ueber_30_tage(altmandat):  # noqa: F811
-    Aufgabe.objects.create(mandat=altmandat, titel="jung", frist=timezone.now() - tage(20), sitzungstag=True)
-    assert altmandat.anlass_ausstaende() == []  # Frist um 13 Tage — noch kein Anlass
-    Aufgabe.objects.create(mandat=altmandat, titel="alt", frist=timezone.now() - tage(60), sitzungstag=True)
-    treffer = altmandat.anlass_ausstaende()
+    # Fester Stichtag: Mit der echten Uhr wäre ab 8.12.2026 der Monatsbericht Oktober selbst ein Anlass.
+    heute = date(2026, 11, 20)
+    mittag = timezone.make_aware(datetime.combine(heute, time(12)))
+    Aufgabe.objects.create(mandat=altmandat, titel="jung", frist=mittag - tage(20), sitzungstag=True)
+    assert altmandat.anlass_ausstaende(heute) == []  # Frist um 13 Tage — noch kein Anlass
+    Aufgabe.objects.create(mandat=altmandat, titel="alt", frist=mittag - tage(60), sitzungstag=True)
+    treffer = altmandat.anlass_ausstaende(heute)
     assert {a["art"] for a in treffer} == {"rechenschaft", "sammelbericht"}
     assert all(a["tage"] > 30 and isinstance(a["seit"], date) and a["bezug"] for a in treffer)
     monate = [a for a in altmandat.anlass_ausstaende(date(2026, 12, 15)) if a["art"] == "monatsbericht"]
@@ -576,3 +579,182 @@ def test_aufhebung_einer_von_zwei_verlorenen_leitet_die_stempel_aus_der_anderen_
     assert altmandat.vertrauen_entzogen_am == vf1.wirkungen_ab
     assert altmandat.rueckgabe_ersucht_bis == timezone.localdate(vf1.wirkungen_ab) + tage(mm.RUECKGABEFRIST_TAGE)
     assert rolle.ruht_seit is not None
+
+
+# ── GP-106: Die Anfechtungsfrist läuft ab der Veröffentlichung, nicht ab der Sollzeit ─────────
+
+
+@pytest.mark.parametrize('stimme', ['ja', 'nein'])
+def test_anfechtungsfrist_laeuft_ab_der_tatsaechlichen_veroeffentlichung(client, ordnung, altmandat, monkeypatch, stimme):  # noqa: F811
+    """§ 7 Abs 10 lit h: sieben Tage ab Veröffentlichung des Ergebnisses. Steht der Wächter, wird das
+    Ergebnis erst mit dem nächsten Lauf sichtbar — die Frist beginnt dann, nicht zur Sollzeit. Sollzeit,
+    Wirkungen und ihr Beginn bleiben unverändert."""
+    from verfahren.test_vertrauensfrage import abstimmen, unterstuetzen
+
+    leute = [mitglied_anlegen(f'gp106{stimme}{i}') for i in range(5)]
+    t0 = timezone.now()
+    antrag = einbringen(leute[0], altmandat, ordnung, jetzt=t0)
+    unterstuetzen(antrag, leute[1:2], t0 + tage(1))
+    antrag.fortschreiben(t0 + tage(7))
+    abstimmen(antrag, leute, stimme, t0 + tage(8))
+    lauf = t0 + tage(120)  # der Wächter stand; EIN Lauf am Tag 120
+    monkeypatch.setattr(timezone, 'now', lambda: lauf)
+    antrag.fortschreiben(lauf)
+    vf = mm.Vertrauensfrage.objects.get(antrag=antrag)
+    assert vf.ergebnis_am == t0 + tage(14)  # die Abstimmung endete zur Sollzeit
+    assert vf.anfechtungsfrist_ende == lauf + tage(7)
+    if stimme == 'ja':
+        assert vf.verloren and vf.wirkungen_ab == t0 + tage(14)  # Wirkungen unverändert
+    seite = client.get(f'/antrag/{antrag.pk}/').content.decode()
+    bis = timezone.localtime(lauf + tage(7)).strftime('%d.%m.%Y, %H:%M')
+    assert f'bis {bis}' in seite
+    mm.vertrauensfrage_anfechtung_vermerken(vf, 'PSG-106', jetzt=lauf + tage(3))
+    vf.refresh_from_db()
+    assert vf.anfechtung_rechtzeitig
+
+
+def test_anfechtungsfrist_im_regelbetrieb_sieben_tage_nach_dem_lauf(ordnung, altmandat, monkeypatch):  # noqa: F811
+    from verfahren.test_vertrauensfrage import abstimmen, unterstuetzen
+
+    leute = [mitglied_anlegen(f'gp106r{i}') for i in range(5)]
+    t0 = timezone.now()
+    antrag = einbringen(leute[0], altmandat, ordnung, jetzt=t0)
+    unterstuetzen(antrag, leute[1:2], t0 + tage(1))
+    antrag.fortschreiben(t0 + tage(7))
+    abstimmen(antrag, leute, 'nein', t0 + tage(8))
+    lauf = t0 + tage(14) + timedelta(minutes=2)
+    monkeypatch.setattr(timezone, 'now', lambda: lauf)
+    antrag.fortschreiben(lauf)
+    vf = mm.Vertrauensfrage.objects.get(antrag=antrag)
+    assert vf.anfechtungsfrist_ende == lauf + tage(7)
+
+
+def test_anfechtungsfrist_altbestand_ohne_vermerk_rechnet_ab_der_sollzeit(altmandat):  # noqa: F811
+    ende = timezone.now() - tage(3)
+    vf = _vf_mit_ergebnis(altmandat, Phase.ABGELEHNT.value, ende)
+    assert vf.ergebnis_veroeffentlicht_am is None
+    assert vf.anfechtungsfrist_ende == ende + tage(7)
+
+
+# ── GP-106 (Auflage): Die Endgültigkeit folgt derselben Frist wie die Anfechtung ──────────────
+
+
+def _verloren_mit_lauf(ordnung, mandat, monkeypatch, abstand, kuerzel):  # noqa: F811
+    """Eine verlorene Vertrauensfrage, deren Ergebnis erst `abstand` nach dem Abstimmungsende festgestellt
+    wird (EIN Lauf). Rückgabe: Vertrauensfrage, Sollzeit, Lauf."""
+    from verfahren.test_vertrauensfrage import abstimmen, unterstuetzen
+
+    leute = [mitglied_anlegen(f'{kuerzel}{i}') for i in range(5)]
+    t0 = timezone.now()
+    antrag = einbringen(leute[0], mandat, ordnung, jetzt=t0)
+    unterstuetzen(antrag, leute[1:2], t0 + tage(1))
+    antrag.fortschreiben(t0 + tage(7))
+    abstimmen(antrag, leute, 'ja', t0 + tage(8))
+    soll = t0 + tage(14)
+    lauf = soll + abstand
+    monkeypatch.setattr(timezone, 'now', lambda: lauf)
+    antrag.fortschreiben(lauf)
+    return mm.Vertrauensfrage.objects.get(antrag=antrag), soll, lauf
+
+
+def test_endgueltigkeit_wartet_nach_einem_stillstand_auf_das_ende_der_anfechtungsfrist(ordnung, altmandat, monkeypatch):  # noqa: F811
+    """§ 7 Abs 10 lit f letzter Unterabsatz: Die ruhenden Funktionen enden „mit Ablauf der Anfechtungsfrist
+    nach lit h“ — und die zählt ab der Veröffentlichung. Stand der Fristenlauf bis Tag 120, wurde das Ruhen
+    im selben ersten Lauf endgültig, während die Seite die Anfechtung noch sieben Tage lang anbot."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    vf, soll, lauf = _verloren_mit_lauf(ordnung, altmandat, monkeypatch, tage(106), 'gp106e')
+    assert vf.wirkungen_ab == soll and vf.ergebnis_veroeffentlicht_am == lauf  # Stufe 1 unverändert ab Sollzeit
+    assert vf.endgueltig_ab() == lauf + tage(7) == vf.anfechtungsfrist_ende
+    mm.vertrauensfragen_fortschreiben(lauf)
+    mm.vertrauensfragen_fortschreiben(lauf + tage(7) - timedelta(seconds=1))
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.wirkungen_endgueltig_am is None
+    assert rolle.ruht and rolle.beendet_grund == ''  # ruht weiter, endet noch nicht
+    assert not audit('vertrauensfrage_endgueltig')
+    # die Vertretung (Z 8) hängt nicht an der Anfechtung: Ihr Fristtag ist längst vorbei
+    altmandat.refresh_from_db()
+    assert altmandat.vertretung_beendet_am == altmandat.rueckgabe_ersucht_bis
+    assert mm.vertrauensfragen_fortschreiben(lauf + tage(7)) == 1
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.wirkungen_endgueltig_am == lauf + tage(7)
+    assert rolle.beendet_grund == mm.BEENDIGUNGSGRUND
+    assert audit('vertrauensfrage_endgueltig')[-1]['endgueltig_ab'] == (lauf + tage(7)).isoformat()
+
+
+def test_mandatsvereinbarung_endet_nach_einem_stillstand_weiter_mit_dem_fristtag(ordnung, altmandat, monkeypatch):  # noqa: F811
+    """Z 5 knüpft das Ende der Mandatsvereinbarung an den Ablauf der Rückgabefrist, später nur bei
+    rechtzeitiger Anfechtung. Die Anfechtungsfrist ab dem Lauf (Tag 120) verschiebt, wann die Plattform das
+    Ende vollzieht — der vermerkte Tag bleibt der Fristtag, wie vor GP-106."""
+    altmandat.mandatsvereinbarung_lit_h_am = date(2026, 9, 20)
+    altmandat.save(update_fields=['mandatsvereinbarung_lit_h_am'])
+    vf, _soll, lauf = _verloren_mit_lauf(ordnung, altmandat, monkeypatch, tage(106), 'gp106m')
+    mm.vertrauensfragen_fortschreiben(lauf)
+    altmandat.refresh_from_db()
+    fristtag = altmandat.rueckgabe_ersucht_bis
+    assert altmandat.vertretung_beendet_am == fristtag
+    assert altmandat.mandatsvereinbarung_endet_am is None  # die Anfechtung steht noch offen
+    assert mm.vertrauensfragen_fortschreiben(lauf + tage(7)) == 1
+    altmandat.refresh_from_db()
+    assert altmandat.mandatsvereinbarung_endet_am == fristtag
+    assert audit('mandatsvereinbarung_beendet')[-1]['ab'] == fristtag.isoformat()
+
+
+def test_mandatsvereinbarung_endet_nach_stillstand_und_anfechtung_mit_der_entscheidung(ordnung, altmandat, monkeypatch):  # noqa: F811
+    """Z 5 letzter Satz bleibt: Bei rechtzeitiger Anfechtung nach dem späten Lauf endet die
+    Mandatsvereinbarung mit der bestätigenden Entscheidung, nicht davor."""
+    altmandat.mandatsvereinbarung_lit_h_am = date(2026, 9, 20)
+    altmandat.save(update_fields=['mandatsvereinbarung_lit_h_am'])
+    vf, _soll, lauf = _verloren_mit_lauf(ordnung, altmandat, monkeypatch, tage(106), 'gp106p')
+    mm.vertrauensfrage_anfechtung_vermerken(vf, 'PSG-106', jetzt=lauf + tage(3))
+    mm.vertrauensfragen_fortschreiben(lauf + tage(20))
+    altmandat.refresh_from_db()
+    assert altmandat.mandatsvereinbarung_endet_am is None
+    mm.vertrauensfrage_entscheidung_vermerken(vf, 'bestaetigt', jetzt=lauf + tage(25))
+    mm.vertrauensfragen_fortschreiben(lauf + tage(25))
+    altmandat.refresh_from_db()
+    assert altmandat.mandatsvereinbarung_endet_am == timezone.localdate(lauf + tage(25))
+
+
+def test_rechtzeitige_anfechtung_nach_einem_stillstand_haelt_die_endgueltigkeit_ohne_ruecknahme_an(ordnung, altmandat, monkeypatch):  # noqa: F811
+    """Die Anfechtung am dritten Tag nach dem Lauf trifft auf ein Ruhen, das noch nicht zum Ende geworden
+    ist: Es gibt nichts zurückzunehmen (kein „anfechtung_nachgeholt“)."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    vf, _soll, lauf = _verloren_mit_lauf(ordnung, altmandat, monkeypatch, tage(106), 'gp106a')
+    mm.vertrauensfragen_fortschreiben(lauf + tage(1))
+    assert mm.vertrauensfrage_anfechtung_vermerken(vf, 'PSG-106', jetzt=lauf + tage(3)) is False
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.anfechtung_rechtzeitig and vf.endgueltig_ab() is None
+    assert rolle.ruht and rolle.beendet_grund == ''
+    assert not audit('vertrauensfrage_anfechtung_nachgeholt') and not audit('vertrauensfrage_endgueltig')
+
+
+def test_endgueltigkeit_im_regelbetrieb_sieben_tage_nach_dem_lauf(ordnung, altmandat, monkeypatch):  # noqa: F811
+    """Läuft der Fristenlauf, verschiebt sich die Endgültigkeit nur um den Abstand bis zum Lauf."""
+    vf, soll, lauf = _verloren_mit_lauf(ordnung, altmandat, monkeypatch, timedelta(minutes=2), 'gp106n')
+    assert vf.endgueltig_ab() == lauf + tage(7) == soll + tage(7) + timedelta(minutes=2)
+
+
+def test_endgueltigkeit_altbestand_ohne_vermerk_rechnet_ab_der_sollzeit(altmandat):  # noqa: F811
+    """Datensätze von vor dieser Fassung tragen keinen Vermerk der Veröffentlichung: sieben Tage ab dem
+    Beginn der Wirkungen, wie bisher — und Stufe 2 vollzieht es."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    ende = timezone.now() - tage(9)
+    vf = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, ende)
+    assert vf.ergebnis_veroeffentlicht_am is None
+    assert vf.endgueltig_ab() == ende + tage(7)
+    assert mm.vertrauensfragen_fortschreiben(ende + tage(7)) == 1
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.wirkungen_endgueltig_am == ende + tage(7) and rolle.beendet_grund == mm.BEENDIGUNGSGRUND
+
+
+def test_endgueltigkeit_liegt_nie_vor_sieben_tagen_ab_beginn_der_wirkungen(altmandat):  # noqa: F811
+    """Ein Vermerk der Veröffentlichung vor dem Beginn der Wirkungen (verformter Bestand) zieht die
+    Endgültigkeit nicht vor."""
+    ende = timezone.now() - tage(2)
+    vf = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, ende)
+    vf.ergebnis_veroeffentlicht_am = ende - tage(5)
+    assert vf.endgueltig_ab() == ende + tage(7)

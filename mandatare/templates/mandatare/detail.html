@@ -75,7 +75,7 @@ führt sie direkt zum betreuten Antrag im Parlament (§ 7 Abs 9).{% endblocktran
   {% for z in rechenschaft %}
   <div class="kommentar">
     <div class="kopf"><strong>{{ z.r.gegenstand }}</strong> · {% translate "Sitzung am" %} {{ z.r.sitzung_am|date:"d.m.Y" }}</div>
-    <p>{% translate "Beschluss der Plattform:" %} {% if z.r.antrag %}<a href="{% url 'verfahren:antrag' z.r.antrag.pk %}">{{ z.beschluss_name }}</a>{% else %}{{ z.beschluss_name }}{% endif %}
+    <p>{% translate "Beschluss der Plattform:" %} {% include "mandatare/_beschluss.html" %}
       · {% translate "Stimme:" %} <strong>{{ z.r.get_stimme_display }}</strong>{% if z.weicht_ab %} · <span class="abweichung">{% translate "weicht ab" %}</span>{% endif %}</p>
     <div style="white-space:pre-line">{% if z.r.nachgetragen %}<span class="meta">{% blocktranslate with am=z.r.nachgetragen_am|date:"d.m.Y" %}nachgetragen von der Verwaltung am {{ am }}{% endblocktranslate %} · {% translate "Quelle:" %} {{ z.r.quelle|urlize }} · {% translate "Begründung nicht mehr geschuldet (§ 7 Abs 10 lit f Z 8)" %}</span>{% with f=z.r.freiwillige %}{% if f %}
 <strong>{% blocktranslate with am=f.eingetragen_am|date:"d.m.Y" %}Freiwillige Begründung vom {{ am }}:{% endblocktranslate %}</strong> {{ f.text }}{% endif %}{% endwith %}{% else %}{{ z.r.begruendung }}{% endif %}</div>
@@ -98,6 +98,9 @@ führt sie direkt zum betreuten Antrag im Parlament (§ 7 Abs 9).{% endblocktran
   {% if user.is_authenticated and user.pk == mandat.mitglied_id and mandat.kandidatursperre %}
   {# § 7 Abs 10 lit f Z 3: Die Bestätigung beantragt die Person im eigenen Bereich — auch nachdem die Rolle „Mandatar“ nach Z 8 geendet hat und die Leiste „Mein Mandat“ nicht mehr führt #}
   <p style="margin-top:8px"><a href="{% url 'mandatare:mein_mandat' mandat.pk %}#vertrauen">{% if vertrauen.bestaetigung_moeglich %}{% translate "Zu meinem Bereich — Bestätigung beantragen →" %}{% else %}{% translate "Zu meinem Bereich →" %}{% endif %}</a></p>
+  {% elif user.is_authenticated and user.pk == mandat.mitglied_id and user.hat_mandatsbereich %}
+  {# GP-104: auch in der Nachfrist nach dem Mandatsende, solange der Bereich zugänglich ist #}
+  <p><a href="{% url 'mandatare:mein' %}">{% translate "Zu meinem Bereich →" %}</a></p>
   {% endif %}
   <p style="margin-top:8px"><a href="{% url 'mandatare:vertrauensfragen' %}">{% translate "Alle Vertrauensfragen →" %}</a></p>
 </div>

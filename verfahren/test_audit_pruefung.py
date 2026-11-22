@@ -21,7 +21,8 @@ def kette(n=3):
 
 def verfaelschen(eintrag, **aenderung):
     """Wie jemand mit Datenbankzugriff: den Inhalt ändern, ohne den Hash nachzurechnen."""
-    AuditEintrag.objects.filter(pk=eintrag.pk).update(ereignis={**eintrag.ereignis, **aenderung})
+    # am Riegel vorbei (GP-130), wie es nur ein Datenbankzugriff kann
+    AuditEintrag._base_manager.filter(pk=eintrag.pk).update(ereignis={**eintrag.ereignis, **aenderung})
 
 
 def test_die_leere_kette_ist_intakt():
@@ -46,7 +47,7 @@ def test_ein_veraenderter_eintrag_wird_mit_seiner_nummer_gefunden():
 
 def test_ein_geloeschter_eintrag_bricht_die_kette():
     eintraege = kette(3)
-    AuditEintrag.objects.filter(pk=eintraege[1].pk).delete()  # nur im Test: der Admin kann es nicht
+    AuditEintrag._base_manager.filter(pk=eintraege[1].pk).delete()  # nur im Test: der Admin kann es nicht
     stand = pruefen(voll=True)
     assert not stand["intakt"] and stand["bruch"] == eintraege[2].lfd and stand["grund"] == "vorgaenger"
 
@@ -122,7 +123,7 @@ def test_auch_die_vollpruefung_haelt_den_gemerkten_anker_fest():
     wirkte die Kette von vorn gerechnet stimmig — der Vergleich mit dem Anker deckt es auf."""
     eintraege = kette(4)
     erster = pruefen()
-    AuditEintrag.objects.filter(pk__in=[eintraege[-1].pk]).delete()  # nur im Test: das Ende abgeschnitten
+    AuditEintrag._base_manager.filter(pk__in=[eintraege[-1].pk]).delete()  # nur im Test: das Ende abgeschnitten
     stand = pruefen(voll=True, stand=erster)
     assert not stand["intakt"] and stand["grund"] == "anker" and stand["bruch"] == eintraege[-1].lfd
 

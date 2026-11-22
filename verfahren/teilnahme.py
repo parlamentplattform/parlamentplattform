@@ -5,9 +5,10 @@ Ein Altverfahren ohne teilnahmegebiet wird niemals nachbefüllt.
 
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from mitglieder.models import Bundesland, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus, Wohnsitzart
+from mitglieder.models import Bundesland, Gemeinde, Mitglied, Wohnsitzart
 from plattform_core.teilnehmerkreis import Gebiet, GebietsFehler, Gemeindestand, gebiet_fuer
 from verfahren.models import Antrag, AuditEintrag, OertlicheTeilnahme, gegenstand_fuer, uebergangsregel_fuer
 
@@ -113,12 +114,23 @@ def kreis_festhalten(antrag, *, _konten_ids=None):
     aktuell.save(update_fields=["teilnehmerkreis_am"])
     antrag.teilnahmegebiet = aktuell.teilnahmegebiet
     antrag.teilnehmerkreis_am = aktuell.teilnehmerkreis_am
-    AuditEintrag.anhaengen({
+    ereignis = {
         "typ": "teilnehmerkreis_festgehalten", "antrag": antrag.pk,
         "fassung": gebiet.als_dict()["fassung"], "gebiet": gebiet.kennung,
         "festgehalten_am": aktuell.teilnehmerkreis_am.isoformat(),
         # Keine Mitgliedskennungen und keine Rückschlüsse auf Einzelstimmen.
-    })
+    }
+    if gebiet.ebene != "bund":
+        # GP-057: der Ausgangswert für jede spätere Prüfung — wie viele im festgehaltenen Kreis am
+        # Einbringungstag stimmberechtigt waren, gezählt wie der Nenner einer Abstimmung. Nur eine
+        # Zahl. Die Zahl aller Konten im Kreis (auch ungeprüfter) steht hier bewusst nicht: Sie ist
+        # heute nirgends öffentlich. Ereignisse von vor dieser Fassung tragen keines der Felder.
+        stichtag = timezone.localdate(aktuell.teilnehmerkreis_am)
+        ereignis["stichtag"] = stichtag.isoformat()
+        ereignis["stimmberechtigte"] = berechtigte_zaehlen(
+            aktuell, gegenstand_fuer(aktuell), stichtag, uebergangsregel_fuer(aktuell)
+        )
+    AuditEintrag.anhaengen(ereignis)
 
 
 def oertlich_zulaessig(antrag, mitglied):
@@ -184,11 +196,11 @@ def stimmrecht_im_neuen_kreis(antrag, mitglied, *, frisch=False):
 
 
 def berechtigte_zaehlen(antrag, gegenstand, stichtag, uebergang=False):
-    """Genau dieselben allgemeinen Voraussetzungen wie die parteiweite Zählung."""
-    konten = mitglieder_im_kreis(antrag).filter(
-        is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False,
-    ).exclude(beitritt=None).exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
-    return sum(aktive_berechtigung(m, gegenstand, stichtag, uebergang) for m in konten)
+    """Genau dieselben allgemeinen Voraussetzungen wie die parteiweite Zählung — der Stand am
+    Stichtag, gleich an welchem Tag gezählt wird (GP-094)."""
+    from mitglieder.models import im_nenner_zaehlen
+
+    return im_nenner_zaehlen(mitglieder_im_kreis(antrag), gegenstand, stichtag, uebergang=uebergang)
 
 
 def stimmbasis(antrag, gegenstand, stichtag, uebergang=False):

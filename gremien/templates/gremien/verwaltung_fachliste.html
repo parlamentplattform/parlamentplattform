@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n %}
+{% load i18n lebensbereiche %}
 {% block titel %}{% translate "Fachliste — Verwaltung" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
@@ -19,13 +19,20 @@ Ohne JavaScript vollständig bedienbar: zwei schlichte Formulare.
   </form>
 </div>
 
+{% if selbst_erklaert %}
+<div class="karte">
+  <p class="phasen-titel">{% translate "Einwilligung selbst erklärt" %}</p>
+  {% for m in selbst_erklaert %}<div class="zeile"><span>{{ m.anzeigename }} <span class="meta">{{ m.username }}</span></span></div>{% endfor %}
+</div>
+{% endif %}
+
 <div class="karte">
   <p class="phasen-titel">{% translate "Alle Einträge" %}</p>
   {% for e in eintraege %}
   <div class="zeile"><span>
     <strong>{{ e.anzeigename }}</strong> <span class="meta"><code>{{ e.schluessel }}</code> · {% blocktranslate with d=e.seit|date:"d.m.Y" %}auf der Liste seit {{ d }}{% endblocktranslate %}</span>
     {% if not e.gefuehrt %}<span class="chip klein still">{% translate "gestrichen" %}</span>{% endif %}
-    <br><span class="meta">{% translate "Fachgebiete:" %} {% for k in e.fachgebiete.all %}{{ k.name }}{% if not forloop.last %}, {% endif %}{% empty %}{% translate "keine angegeben — lost bei jedem Antrag mit" %}{% endfor %}</span>
+    <br><span class="meta">{% translate "Fachgebiete:" %} {% for k in e.fachgebiete.all %}{{ k|lb_name }}{% if not forloop.last %}, {% endif %}{% empty %}{% if e.gefuehrt %}{% translate "keine angegeben — lost bei jedem Antrag mit" %}{% else %}{% translate "keine angegeben" %}{% endif %}{% endfor %}</span>
     {% if e.gefuehrt %}
     <form method="post" action="{% url 'gremien:fachliste_aktion' %}">{% csrf_token %}
       <input type="hidden" name="aktion" value="streichen"><input type="hidden" name="eintrag" value="{{ e.pk }}">
@@ -33,7 +40,12 @@ Ohne JavaScript vollständig bedienbar: zwei schlichte Formulare.
       <button type="submit" class="btn-linie">{% translate "Streichen" %}</button>
     </form>
     {% else %}
-    <br><span class="meta">{{ e.gestrichen_am|date:"d.m.Y" }} · {{ e.gestrichen_grund }}</span>
+    <br><span class="meta">{% blocktranslate with d=e.gestrichen_am|date:"d.m.Y" g=e.gestrichen_grund %}gestrichen am {{ d }} · Grund: {{ g }}{% endblocktranslate %}</span>
+    <form method="post" action="{% url 'gremien:fachliste_aktion' %}">{% csrf_token %}
+      <input type="hidden" name="aktion" value="wieder_aufnehmen"><input type="hidden" name="eintrag" value="{{ e.pk }}">
+      <span class="checkzeile"><input type="checkbox" name="einwilligung" id="einwilligung-{{ e.pk }}"> <label for="einwilligung-{{ e.pk }}">{% translate "Die Einwilligung des Mitglieds liegt vor (§ 8 Abs 4)" %}</label></span>
+      <button type="submit" class="btn-linie">{% translate "Wieder aufnehmen" %}</button>
+    </form>
     {% endif %}
   </span></div>
   {% empty %}

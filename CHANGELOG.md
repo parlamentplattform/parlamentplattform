@@ -2,6 +2,116 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.115.0] — 2026-11-22 · Zweite Behebungsrunde der Gesamtprüfung
+
+Diese Fassung ist die zweite Behebungsrunde nach der Gesamtprüfung gegen das eigene Sollbild (FB-Q1). Sie behebt die übrigen belegten Fehler, die ohne neue Regelentscheidung behebbar waren, und macht Nenner, Stichtag, Wortlaut und Stimmliste in der Audit-Kette nachprüfbar. Sie führt keine neue Regel, Zahl, Rolle oder Zuständigkeit ein und schickt keine neue Post an Mitglieder; was eine Entscheidung des Gründers braucht, bleibt offen. Verhalten ändert sich an drei Stellen, weil der Satzungsentwurf es so sagt oder weil zwei Stellen dasselbe unterschiedlich rechneten: Die Anfechtungsfrist einer Vertrauensfrage und die Endgültigkeit einer verlorenen zählen ab dem Lauf, der das Ergebnis tatsächlich festgestellt und veröffentlicht hat, nicht ab dem planmäßigen Abstimmungsende (§ 7 Abs 10 lit f und h); das macht nur nach einem Stillstand des Fristenlaufs einen Unterschied. Die Zählung der Stimmberechtigten und die Prüfung des Stimmrechts im Einzelfall verwenden dieselbe Regel und denselben Stand am Stichtag (§ 4 Abs 4 lit a). Vor der Feststellung eines Ergebnisses läuft eine Gegenprobe der Stimmliste.
+
+### Verfahren und Nachweise
+
+- Beim Abstimmungsbeginn stehen die Zahl der Stimmberechtigten, der Stichtag, die abgestimmte Fassung und die Prüfsumme ihres Wortlauts im Ereignis der Audit-Kette. Alle drei Wege in die Abstimmung (Antrag, Entwurfsschleife, Mandatsfrage) schreiben sie; einmal festgestellt, lassen sich Nenner und Stichtag auf keinem Schreibweg mehr ändern.
+- Die Einbringung versiegelt den Wortlaut der ersten Fassung und die eingefrorenen Regeln mit je einer Prüfsumme. Bestehende Fassungen und eingefrorene Regeln lassen sich nicht mehr überschreiben; neue Fassungen werden wie bisher angefügt.
+- Eine Stimme lässt sich bis Fristende ändern, ein Stimmzettel aber nicht mehr auf anderem Weg umschreiben. Dasselbe gilt für Zustimmungen bei Kandidaturen.
+- Stimmabgabe und Zustimmung bei Kandidaturen sperren den Antrag und prüfen Phase und Frist erst danach. Eine Stimme, die im Augenblick der Feststellung eintrifft, wird mitgezählt oder abgewiesen; sie kann nicht mehr nach dem Ergebnis in der Stimmliste landen.
+- Gegenprobe vor dem Ergebnis: Die Stimmliste wird gegen das Stimmregister und gegen die Zahl der Stimm-Ereignisse in der Audit-Kette geprüft. Findet sie Stimmzettel ohne Registerzeile oder eine abweichende Zahl von Stimm-Ereignissen, wird kein Ergebnis festgestellt; der Befund steht einmal mit seinen Zahlen und ohne Pseudonyme in der Kette, und die Antragsseite zeigt die Karte „Auszählung angehalten“. Der Vergleich der Stimm-Ereignisse greift bei Abstimmungen, deren Beginn bereits versiegelt ist.
+- Liegen mehr Stimmen vor als festgestellte Stimmberechtigte, wird das Ergebnis wie bisher festgestellt; die Abweichung steht im Ereignis des Ergebnisses und als Satz bei der Ergebnisanzeige.
+- Das Ereignis, mit dem ein Ergebnis festgestellt wird, trägt die Zahl der Stimmzettel und die SHA-256-Prüfsumme der Stimmliste.
+- Der Export einer Abstimmung nennt zusätzlich `ergebnis`, `stichtag`, `stimmliste_sha256` und `fassungen`. Das Prüfskript `verify/nachrechnen.py` vergleicht Nenner, Stichtag, Stimmliste, Wortlaut und Regeln mit der Audit-Spur des Exports und endet mit FEHLER, wenn ein Siegel nicht passt. Mehr Stimmen als festgestellte Stimmberechtigte rechnet es nach und nennt sie als Abweichung; FEHLER wird daraus nur, wenn die Kette eines versiegelten Exports sie nicht selbst ausweist. Ältere Exporte rechnet es wie bisher und weist aus, was nicht versiegelt ist. Das Ergebniswort errechnet das Skript selbst; den Vergleich mit dem Feld des Exports zieht, wer nachrechnet.
+- Hatte ein örtlicher Teilnehmerkreis keinen Stimmberechtigten, heißt das Ergebnis „kein Beschluss“ statt „abgelehnt“: auf Antragsseite, Kachel, Listen, Suche, Übersicht, im Archiv und im Export. Phase und Rechtsfolge bleiben unverändert.
+- Bei Einbringung einer örtlichen Abstimmung werden Stichtag und Zahl der Stimmberechtigten des Kreises festgehalten. Die Antragsseite nennt die Zahl mit dem Zusatz „laut Selbstauskunft, nicht amtlich geprüft“.
+- Das Archiv eines Antrags nennt einen ruhenden Entwurf beim Namen, gibt die gehemmte Austauschfrist aus, führt jede öffentliche Beanstandung mit dem Stand ihrer Nachrechnung und zeigt Prüfbegründungen ohne Namen. Der Markdown-Export nennt Tage und Uhrzeiten in Ortszeit wie die Antragsseite.
+- Der Fristen-Wächter wählt mit Sammelabfragen aus, an welchen Anträgen etwas fällig sein kann, und schreibt nur diese einzeln fort. Endzustand und Audit-Folge bleiben gleich.
+- Änderungen im Parameterregister und Einträge der Audit-Kette lassen sich weder ändern noch löschen.
+
+### Räte und Entwurfsschleife
+
+- Der Prüfbeschluss steht in der Audit-Kette. Beim Austausch durch den Koordinationsrat endet jede Rolle mit Anlass, Beschluss und Nummer statt mit einem frei geschriebenen Grund.
+- Eine Prüfung ohne Ergebnis oder ohne Gruppe 2 heißt nicht mehr „validiert“, sondern „ergebnislos“ oder „ungeprüft“. Der Vorschlag geht wie bisher weiter.
+- Die Auszählung eines Beschlusses (abgegeben, aktive, nötig) wird zum Beschlusszeitpunkt festgehalten; Beschlussseite, Listen und Protokoll lesen bei geschlossenen Beschlüssen nur diese Zahl. Die Beschlussseite nennt „mit n Personen beschlossen“ und ohne Namen, wenn ein mitstimmendes Mitglied den Antrag eingebracht hat.
+- Umsetzungsvermerke des Rates werden durchgezählt angefügt statt ersetzt; der Vermerk der Plattform bleibt daneben stehen und trägt in der Kette das Kennzeichen, ob er etwas bewirkt. Auf der Beschlussseite, im Ratsbereich und auf „Mein Gremium“ steht bei verstrichener Umsetzungsfrist „überfällig seit“.
+- Die Werkstatt nennt in der Wartezeit vor der Endabstimmung deren Beginn und den Stand zum Fristende; Zone 3 der Antragsseite ebenso.
+- Mitglieder können ihre Einwilligung zur Fachliste im Profil selbst erklären und zurücknehmen. Die Rücknahme ändert einen bereits geführten Eintrag nicht. Gestrichene Einträge lassen sich mit Einwilligung wieder aufnehmen. Am gestrichenen Eintrag sagt die Karte offen, was die Rücknahme bewirkt und dass der Name dort stehen bleibt. Der Grund einer Streichung steht wie bisher nur am Eintrag, nicht in der Audit-Kette.
+- Integritäts- und Koordinationsrat finden jeden Antrag über eine Suche nach Nummer oder Titel, auch ohne JavaScript; ohne Treffer steht „Kein Antrag gefunden.“
+- Die Seite „Gremien“ verlinkt je Rat Beschlüsse, Sitzungsprotokoll, Fachliste und beim Integritätsrat den Jahresbericht jedes Jahres mit Beschlüssen.
+- Dieselbe Anfrage an die Zukunftswerkstatt zum selben Stand erzeugt keinen zweiten Lauf. Jeder Modellaufruf eines Rates und jeder gescheiterte KI-Auftrag steht ohne Person und ohne Fehlertext in der Audit-Kette.
+- Ein Parametertest mit einem Wert außerhalb des Wertbereichs lässt sich nicht anordnen und beginnt nicht.
+- Weitere schreibende Handlungen der Räte stehen mit ihrem Audit-Eintrag in einer Transaktion; ein Wächtertest hält für jeden Audit-Aufruf fest, ob er gefasst oder begründet ausgenommen ist.
+
+### Konten, Mitgliedschaft und Gemeindezugang
+
+- Ein Statusverlauf hält jeden Wechsel von Status und Konto fest. Wer am Stichtag stimmberechtigt war, bestimmt sich aus diesem Verlauf, gleich an welchem Tag gezählt wird. Konten ohne Verlauf aus der Zeit davor zählen wie bisher.
+- Die Prüfadresse neuer Mitgliedsausweise enthält keine Kontonummer mehr: `/ausweis/<schluessel>/`. Die bisherige Form gilt weiter.
+- Der persönliche Datenexport enthält zusätzlich Vertrauensfragen samt Stellungnahmen, den ganzen Mandatsordner, Fachlisten-Einwilligungen, Umsetzungsvermerke, Antragsfassungen, Statusverlauf, Lesestände und weitere Kontofelder. Ein Wächtertest verlangt für jedes Feld einen Platz im Export oder eine begründete Ausnahme.
+- Nach dem Anmeldelink landet man wieder auf der aufgerufenen Seite, auch auf einem anderen Gerät. Das gilt für jede geschützte Seite, auch in den Bereichen der Räte, der Mandatare und der Verwaltung. Die am Link gemerkte Adresse wird mit dem Einlösen gelöscht.
+- Ein Gemeindekonto wird im Parlament nicht als Gast angesprochen und nicht im Kreis zur Anmeldung geschickt; auf Parteiseiten bekommt es eine ganze Seite mit Auskunft und dem Weg zu `/gemeinde/konto/`.
+- Das Profil zeigt die eigenen Anträge mit Phase und Datum.
+- Beim Austritt wird die eigene offene Erklärung zur Fachliste zurückgenommen, und für beendete Mandate werden kommende Sprechstunden abgesagt und laufende Sitzungen beendet. Ausschluss und Kontosperre berühren Sprechstunden und Mandat weiterhin nicht.
+- Die Mitgliederliste der Verwaltung blättert mit Gesamtzahl und offengelegter Reihung, statt bei 200 abzuschneiden; Testkonten sind gekennzeichnet, zählen nicht zum Bestand im Kopf und sind in der Blätterzeile ausdrücklich eingeschlossen.
+- Formularfehler stehen oben im Hauptteil mit Sprungverweisen zum Feld, der Seitentitel beginnt mit „Fehler:“. Das gilt für Einbringen, Profil, Gemeindezugang und Beitritt, auch ohne JavaScript.
+- Der Ausschluss verweist auf § 4 Abs 5. Die Wartefrist des Adresswechsels unterschreitet nie die Untergrenze aus dem Register.
+
+### Mandatare
+
+- Anfechtungsfrist, Endgültigkeit, Datumsgrenze und Karte der Verwaltung nennen die tatsächliche Veröffentlichung des Ergebnisses einer Vertrauensfrage. Das Ruhen beginnt wie bisher; der Tag, an dem die Mandatsvereinbarung endet, bleibt der Fristtag.
+- Ein gleiches offenes Mandat entsteht nicht doppelt. Bezeichnung, Gebiet und Ende eines Mandats werden über eine eigene Berichtigung mit altem und neuem Wert im Audit-Log geändert. Beim Beenden lässt sich ein Datum zwischen Antritt und heute angeben.
+- Endet ein Mandat oder eine Vertretung, werden kommende Sprechstunden mit Anlass abgesagt und eine laufende Sitzung beendet. Abgesagte Termine stehen bis zu ihrem Ende als „Abgesagt“ da. Läuft gegen eine verlorene Vertrauensfrage eine rechtzeitige Anfechtung, werden die Sprechstunden beim Ende der Vertretung nicht abgesagt, sondern wie bisher nur ausgeblendet; abgesagt werden sie erst, wenn die Entscheidung die Vertrauensfrage nicht aufhebt.
+- Das Register kennzeichnet Rechenschaft ohne verknüpften Antrag als „laut Angabe des Mandatars, kein Antrag verknüpft“ (`beschluss_quelle` in `/rechenschaft.json`). Ausstände aller Arten bleiben auch nach dem Mandatsende stehen; beendete Mandate sind verlinkt.
+- `/mandatare/` zeigt die Mandate seitenweise, erst offene, dann beendete.
+- Handlungen der Mandatare und der Verwaltung stehen mit ihrem Audit-Eintrag in einer Transaktion. Verformte Kennungen in Adressen führen zu 404 statt zu einem Serverfehler.
+- Die eigene Mandatsseite verlinkt während der Nachfrist auf den eigenen Bereich.
+
+### Parlament, Chat und Antragsseite
+
+- Die Antragsseite rechnet Sperren wie die Kachel und zeigt bei Unterstützen, Abstimmen, Zustimmen, Bewerben und Chat den Grund mit Link statt eines Knopfs ohne Wirkung.
+- Die Abstimmen-Karte nennt die Mindestbeteiligung als Zahl: „Mindestbeteiligung: N Stimmen (P % von M)“.
+- Nach Verfall oder Zurückweisung nennt die Antragsseite erreichte Zahl, Schwelle, Fristende und ab wann eine Wiedereinbringung möglich ist (§ 5 Abs 3 lit b), bei Zurückweisung auch den Weg zum Parteischiedsgericht.
+- Die Antragsseite zeigt verknüpfte Rechenschaft der Mandatare; `/umsetzung.json` trägt sie je Beschluss. Bestehen Unterstützungen von Testkonten, nennt die Kopfzeile, dass sie nicht mitzählen.
+- Die Linie „neu“ im Chat erscheint genau einmal, auch ohne JavaScript. Reagieren, Melden, Ändern und Zurückziehen melden Erfolg und Fehler im Chat-Faden.
+- Der Abstimmungs-Chat lässt sich mit `?reihung=zeit` in Zeitfolge lesen; Stand und Auswertung bleiben gleich. Der Kopf nennt dann die chronologische Anzeige und die Regel der Auswertung.
+- Ein geschlossener leerer Chat lädt nicht mehr zum ersten Beitrag ein. Ein Gemeindekonto bekommt in „Meine Region“ keinen Verweis auf das Einbringen. Nach einem Verfall heißt es „seit“ statt „ab“, wenn der Tag der Wiedereinbringung schon zurückliegt.
+- Neutrale Gruppen im Parlament zeigen höchstens 60 Anträge mit Gesamtzahl und blättern ohne JavaScript weiter. „★ Gemerkt“ führt zu allen gemerkten Anträgen. Wichtige Abstimmungen sind nach Fristende gereiht; die Reihung jeder Liste verweist auf ihren Eintrag im Regelverzeichnis.
+- Ein Lebensbereich führt zu den laufenden Verfahren seines ganzen Astes; die Suche findet Anträge auch über ein Wort im Titel.
+- Am letzten Tag nennen Kachel, Zeile und Ähnlichkeitskarte „Frist endet heute um HH:MM“.
+- Am Handy steht der Verweis auf das Regelverzeichnis im Feldkopf in einer eigenen Zeile, ganz lesbar und als Tippziel hoch genug.
+- Das Umsetzungsregister und die Übersicht blättern seitenweise mit Gesamtzahl; die JSON-Ausgaben bleiben vollständig.
+- Einbringen weist vor dem Absenden auf örtliche Ebenen hin, deren Schwelle mehr Unterstützungen verlangt, als es Unterstützungsberechtigte gibt. Es ist ein Hinweis, keine Sperre.
+- Beanstandungen an Mandats- und Vertrauensfragen sind nicht möglich, weil dort keine Einschätzung gezeigt wird.
+
+### Zukunftswerkstatt und Faktenbasis
+
+- Gastseiten zeigen bei einem gescheiterten Lauf nur feste, übersetzbare Fehlersätze; der Rohtext bleibt am Auftrag und im Archiv.
+- Eine abgeschnittene Modellantwort wird erkannt, mit Wortlaut und Verbrauch archiviert und gilt als nicht erfolgreich. Eine Antwort ohne lesbare Verbrauchsangabe wird als Lauf mit 0 Tokens archiviert statt mit einer Fehlerseite zu enden.
+- Bei einem formungültigen Bericht nennt die Karte den Korrekturweg und verweist nach erledigter Nachrechnung auf die Beanstandung.
+- Neue Seite `/zukunftswerkstatt/laeufe/` mit allen Läufen, neueste zuerst, mit Nummer und Anker; Antragsseite und Werkstatt verlinken dorthin.
+- Der Bestandsnachweis zählt alle sieben Sammlungen; die Verwaltung sieht Bestand gegen Grenze, wird ab dem eingestellten Anteil gewarnt und erfährt nach einem Import über der Grenze, dass der Nachweis ausfällt.
+- Ähnlichkeitssuche, Einschätzungszone und Normseite laden weniger: Frühere Läufe und weitere Dokumenttexte sind verlinkt statt eingebettet.
+
+### Parameterregister, Regelverzeichnis und offene Formate
+
+- Elf bisherige Konstanten stehen als Stellgrößen im Register: Seitengrößen von Parlament, Umsetzungsregister, Mitgliederliste, Mandatsliste, Übersicht und Lauf-Archiv, der Warnanteil des Bestandsnachweises, die Zeilen je Abruf der Ähnlichkeitssuche, die Prüftakte bis „überfällig“ sowie die Drosseln für KI-Anfragen der Räte und für Beanstandungen. Die beiden Drosseln stehen mit Startwert 0 im Register und begrenzen nichts, bis ein Wert gesetzt wird.
+- Das Regelverzeichnis (Fassung 32) nennt an beiden Auszählregeln die Gegenprobe, ihre Haltegründe und die ausgewiesene Überzahl; die Auszählregel bleibt Fassung 3. Die Listen des Parlaments haben einen eigenen Regeleintrag. Die „Meistgelesenen Anträge“ verweisen auf ihren Eintrag.
+- Schema 1.31: neue Felder in Export, Archiv, Gremienprotokoll, `/rechenschaft.json` und `/umsetzung.json`, neue Audit-Arten, die neuen Stellgrößen und in der Kennzahl der Phasen der Schlüssel `zurueckgezogen`. `docs/SCHEMA.md` führt den Änderungsverlauf lückenlos.
+- Alle sieben offenen JSON-Formate (`/parameter.json`, `/kennzahlen.json`, `/audit.json`, `/antrag/<id>/export.json`, `/umsetzung.json`, `/gremien/protokoll/<gremium>/<jahr>.json`, `/rechenschaft.json`) tragen bei GET und HEAD die Kopfzeile `Access-Control-Allow-Origin: *`.
+- Die Verwaltung führt Anstöße mit einem Vermerkfeld; Statusänderung und Ausfuhr stehen ohne Vermerktext im Audit-Log.
+- Das Band „Im Test“ nennt auch die vom Chat gelesenen Stellgrößen als ausgenommen. Die Rollenmatrix verweist für den Jahresbericht auf die öffentliche Seite „Gremien“.
+
+### Betrieb, Nachweise und Datenschutz
+
+- `/audit/` weist einen Prüfstand, der älter ist als die eingestellten Prüftakte, als überfällig aus. Der Befehl `manage.py audit_pruefen` nennt jeden Bruchgrund lesbar, auch eine abweichende Zeitspalte.
+- Schreibende Handlungen der Mitgliederverwaltung, der Meldungen und der Bewerbungen stehen mit ihrem Audit-Eintrag in einer Transaktion.
+- Nummern in Adressen, Abfrageteilen wie `?seite=` und den Bezügen eines Chat-Beitrags werden nur als ASCII-Ziffern mit höchstens 18 Stellen angenommen; anderes ergibt 404 oder eine Meldung statt eines Serverfehlers.
+- Ein Nullzeichen in einem Suchtext, in der Archivwahl der Antragsseite oder in einem Anstoß führt nicht mehr zu einem Serverfehler.
+- Die Datenschutzerklärung nennt, was diese Fassung neu speichert: den Verlauf der Statuswechsel, den Adressschlüssel des Mitgliedsausweises, die Zeitpunkte der selbst erklärten Einwilligung zur Fachliste, den Lesestand je Antrag oder Sitzung und die am Anmeldelink gemerkte Adresse (Freigabe des Gründers vom 22.11.2026, Stand der Erklärung 22.11.2026). Tests binden jeden dieser Sätze an den Code.
+- Das öffentliche Audit-Log schwärzt bei einer berichtigten Mandatsangabe den alten Wert.
+- Scheitert der Audit-Eintrag am Ende eines KI-Auftrags, steht der Endzustand trotzdem fest; der Eintrag wird nachgeholt, und das Modell wird kein zweites Mal aufgerufen.
+- Mandatsende, Austritt und Livemeldung sperren Mandat, Sitzung und Audit-Kette in derselben Reihenfolge.
+- Die neue Spalte am Anmeldelink trägt ihre Vorgabe in der Datenbank, damit die bisherige Fassung während des Ausrollens weiter Anmeldelinks anlegen kann.
+- Drei Tests, die ab 8.12.2026 allein durch das Datum rot geworden wären, hängen nicht mehr am heutigen Tag.
+
+### Englische Oberfläche
+
+- Ergebnissätze, die Namen der Lebensbereiche, Optionen, Prüfpunkte und Anlässe der Räte sowie die Chat-Sperre erscheinen übersetzt; die Suche findet Lebensbereiche auch über den englischen Namen. Gespeichert und exportiert wird weiter Deutsch.
+- Systembeiträge im Archiv folgen der Sprache des Abrufs.
+
 ## [0.114.0] — 2026-11-21 · Datenschutzerklärung berichtigt, Fristtext und Tastaturführung
 
 - Die Datenschutzerklärung stimmt an acht Stellen wieder mit dem Betrieb überein (Freigabe des Gründers vom 20.11.2026, Stand der Erklärung 20.11.2026). Die Sicherungskopie entsteht einmal im Monat und bleibt 365 Tage; bisher standen dort „täglich“ und „90 Tage“. Neu genannt sind der Verlauf eines Adresswechsels, der Prüfcode des Mitgliedsausweises, die Anmeldezeiten, die Dauer der Cookies und was nach einem Austritt am geschlossenen Konto bleibt.

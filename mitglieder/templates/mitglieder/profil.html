@@ -1,5 +1,6 @@
 {% extends "verfahren/base.html" %}
-{% load i18n static %}
+{% load i18n static phasen gremien_profil %}
+{% block titelvorsatz %}{% if form.errors %}{% translate "Fehler:" %} {% endif %}{% endblock %}
 {% block titel %}{% translate "Profil" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
@@ -22,6 +23,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   .ausweis-vorschau svg{border-radius:3.7%/5.9%;box-shadow:var(--shadow)}
 </style>
 <h1>{% translate "Profil" %}</h1>
+{% include "verfahren/_formularfehler.html" %}
 <p class="erk">{% blocktranslate with name=user.anzeigename pk=user.mitgliedsnummer_text %}Angemeldet als <strong>{{ name }}</strong> · Mitglied #{{ pk }}{% endblocktranslate %}</p>
 
 <form method="post" action="{% url 'mitglieder:profil' %}" class="pf-form">{% csrf_token %}
@@ -72,6 +74,17 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
 
 <div class="pf-grid">
 
+{# ── Eigene Anträge (GP-066) ─────────────────────────────────────────── #}
+<div class="karte" id="meine-antraege">
+  <p class="phasen-titel">{% translate "Meine Anträge" %}</p>
+  {% if eigene_antraege %}
+  <p class="meta">{% translate "zuletzt eingebracht zuerst" %}</p>
+  <ul>
+    {% for a in eigene_antraege %}<li><a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a> <span class="meta">· {{ a.phase|phase_name }} · {{ a.eingebracht_am|date:"d.m.Y" }}</span></li>{% endfor %}
+  </ul>
+  {% else %}<p class="leer">{% translate "Noch keine eigenen Anträge." %}</p>{% endif %}
+</div>
+
 {# ── Sprache ─────────────────────────────────────────────────────────── #}
 <div class="karte" id="sprache">
   <p class="phasen-titel">{% translate "Sprache" %}</p>
@@ -105,6 +118,9 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p class="hilfe">{% translate "Alles, was die Plattform diesem Konto zuordnet (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Adresswechsel, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate samt Gemeindearbeit, Rollen, Fachlisteneintrag, Interessenbindungen, Stimmen und Beiträge in den Räten, Umsetzungs- und Registervermerke, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode." %}</p>
   <p class="hilfe">{% translate "Nicht enthalten: Anmelde-Token und Prüf-Hashes, Bank-Kennungen der Beitragseingänge, Vorgänge, die Sie als Verwaltung für andere Mitglieder geführt haben, und Audit-Zeilen Dritter." %}</p>
 </div>
+
+{# ── Fachliste: eigene Einwilligung (GP-009) — nur für Konten, die der Endpunkt annimmt ── #}
+{% fachliste_einwilligung %}
 
 {# ── Mitgliedsausweis (FB-K8) ────────────────────────────────────────── #}
 <div class="karte" id="ausweis">

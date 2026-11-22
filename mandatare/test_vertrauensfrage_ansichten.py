@@ -117,6 +117,11 @@ def test_ohne_anlass_kein_antrag_und_die_eingabe_bleibt(client, ordnung, altmand
 
 
 def test_ohne_jeden_moeglichen_anlass_gibt_es_kein_formular(client, ordnung, altmandat):  # noqa: F811
+    # Jeder bis heute geschuldete Monatsbericht liegt vor — sonst wäre ab 8.12.2026 der Oktober ein Anlass.
+    from plattform_core.rechenschaft import berichtsmonate
+
+    for monat in berichtsmonate(altmandat.angetreten, None, timezone.localdate()):
+        mm.Bericht.objects.create(mandat=altmandat, art=mm.Berichtsart.MONATSBERICHT, monat=monat, text="Bericht.")
     client.force_login(mitglied_anlegen("anna"))
     html = client.get(stellen_url(altmandat)).content.decode()
     assert "Kein Anlass vorhanden." in html and 'name="begruendung"' not in html
@@ -620,9 +625,11 @@ def _weiteres_altmandat(name: str):
 def test_erster_aufruf_nach_dem_fristende_zeigt_die_eben_eingetretenen_wirkungen(client, ordnung, altmandat):  # noqa: F811
     """Die Abstimmung endet, niemand ruft eine Seite auf; der erste Aufruf ist die Mandatar-Seite. Sie
     schreibt den Antrag fort (Stufe 1 stempelt auf einer anderen Mandat-Instanz), zieht Stufe 2 nach und
-    rendert den Stand, den sie selbst erzeugt hat — Ersuchen um Rückgabe, Kandidatursperre, Fristzähler;
-    die ruhende Rolle ist im selben Aufruf beendet (acht Tage nach dem Ergebnis). Der Knopf „Vertrauensfrage
-    stellen“ bleibt bewusst (Sperre nur als Hinweis, der Integritätsrat stellt sie fest)."""
+    rendert den Stand, den sie selbst erzeugt hat — Ersuchen um Rückgabe, Kandidatursperre, Fristzähler.
+    Die Rolle ruht ab dem Abstimmungsende; zum Ende wird das Ruhen erst sieben Tage nach diesem Aufruf, der
+    das Ergebnis veröffentlicht hat — nicht im selben Aufruf, solange die Anfechtung noch offensteht
+    (GP-106). Der Knopf „Vertrauensfrage stellen“ bleibt bewusst (Sperre nur als Hinweis, der Integritätsrat
+    stellt sie fest)."""
     rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
     antrag = _abstimmung_abgelaufen_ohne_aufruf(ordnung, altmandat, vor_tagen=8)
     antwort = client.get(reverse("mandatare:detail", args=[altmandat.pk]))
@@ -635,8 +642,15 @@ def test_erster_aufruf_nach_dem_fristende_zeigt_die_eben_eingetretenen_wirkungen
     html = antwort.content.decode()
     assert "Ersuchen um Rückgabe des Mandats" in html and "Keine Kandidatur nach § 7 Abs 1" in html
     rolle.refresh_from_db()
-    assert rolle.beendet_grund == mm.BEENDIGUNGSGRUND  # Stufe 2 lief im selben Aufruf
-    assert antrag.vertrauensfrage.wirkungen_endgueltig_am is not None
+    vf = antrag.vertrauensfrage
+    assert rolle.ruht and rolle.beendet_grund == ''  # Stufe 1 lief im selben Aufruf, Stufe 2 wartet
+    assert vf.wirkungen_endgueltig_am is None and vf.endgueltig_ab() == vf.anfechtungsfrist_ende
+    assert vf.ergebnis_veroeffentlicht_am > vf.wirkungen_ab
+    mm.vertrauensfragen_fortschreiben(vf.ergebnis_veroeffentlicht_am + tage(7))
+    rolle.refresh_from_db()
+    vf.refresh_from_db()
+    assert rolle.beendet_grund == mm.BEENDIGUNGSGRUND
+    assert vf.wirkungen_endgueltig_am == vf.ergebnis_veroeffentlicht_am + tage(7)
 
 
 def test_erster_aufruf_von_register_und_bereich_nach_dem_fristende_traegt_das_ergebnis(client, ordnung, altmandat):  # noqa: F811
@@ -1024,3 +1038,37 @@ def test_nach_dem_ende_der_vertretung_zaehlen_sitzungstage_danach_nicht_mehr(cli
         MEIN_AKTION, {"aktion": "sammelbericht", "mandat": altmandat.pk, "aufgabe": danach.pk, "text": "Nachher."}, follow=True
     )
     assert antwort.status_code == 200 and not altmandat.berichte.filter(aufgabe=danach).exists()
+
+
+# ── GP-106 (Auflage): Der Vermerk der Anfechtung rechnet mit der tatsächlichen Veröffentlichung ──
+
+
+def test_anfechtungsdatum_liegt_nicht_vor_der_tatsaechlichen_veroeffentlichung(client, altmandat):  # noqa: F811
+    """Stand der Fristenlauf, wurde das Ergebnis später sichtbar als die Abstimmung endete. Eine Anfechtung
+    kann nicht vor dieser Veröffentlichung liegen; Grenze, Meldung und Karte nennen ihren Tag."""
+    jetzt = timezone.now()
+    soll, lauf = jetzt - tage(20), jetzt - tage(3)
+    vf = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, soll)
+    Vertrauensfrage.objects.filter(pk=vf.pk).update(ergebnis_veroeffentlicht_am=lauf)
+    client.force_login(admin_anlegen())
+    karte = client.get(reverse('mandatare:verwaltung')).content.decode().split(f'id="vertrauen-{altmandat.pk}"')[1]
+    lauftag = timezone.localdate(lauf)
+    assert f'Vertrauensfrage verloren</strong> · {lauftag:%d.%m.%Y}' in karte  # nicht der Tag des Abstimmungsendes
+    antwort = _anfechten(client, vf, lauftag - tage(1))
+    vf.refresh_from_db()
+    assert vf.angefochten_am is None
+    assert 'Datum der Anfechtung' in meldungen(antwort) and lauftag.strftime('%d.%m.%Y') in meldungen(antwort)
+    _anfechten(client, vf, lauftag)
+    vf.refresh_from_db()
+    assert vf.angefochten_am == lauf and vf.anfechtung_rechtzeitig  # am Tag der Veröffentlichung: nie davor
+
+
+def test_gast_kommt_nach_der_anmeldung_zum_formular_der_vertrauensfrage_zurueck(client, altmandat):  # noqa: F811
+    """GP-100: Das Formular „Vertrauensfrage stellen“ ist das Ziel der Anmeldung; schreibende Aufrufe
+    tragen keines."""
+    pfad = stellen_url(altmandat)
+    antwort = client.get(pfad)
+    assert antwort.status_code == 302
+    assert antwort['Location'] == reverse('mitglieder:login') + '?next=' + pfad.replace('/', '%2F')
+    for schreibend in (client.post(pfad, {}), client.post(stellungnahme_url(Antrag(pk=1)), {'text': 'x'})):
+        assert schreibend.status_code == 302 and schreibend['Location'] == reverse('mitglieder:login')

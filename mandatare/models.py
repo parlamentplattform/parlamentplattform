@@ -222,18 +222,26 @@ class Mandat(models.Model):
         """Die Bestätigung nach § 7 Abs 10 lit f Z 3 vermerken — durch angenommenen Bestätigungsantrag
         (`grund="antrag"`) oder Wahl in ein Organ bzw. eine Gliederungsleitung (`grund="wahl"`; mit
         `rolle`, wenn es die von der Mitgliederversammlung bestätigte Berufung in einen Rat ist).
-        Hebt die Kandidatursperre auf; die übrigen Wirkungen bleiben. Idempotent."""
+        Hebt die Kandidatursperre auf; die übrigen Wirkungen bleiben. Idempotent.
+
+        Vermerk und Audit-Eintrag stehen in einer Transaktion (GP-129) — hier in der Methode, weil sie
+        auch von außerhalb der App gerufen wird. Scheitert der Eintrag, bleibt die Sperre, auch am Objekt."""
         if self.bestaetigt_am is not None:
             return False
         jetzt = jetzt or timezone.now()
-        self.bestaetigt_am = timezone.localdate(jetzt)
-        self.save(update_fields=["bestaetigt_am"])
         ereignis = {"typ": "vertrauen_bestaetigt", "mandat": self.pk, "grund": grund}
         if rolle is not None:
             ereignis["rolle"] = rolle
         if durch is not None:
             ereignis["durch"] = durch  # Vermerk der Verwaltung: das handelnde Konto (GP-119)
-        AuditEintrag.anhaengen(ereignis)
+        try:
+            with transaction.atomic():
+                self.bestaetigt_am = timezone.localdate(jetzt)
+                self.save(update_fields=["bestaetigt_am"])
+                AuditEintrag.anhaengen(ereignis)
+        except BaseException:
+            self.bestaetigt_am = None  # die Datenbank wurde zurückgerollt — das Objekt folgt ihr
+            raise
         return True
 
     @property
@@ -783,6 +791,17 @@ class Rechenschaft(models.Model):
             return self.beschluss_aus_antrag(self.antrag)
         return self.beschluss_plattform
 
+    @property
+    def beschluss_quelle(self) -> str:
+        """Woher der gezeigte Beschluss der Plattform stammt: „antrag“ (aus dem verknüpften Antrag),
+        „verwaltung“ (Nachtrag der Verwaltung ohne Antrag) oder „mandatar“ (Angabe des Mandatars ohne
+        verknüpften Antrag) — Leser sollen eine Selbstangabe von einem Beschluss unterscheiden (GP-111)."""
+        if self.antrag_id is not None:
+            return "antrag"
+        if self.nachgetragen_am is not None:
+            return "verwaltung"
+        return "mandatar"
+
     def beschluss_nachziehen(self) -> None:
         """Den gespeicherten Beschluss auf den Stand des Antrags bringen, sobald der entschieden
         ist — idempotent, damit auch Export und Datenbank den Stand des Registers tragen."""
@@ -972,6 +991,11 @@ class Vertrauensfrage(models.Model):
     verstaendigt_am = models.DateTimeField(
         null=True, blank=True, help_text="Erster Versandversuch der Verständigung des Mandatars (lit b)."
     )
+    ergebnis_veroeffentlicht_am = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Zeitpunkt, zu dem das Ergebnis tatsächlich festgestellt und sichtbar wurde — Beginn der "
+        "Anfechtungsfrist (lit h). Leer bei Altbeständen: dann gilt das Abstimmungsende.",
+    )
 
     class Meta:
         ordering = ["-antrag__eingebracht_am"]
@@ -1027,9 +1051,19 @@ class Vertrauensfrage(models.Model):
         return ""
 
     @property
+    def veroeffentlicht_am(self):
+        """Wann das Ergebnis veröffentlicht wurde: der Lauf, der es festgestellt hat — nach einem Stillstand
+        des Wächters später als das Abstimmungsende (`ergebnis_am`). Altbestände ohne Vermerk rechnen mit
+        dem Abstimmungsende. None, solange kein Ergebnis vorliegt (GP-106)."""
+        ab = self.ergebnis_am
+        if ab is None:
+            return None
+        return max(ab, self.ergebnis_veroeffentlicht_am or ab)
+
+    @property
     def anfechtungsfrist_ende(self):
         """Ende der sieben Tage ab Veröffentlichung des Ergebnisses (lit h) — None ohne Ergebnis."""
-        ab = self.ergebnis_am
+        ab = self.veroeffentlicht_am
         return None if ab is None else ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
 
     def rueckgabefrist_tag(self):
@@ -1070,19 +1104,27 @@ class Vertrauensfrage(models.Model):
         Anfechtung“); eine verspätete ändert an den Wirkungen nichts — die Verwaltung vermerkt sie
         trotzdem, ehrlich datiert. Die Frist läuft ab der Veröffentlichung jedes Ergebnisses (lit h), auch
         eines gewonnenen oder einer Bestätigung, die keine Wirkungen nach lit f tragen (GP-112)."""
-        ab = self.wirkungen_ab or self.ergebnis_am
+        # Der Vermerk liegt nie vor dem Abstimmungsende; ohne ihn (Altbestand) wie bisher — ohne den Antrag zu laden.
+        ab = self.ergebnis_veroeffentlicht_am or self.wirkungen_ab or self.ergebnis_am
         if self.angefochten_am is None or ab is None:
             return False
         return self.angefochten_am <= ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
 
     def endgueltig_ab(self):
-        """Ab wann das Ruhen zum Ende wird (lit f letzter Unterabsatz): sieben Tage nach der
-        Veröffentlichung ohne rechtzeitige Anfechtung, sonst mit der bestätigenden Entscheidung; None,
-        solange eine rechtzeitige Anfechtung offen ist oder das Ergebnis aufgehoben wurde."""
+        """Ab wann das Ruhen zum Ende wird (lit f letzter Unterabsatz: „mit Ablauf der Anfechtungsfrist
+        nach lit h“): sieben Tage nach der Veröffentlichung ohne rechtzeitige Anfechtung, sonst mit der
+        bestätigenden Entscheidung; None, solange eine rechtzeitige Anfechtung offen ist oder das Ergebnis
+        aufgehoben wurde.
+
+        Dieselbe Frist wie `anfechtung_rechtzeitig` (GP-106): Sie zählt ab dem Lauf, der das Ergebnis
+        festgestellt hat (`ergebnis_veroeffentlicht_am`), nie vor dem Beginn der Wirkungen. Sonst wurde das
+        Ruhen nach einem Stillstand des Fristenlaufs im ersten Lauf endgültig, während die Anfechtung noch
+        offenstand. Altbestände ohne Vermerk rechnen wie bisher ab `wirkungen_ab`."""
         if self.wirkungen_ab is None or self.entscheidung == Entscheidung.AUFGEHOBEN:
             return None
         if not self.anfechtung_rechtzeitig:
-            return self.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+            ab = max(self.wirkungen_ab, self.ergebnis_veroeffentlicht_am or self.wirkungen_ab)
+            return ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
         if self.entscheidung == Entscheidung.BESTAETIGT and self.entschieden_am is not None:
             return self.entschieden_am
         return None
@@ -1152,6 +1194,7 @@ class Stellungnahme(models.Model):
         return f"Stellungnahme zu Vertrauensfrage {self.vertrauensfrage_id} ({self.erstellt_am:%d.%m.%Y})"
 
 
+@transaction.atomic
 def stellungnahme_abgeben(vf: Vertrauensfrage, mitglied, text: str, jetzt=None) -> Stellungnahme:
     """Nur der betroffene Mandatsträger, nur solange das Verfahren läuft (lit d); append-only."""
     jetzt = jetzt or timezone.now()
@@ -1360,10 +1403,17 @@ def vertrauensfrage_wirkungen(vf: Vertrauensfrage, jetzt=None) -> bool:
     return True
 
 
-def vertrauensfrage_ergebnis(vf: Vertrauensfrage, jetzt=None) -> None:
+def vertrauensfrage_ergebnis(vf: Vertrauensfrage, jetzt=None, veroeffentlicht_am=None) -> None:
     """Was mit dem Ergebnis eines Vertrauensfrage- oder Bestätigungsantrags geschieht — aus
-    `Antrag.fortschreiben` beim Übergang in eine Endphase gerufen (§ 7 Abs 10 lit e und f Z 3)."""
+    `Antrag.fortschreiben` beim Übergang in eine Endphase gerufen (§ 7 Abs 10 lit e und f Z 3).
+
+    `jetzt` ist das Abstimmungsende (Sollzeit), ab dem die Wirkungen gelten. `veroeffentlicht_am` ist der
+    Lauf, der das Ergebnis feststellt — ohne Angabe die Uhrzeit dieses Aufrufs, nie früher als die
+    Sollzeit. Ab ihm läuft die Anfechtungsfrist (lit h, GP-106)."""
     jetzt = jetzt or timezone.now()
+    if vf.ergebnis_veroeffentlicht_am is None:
+        vf.ergebnis_veroeffentlicht_am = max(jetzt, veroeffentlicht_am or timezone.now())
+        vf.save(update_fields=["ergebnis_veroeffentlicht_am"])
     phase = vf.antrag.phase
     if vf.art == VertrauensfrageArt.BESTAETIGUNG:
         if phase == Phase.ANGENOMMEN.value:
@@ -1376,6 +1426,20 @@ def vertrauensfrage_ergebnis(vf: Vertrauensfrage, jetzt=None) -> None:
         vertrauensfrage_wirkungen(vf, jetzt)
     elif phase == Phase.ABGELEHNT.value:
         AuditEintrag.anhaengen({"typ": "vertrauensfrage_gewonnen", "antrag": vf.antrag_id, "mandat": vf.mandat_id})
+
+
+def _vertretungsende_offen_angefochten(mandat: Mandat) -> bool:
+    """Ob jede verlorene, nicht aufgehobene Vertrauensfrage des Mandats rechtzeitig angefochten und noch
+    nicht entschieden ist — dann kann eine Aufhebung das Ende der Vertretung zurücknehmen (lit h), und
+    die Sprechstunden bleiben bis dahin nur ausgeblendet statt abgesagt (GP-116)."""
+    verlorene = list(
+        Vertrauensfrage.objects.filter(
+            mandat=mandat, art=VertrauensfrageArt.VERTRAUENSFRAGE, wirkungen_ab__isnull=False
+        ).exclude(entscheidung=Entscheidung.AUFGEHOBEN)
+    )
+    return bool(verlorene) and all(
+        vf.entscheidung == Entscheidung.OFFEN and vf.anfechtung_rechtzeitig for vf in verlorene
+    )
 
 
 def vertrauensfragen_fortschreiben(jetzt=None) -> int:
@@ -1445,6 +1509,10 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
             endgueltig_ab, frist_tag, tue_a, tue_b, tue_c = faellig(vf, mandat)
             if not (tue_a or tue_b or tue_c):
                 continue
+            if tue_b:
+                from mandatare.sitzung import sitzungen_sperren
+
+                sitzungen_sperren(mandat)  # vor dem ersten Audit-Eintrag: keine Verklemmung mit einer Livemeldung
             # (a) Ruhen wird zum Ende
             if tue_a:
                 vf.wirkungen_endgueltig_am = endgueltig_ab
@@ -1476,9 +1544,20 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
                         "rueckgabezusage": mandat.rueckgabezusage,
                     }
                 )
+                from mandatare.sitzung import ANLASS_VERTRETUNGSENDE, mandatsende_folgen
+
+                # GP-116: Bei offener rechtzeitiger Anfechtung werden die Sprechstunden nur ausgeblendet
+                # (wie 0.114.0), abgesagt erst, wenn die Entscheidung nicht aufhebt; die Sitzung endet.
+                mandatsende_folgen(
+                    mandat, ANLASS_VERTRETUNGSENDE, jetzt, termine=not _vertretungsende_offen_angefochten(mandat)
+                )
             # (c) Mandatsvereinbarung endet (Z 5) — nur mit lit h, nach Frist UND Endgültigkeit
             if tue_c:
-                tag = max(frist_tag, timezone.localdate(endgueltig_ab))
+                # Der Tag bleibt der Fristtag (Z 5: „mit Ablauf dieser Frist“); später nur bei rechtzeitiger
+                # Anfechtung, dann mit der Entscheidung (Z 5 letzter Satz). Die Anfechtungsfrist ab der
+                # tatsächlichen Veröffentlichung (GP-106) verschiebt nur, wann vollzogen wird — nicht den Tag.
+                grenze = endgueltig_ab if vf.anfechtung_rechtzeitig else vf.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+                tag = max(frist_tag, timezone.localdate(grenze))
                 mandat.mandatsvereinbarung_endet_am = tag
                 mandat.save(update_fields=["mandatsvereinbarung_endet_am"])
                 AuditEintrag.anhaengen(
@@ -1619,8 +1698,20 @@ def vertrauensfrage_entscheidung_vermerken(
             **({"durch": durch} if durch is not None else {}),
         }
     )
+    if (
+        vf.art == VertrauensfrageArt.VERTRAUENSFRAGE
+        and Mandat.objects.filter(pk=mandat.pk, vertretung_beendet_am__isnull=False).exists()
+        and not _vertretungsende_offen_angefochten(mandat)
+    ):
+        # GP-116: Das Ende der Vertretung bleibt — jetzt werden die bis dahin nur ausgeblendeten kommenden
+        # Sprechstunden abgesagt (wiederholt sich nicht: abgesagte findet die Abfrage nicht mehr).
+        from mandatare.sitzung import ANLASS_VERTRETUNGSENDE
+        from mandatare.sprechstunden import termine_absagen
+
+        termine_absagen(mandat, ANLASS_VERTRETUNGSENDE, max(jetzt, timezone.now()))
 
 
+@transaction.atomic
 def rueckgabezusage_vermerken(mandat: Mandat, wert: str, jetzt=None, durch: int | None = None) -> None:
     """Verwaltungsvermerk: Rückgabezusage nachgetragen oder widerrufen (§ 7 Abs 3) — mit Datum, auditiert."""
     jetzt = jetzt or timezone.now()
@@ -1741,7 +1832,8 @@ class Sitzung(models.Model):
         """Alle offenen Sitzungen, deren Höchstdauer um ist, beenden — für Übersichten ohne Einzelaufruf."""
         jetzt = jetzt or timezone.now()
         grenze = jetzt - timedelta(hours=max(1, live_hoechstdauer_stunden()))
-        return sum(1 for s in cls.objects.filter(ende__isnull=True, beginn__lte=grenze) if s.fortschreiben(jetzt))
+        offene = cls.objects.filter(ende__isnull=True, beginn__lte=grenze)
+        return sum(1 for sitzung in offene if sitzung.fortschreiben(jetzt))
 
 
 class Tagesordnungspunkt(models.Model):

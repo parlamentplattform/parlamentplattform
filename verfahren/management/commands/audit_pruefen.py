@@ -7,13 +7,7 @@ ersten Eintrags, der nicht stimmt — für die CI und die Wiederherstellungsprob
 
 from django.core.management.base import BaseCommand, CommandError
 
-from verfahren.audit_pruefung import gemerkter_stand, pruefen
-
-GRUENDE = {
-    "hash": "Inhalt passt nicht zum Hash — der Eintrag wurde verändert",
-    "vorgaenger": "hängt nicht am Hash des Vorgängers — ein Eintrag wurde entfernt, eingeschoben oder umgehängt",
-    "anker": "der zuletzt geprüfte Eintrag ist verändert oder fehlt",
-}
+from verfahren.audit_pruefung import GRUENDE, gemerkter_stand, pruefen
 
 
 class Command(BaseCommand):
@@ -26,8 +20,10 @@ class Command(BaseCommand):
         stand = pruefen(voll=voll, stand=gemerkter_stand())
         art = "vollständig" if stand["voll"] else "ab dem gemerkten Stand"
         if not stand["intakt"]:
+            # Eine Liste der Gründe für Seite, Lauf und Befehl (GP-158); hier als Text ausgegeben.
+            grund = str(GRUENDE.get(stand["grund"], stand["grund"]))
             raise CommandError(
-                f"Audit-Kette gebrochen bei Eintrag {stand['bruch']}: {GRUENDE.get(stand['grund'], stand['grund'])} "
+                f"Audit-Kette gebrochen bei Eintrag {stand['bruch']}: {grund} "
                 f"({stand['geprueft']} Einträge {art} geprüft, bis dahin stimmig bis Eintrag {stand['geprueft_bis']})."
             )
         self.stdout.write(

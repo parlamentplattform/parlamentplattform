@@ -23,6 +23,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
+from mitglieder.anmeldeziel import ist_gemeindeweg, ziel_pruefen, zur_anmeldung
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
 from mitglieder.botschutz import BotschutzMixin, drossel_erstatten, drossel_meldung, drossel_zuviel
 from mitglieder.mail import send_mail
@@ -116,6 +117,7 @@ class RegistrierungsFormular(BotschutzMixin, WohnsitzFormularMixin, forms.Form):
 
 class LoginFormular(BotschutzMixin, forms.Form):
     email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"))
+    ziel = forms.CharField(required=False, widget=forms.HiddenInput)  # GP-100, geprüft in `anmeldeziel`
 
 
 def nie_bestaetigt(mitglied: Mitglied) -> bool:
@@ -199,13 +201,17 @@ def registrieren(request):
                     mitglied.set_unusable_password()
                     mitglied.save()
                     _bestaetigungslink_senden(request, mitglied)
+                    # GP-129: im selben Block — ohne Eintrag kein Konto. Als Letztes, NACH dem Versand:
+                    # Der noch nicht festgeschriebene Eintrag hält auf PostgreSQL den Kopf der Audit-Kette
+                    # (Eindeutigkeit von `vorgaenger`); stünde er vor dem Versand, wartete jede andere
+                    # protokollierte Handlung der Plattform, solange der Mailserver antwortet.
+                    AuditEintrag.anhaengen(
+                        {"typ": "registrierung", "mitglied": mitglied.pk, **({"erneut": True} if erneut else {})}
+                    )
             except (SMTPException, OSError):
                 log.exception("Bestätigungs-Mail nicht versendbar — Registrierung zurückgerollt.")
                 form.add_error(None, _("Ihre Registrierung wurde nicht gespeichert: %s") % MAIL_STOERUNG)
             else:
-                AuditEintrag.anhaengen(
-                    {"typ": "registrierung", "mitglied": mitglied.pk, **({"erneut": True} if erneut else {})}
-                )
                 return render(
                     request,
                     "mitglieder/mail_gesendet.html",
@@ -231,20 +237,24 @@ def bestaetigen(request, token: str):
         if mitglied is None or not mitglied.parteikonto or not nie_bestaetigt(mitglied):
             return render(request, "mitglieder/token_ungueltig.html", status=400)
         return link_seite(request, _("E-Mail-Adresse bestätigen"), _("Adresse bestätigen"))
-    mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.BESTAETIGUNG)
-    # GP-017: Bestätigen kann nur ein nie bestätigtes Konto — ein ausgeschlossenes oder schon
-    # bestätigtes wird über einen alten Link nicht wieder anmeldbar.
-    if mitglied is None or not mitglied.parteikonto or not nie_bestaetigt(mitglied):
-        return render(request, "mitglieder/token_ungueltig.html", status=400)
-    EinmalToken.entwerten(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
-    mitglied.is_active = True
-    if mitglied.beitritt is None:
-        mitglied.beitritt = timezone.localdate()  # Beginn der Anwartschaft (§ 4 Abs 4), Ortszeit
-    mitglied.save(update_fields=["is_active", "beitritt"])
     from mitglieder.nummern import sicherstellen
-    sicherstellen(mitglied)
+
+    # GP-129: Einlösen, Freischalten, Mitgliedsnummer und Audit-Eintrag gemeinsam oder gar nicht —
+    # scheitert der Eintrag, bleibt der Link gültig und das Konto unverändert.
+    with transaction.atomic():
+        mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.BESTAETIGUNG)
+        # GP-017: Bestätigen kann nur ein nie bestätigtes Konto — ein ausgeschlossenes oder schon
+        # bestätigtes wird über einen alten Link nicht wieder anmeldbar.
+        if mitglied is None or not mitglied.parteikonto or not nie_bestaetigt(mitglied):
+            return render(request, "mitglieder/token_ungueltig.html", status=400)
+        EinmalToken.entwerten(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
+        mitglied.is_active = True
+        if mitglied.beitritt is None:
+            mitglied.beitritt = timezone.localdate()  # Beginn der Anwartschaft (§ 4 Abs 4), Ortszeit
+        mitglied.save(update_fields=["is_active", "beitritt"])
+        sicherstellen(mitglied)
+        AuditEintrag.anhaengen({"typ": "email_bestaetigt", "mitglied": mitglied.pk})
     dj_login(request, mitglied)
-    AuditEintrag.anhaengen({"typ": "email_bestaetigt", "mitglied": mitglied.pk})
     willkommen_senden(mitglied)  # FB-K7: einmal je Konto, Versand ist Höflichkeit
     if mitglied.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT:
         # Die Verwaltung hat die Identität schon vor der Bestätigung festgestellt (etwa in Präsenz):
@@ -292,7 +302,7 @@ def _beitrags_qr(referenz: str) -> str:
 
 def willkommen(request):
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     referenz = beitragsreferenz(request.user)
     return render(
         request,
@@ -323,11 +333,12 @@ def login_anfordern(request):
                 drossel_erstatten(request, "anmeldelink")  # GP-019: Tippfehler zählen nicht
         else:
             email = form.cleaned_data["email"].lower()
+            ziel = ziel_pruefen(form.cleaned_data["ziel"])
             Adresswechsel.faellige_anwenden()  # F-51: erst danach kann die neue Adresse Links bekommen
             mitglied = Mitglied.objects.filter(email__iexact=email).first()
             try:
                 if mitglied and mitglied.is_active:
-                    token = EinmalToken.ausstellen(mitglied, EinmalToken.Zweck.LOGIN)
+                    token = EinmalToken.ausstellen(mitglied, EinmalToken.Zweck.LOGIN, ziel=ziel)
                     link = request.build_absolute_uri(reverse("mitglieder:login_einloesen", args=[token]))
                     send_mail(
                         _("Ihr Anmeldelink — ParlamentPlattform"),
@@ -349,13 +360,15 @@ def login_anfordern(request):
                 # Registrierungsformular — hier entsteht kein neuer Auskunftskanal.)
                 log.exception("Anmeldelink nicht versendbar.")
                 form.add_error(None, MAIL_STOERUNG)
-                return render(request, "mitglieder/login.html", {"form": form})
+                return render(request, "mitglieder/login.html", {"form": form, "ziel": ziel})
             # Absichtlich identische Antwort, ob das Konto existiert oder nicht
             # (keine Adress-Enumeration).
             return render(request, "mitglieder/mail_gesendet.html", {"zweck": _("Anmeldung"), "email": email})
+        ziel = ziel_pruefen(form.data.get("ziel"))
     else:
-        form = LoginFormular(request=request)
-    return render(request, "mitglieder/login.html", {"form": form})
+        ziel = ziel_pruefen(request.GET.get("next"))
+        form = LoginFormular(request=request, initial={"ziel": ziel})
+    return render(request, "mitglieder/login.html", {"form": form, "ziel": ziel})
 
 
 @require_http_methods(["GET", "HEAD", "POST"])
@@ -366,10 +379,14 @@ def login_einloesen(request, token: str):
         if mitglied is None or not mitglied.is_active:
             return render(request, "mitglieder/token_ungueltig.html", status=400)
         return link_seite(request, _("Anmelden"), _("Jetzt anmelden"))
-    mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.LOGIN)
+    mitglied, gemerkt = EinmalToken.einloesen_mit_ziel(token, EinmalToken.Zweck.LOGIN)
     if mitglied is None or not mitglied.is_active:
         return render(request, "mitglieder/token_ungueltig.html", status=400)
     dj_login(request, mitglied)
+    # GP-100: zurück zur angefragten Seite, erneut geprüft; ein Gemeindekonto nur auf Gemeindewege.
+    ziel = ziel_pruefen(gemerkt)
+    if ziel and (mitglied.parteikonto or ist_gemeindeweg(ziel)):
+        return redirect(ziel)
     return redirect("verfahren:parlament" if mitglied.parteikonto else "gemeinde:konto")
 
 

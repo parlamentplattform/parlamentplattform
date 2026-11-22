@@ -30,7 +30,7 @@ def test_datenschutzseite_ist_fuer_gaeste_erreichbar_und_freigegeben(client):
     — kein Entwurfshinweis mehr; der Stand ist das Freigabedatum."""
     from verfahren.views import DATENSCHUTZ_STAND
 
-    assert DATENSCHUTZ_STAND == "20.11.2026"
+    assert DATENSCHUTZ_STAND == "22.11.2026"  # Zusätze zu 0.115.0, freigegeben am 22.11.2026
     antwort = client.get(reverse("verfahren:datenschutz"))
     assert antwort.status_code == 200
     inhalt = antwort.content.decode()
@@ -271,7 +271,8 @@ def test_speicherdauer_nennt_was_der_austritt_am_konto_laesst(client):
         "eine solche Frist gibt es heute noch nicht. Aus Gründen der Buchhaltung bleiben außerdem Ihre Mitgliedsnummer, "
         "der Stamm Ihrer Zahlungsreferenz und die verbuchten Beitragseingänge (Datum, Betrag, Umsatzkennung) am "
         "geschlossenen Konto sowie die Liste der an Ihr Konto gesandten Nachrichten (ohne Inhalt), Ihre Anstöße mit "
-        "Kontobezug, ein Gemeindezugang, der Prüfcode Ihres Mitgliedsausweises und der Zeitpunkt Ihrer letzten "
+        "Kontobezug, ein Gemeindezugang, der Prüfcode und der Adressschlüssel Ihres Mitgliedsausweises, der Verlauf "
+        "Ihrer Statuswechsel, die Zeitpunkte Ihrer Erklärung zur Fachliste und der Zeitpunkt Ihrer letzten "
         "Anmeldung. Die Audit-Kette wird nie gelöscht"
     ) in karte
 
@@ -370,3 +371,118 @@ def test_datenarten_nennen_fachliste_rollen_ki_und_ueberzeichnen_unterstuetzunge
         assert teil in karte, teil
     assert "Unterstützungen, Beratungsbeiträge, Reaktionen" not in karte
     assert "Unterstützungen und Reaktionen" in karte and "nur die Zahl" in karte
+
+
+# --- Gesamtprüfung 0.115.0 (datenschutz): Neues, das die Fassung speichert, steht in der Erklärung ------
+
+
+def test_konto_nennt_den_statusverlauf_und_er_bleibt_nach_dem_austritt(client):
+    """mitglieder/models.py Mitglied.save schreibt je Statuswechsel eine Zeile ohne Begründung; der Austritt
+    lässt sie stehen."""
+    from mitglieder.models import Statusverlauf
+    from mitglieder.profil import austreten
+
+    m = mitglied_anlegen("vera")
+    m.save(update_fields=m.status_setzen(Mitgliedsstatus.PAUSIERT, "Beitrag ausständig"))
+    austreten(Mitglied.objects.get(pk=m.pk))
+    zeilen = list(Statusverlauf.objects.filter(mitglied=m).order_by("pk").values_list("status_vorher", "status"))
+    assert zeilen == [("aktiv", "pausiert"), ("pausiert", "ausgetreten")]
+    assert "grund" not in {f.name for f in Statusverlauf._meta.get_fields()}
+    assert (
+        "Jeder Wechsel Ihres Mitgliedsstatus wird mit Tag und vorigem Stand festgehalten, ohne Begründung, damit die "
+        "Zahl der Stimmberechtigten an einem Stichtag nachrechenbar bleibt (§ 4 Abs 4)."
+    ) in _karte(client, "datenarten")
+
+
+def test_ausweis_nennt_code_und_adressschluessel_und_beide_bleiben(client):
+    from mitglieder.ausweis import ausweis_code_sicherstellen, pruef_url
+    from mitglieder.profil import austreten
+
+    m = mitglied_anlegen("wanda")
+    code = ausweis_code_sicherstellen(m)
+    m.refresh_from_db()
+    schluessel = m.ausweis_schluessel
+    assert code and schluessel and pruef_url(m).endswith(f"/ausweis/{schluessel}/")
+    assert ausweis_code_sicherstellen(Mitglied.objects.get(pk=m.pk)) == code
+    austreten(Mitglied.objects.get(pk=m.pk))
+    m.refresh_from_db()
+    assert (m.ausweis_code, m.ausweis_schluessel) == (code, schluessel)
+    assert (
+        "<strong>Mitgliedsausweis:</strong> ein Prüfcode und ein Zufallsschlüssel für die Adresse hinter dem "
+        "QR-Code, über die der Ausweis Ihre Mitgliedschaft bestätigt, und der Zeitpunkt der ersten Ausstellung. "
+        "Beide bleiben gleich, damit gedruckte Ausweise gültig bleiben."
+    ) in _karte(client, "datenarten")
+
+
+def test_anmeldung_nennt_das_ziel_am_link_und_das_einloesen_leert_es(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    m = mitglied_anlegen("xaver")
+    token = EinmalToken.ausstellen(m, EinmalToken.Zweck.LOGIN, ziel="/profil/")
+    assert EinmalToken.objects.get(mitglied=m).ziel == "/profil/"
+    assert client.post(reverse("mitglieder:login_einloesen", args=[token]))["Location"] == "/profil/"
+    assert EinmalToken.objects.get(mitglied=m).ziel == ""
+    # Der zweite Satz der Erklärung: Ein nie eingelöster Link behält die Adresse (es gibt keine Aufräumstelle).
+    anderes = mitglied_anlegen("yvonne")
+    EinmalToken.ausstellen(anderes, EinmalToken.Zweck.LOGIN, ziel="/profil/")
+    assert EinmalToken.objects.get(mitglied=anderes).ziel == "/profil/"
+    assert (
+        "<strong>Anmeldung:</strong> wann Ihr Konto angelegt wurde und wann Sie sich zuletzt angemeldet haben. "
+        "Fordern Sie den Anmeldelink von einer geschützten Seite aus an, merkt sich die Plattform an diesem Link "
+        "die Adresse dieser Seite und führt Sie nach dem Einlösen dorthin. Mit dem Einlösen wird die Adresse "
+        "gelöscht; an einem nicht eingelösten Link bleibt sie längstens bis zum Austritt stehen."
+    ) in _karte(client, "datenarten")
+
+
+def test_lesestand_steht_nach_den_verfahrensbeitraegen_und_der_austritt_loescht_beide_arten(client, ordnung):  # noqa: F811
+    from datetime import UTC, datetime
+
+    from mandatare.models import Aufgabe, Sitzung
+    from mandatare.test_mandatare import mandat_anlegen
+    from mitglieder.profil import austreten
+    from verfahren.chat import gelesen_merken, sitzung_gelesen_merken
+    from verfahren.models import Lesestand
+
+    m, andere = mitglied_anlegen("yvonne"), mitglied_anlegen("zeno")
+    antrag = antrag_einbringen(andere, **ANTRAG, ordnung=ordnung)
+    mandat = mandat_anlegen(andere)
+    tag = Aufgabe.objects.create(mandat=mandat, titel="Sitzungstag", sitzungstag=True,
+                                 frist=datetime(2026, 1, 5, 18, tzinfo=UTC))
+    sitzung = Sitzung.objects.create(mandat=mandat, aufgabe=tag, beginn=datetime(2026, 1, 5, 17, tzinfo=UTC))
+    gelesen_merken(antrag, m)
+    sitzung_gelesen_merken(sitzung, m)
+    assert Lesestand.objects.filter(mitglied=m, antrag=antrag).exists()
+    assert Lesestand.objects.filter(mitglied=m, sitzung=sitzung).exists()
+    # Angemeldet geöffnet, setzt schon die Antragsseite den Stand (verfahren/views.py antrag_detail)
+    client.force_login(andere)
+    client.get(reverse("verfahren:antrag", args=[antrag.pk]))
+    assert Lesestand.objects.filter(mitglied=andere, antrag=antrag).exists()
+    austreten(Mitglied.objects.get(pk=m.pk))
+    assert not Lesestand.objects.filter(mitglied=m).exists()
+    karte = _karte(client, "datenarten")
+    lesestand = (
+        "<strong>Lesestand:</strong> Öffnen Sie angemeldet einen Antrag oder eine Sitzung, merkt sich die Plattform "
+        "je Antrag oder Sitzung den Zeitpunkt Ihres letzten Besuchs, um neue Beiträge zu kennzeichnen. Er ist nicht "
+        "öffentlich und wird mit dem Austritt gelöscht."
+    )
+    assert lesestand in karte
+    assert karte.index("<strong>Verfahrensbeiträge:</strong>") < karte.index(lesestand) < karte.index(
+        "<strong>Stimmregister:</strong>"
+    )
+
+
+def test_fachliste_nennt_die_zeitpunkte_der_eigenen_erklaerung_und_sie_bleiben(client):
+    from gremien.models import FachlistenEinwilligung
+    from mitglieder.profil import austreten
+
+    m = mitglied_anlegen("ulla")
+    assert FachlistenEinwilligung.erklaeren(m)
+    assert FachlistenEinwilligung.widerrufen(m, mit_eintrag=False)
+    assert FachlistenEinwilligung.erklaeren(m)
+    austreten(Mitglied.objects.get(pk=m.pk))
+    zeilen = list(FachlistenEinwilligung.objects.filter(mitglied=m).values_list("erklaert_am", "widerrufen_am"))
+    assert len(zeilen) == 2 and all(erklaert and widerrufen for erklaert, widerrufen in zeilen)
+    assert (
+        "Erklären Sie die Einwilligung im Profil selbst, speichert die Plattform, wann Sie sie erklärt und wann Sie "
+        "sie zurückgenommen haben; diese Zeitpunkte bleiben nach dem Austritt."
+    ) in _karte(client, "datenarten")

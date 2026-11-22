@@ -1,0 +1,11 @@
+{% load i18n %}{% comment %}
+GP-060 (ZB-02): Der gemeinsame Baustein für Formularfehler — oben im Hauptteil, als Meldung (role=alert) mit
+Sprungverweis zu jedem betroffenen sichtbaren Feld. Fehler versteckter Felder (Botschutz,
+Anmeldeziel) stehen ohne Verweis und ohne technischen Feldnamen da — springen ließe sich nicht. Erwartet form; nichts, solange das Formular keinen Fehler trägt.
+Den Seitentitel beginnt die Vorlage mit {% verbatim %}{% block titelvorsatz %}{% endverbatim %} („Fehler:“).
+{% endcomment %}{% if form.errors %}<div class="formularfehler" role="alert" id="formularfehler">
+  <p><strong>{% translate "Nicht gespeichert — bitte prüfen:" %}</strong></p>
+  <ul>{% for feld in form.visible_fields %}{% if feld.errors %}<li><a href="#{{ feld.id_for_label|default:feld.auto_id }}">{{ feld.label }}</a>: {{ feld.errors|join:" " }}</li>{% endif %}{% endfor %}
+  {% for feld in form.hidden_fields %}{% if feld.errors %}<li>{% translate "Formular unvollständig übermittelt" %}: {{ feld.errors|join:" " }}</li>{% endif %}{% endfor %}
+  {% for fehler in form.non_field_errors %}<li>{{ fehler }}</li>{% endfor %}</ul>
+</div>{% endif %}

@@ -169,9 +169,9 @@ def beitrag_schreiben(
     noch nicht archivierten Antrags."""
     jetzt = jetzt or timezone.now()
     if ruht_wegen_werkstatt(antrag):
-        raise ChatGesperrt("Der Expertenrat arbeitet am Vorschlag — der Chat öffnet mit dem Vorschlag.")
+        raise ChatGesperrt(_("Der Expertenrat arbeitet am Vorschlag — der Chat öffnet mit dem Vorschlag."))
     if not chat_offen(antrag):
-        raise ChatGesperrt("Das Verfahren ist beendet — der Chat ist nur noch im Archiv lesbar.")
+        raise ChatGesperrt(_("Das Verfahren ist beendet — der Chat ist nur noch im Archiv lesbar."))
     hoechst = chat_zeichen_hoechstzahl()
     if len((text or "").strip()) > hoechst:
         raise BeitragZuLang(hoechst)

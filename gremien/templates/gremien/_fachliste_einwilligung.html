@@ -1,0 +1,26 @@
+{% load i18n %}{% if zeigen %}
+<div class="karte" id="fachliste-einwilligung">
+  <p class="phasen-titel">{% translate "Fachliste" %}</p>
+  {% if eintrag %}<p class="pf-wert"><code>{{ eintrag.schluessel }}</code>{% if not eintrag.gefuehrt %} <span class="chip klein still">{% translate "gestrichen" %}</span>{% endif %}</p>{% endif %}
+  <form method="post" action="{% url 'gremien:fachliste_einwilligung' %}">{% csrf_token %}
+    {% if erklaert %}
+    <p>{% translate "Ihre Einwilligung liegt vor: Sie dürfen mit Namen, Fachgebieten, Interessenbindungen und Honoraren öffentlich auf der Fachliste stehen." %}</p>
+    {# Nur solange niemand geführt wird: Wie die Nennung des Namens auf der Liste widerrufen wird, ist offen (E-10.8). #}
+    {# Steht am gestrichenen Eintrag schon der Schlüssel statt des Namens, gibt es keinen Namen, der bliebe. #}
+    {% if not eintrag or not eintrag.gefuehrt and eintrag.einwilligung_widerrufen_am %}
+    <input type="hidden" name="aktion" value="widerrufen">
+    <button type="submit" class="btn-linie">{% translate "Einwilligung widerrufen" %}</button>
+    {% elif not eintrag.gefuehrt %}
+    {# Am gestrichenen Eintrag ändert die Rücknahme nichts (E-10.8 offen) — das sagt die Karte offen. #}
+    <p>{% translate "Ihr Eintrag ist gestrichen. Nehmen Sie die Einwilligung hier zurück, verhindert das nur, dass die Verwaltung Sie erneut einträgt. Der gestrichene Eintrag bleibt mit Ihrem Namen auf der Fachliste stehen; die Nennung Ihres Namens widerrufen Sie bei der Verwaltung (plattform@ddoe.at)." %}</p>
+    <input type="hidden" name="aktion" value="widerrufen">
+    <button type="submit" class="btn-linie">{% translate "Einwilligung zur erneuten Eintragung zurücknehmen" %}</button>
+    {% endif %}
+    {% else %}
+    <p>{% translate "Ich willige ein, mit Namen, Fachgebieten, Interessenbindungen und Honoraren öffentlich auf der Fachliste geführt zu werden (§ 6 Abs 7, § 8 Abs 4)." %}</p>
+    <input type="hidden" name="aktion" value="erklaeren">
+    <button type="submit" class="btn">{% translate "Einwilligung erklären" %}</button>
+    {% endif %}
+  </form>
+</div>
+{% endif %}

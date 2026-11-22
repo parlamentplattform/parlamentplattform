@@ -101,6 +101,8 @@ def test_gescheiterter_parametervorschlag_behaelt_seine_fassung_und_den_bisherig
         raise AnbieterFehler("Testfehler")
 
     monkeypatch.setattr(AttrappenAnbieter, "frage", kaputt)
+    # Seit GP-046 entsteht zum selben Stand kein zweiter Lauf: Der Stand ändert sich.
+    type(ausgewertet).objects.filter(pk=ausgewertet.pk).update(hypothese='Neuer Stand')
     assert _anfordern(client, ausgewertet).status_code == 302
     fehler = KILauf.objects.exclude(pk=erster.pk).get()
     assert not fehler.erfolgreich and fehler.auftrag_version == "parametervorschlag-v1"

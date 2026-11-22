@@ -14,9 +14,10 @@ damit sichtbar ist, was eine Unterstützung „erbt“. Nichts hier entscheidet 
 from __future__ import annotations
 
 import logging
+import unicodedata
 from dataclasses import dataclass, field
 
-from django.db.models import F
+from django.db.models import F, OuterRef, Subquery
 from django.utils import timezone
 
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
@@ -24,8 +25,8 @@ from ki.betriebszugang import SteckplatzWartet
 from ki.models import einbettung_ausfuehren
 from parameter.models import zahl
 from plattform_core import Phase
-from plattform_core.similarity import aehnlichkeit, kosinus, vereinigen
-from verfahren.models import Antrag, Antragsart, AntragsEinbettung
+from plattform_core.similarity import _wert, kosinus, merkmale, vereinigen
+from verfahren.models import Antrag, Antragsart, AntragsEinbettung, AntragsFassung
 
 log = logging.getLogger(__name__)
 
@@ -81,6 +82,15 @@ def _fassung(antrag: Antrag):
     return max(antrag.fassungen.all(), key=lambda f: f.nummer, default=None)
 
 
+def _gemeinsames_wort(stammformen: tuple[str, ...], titel: str, wortlaut: str) -> bool:
+    """Notwendige Bedingung für einen Wert über 0 (GP-153): Jede Stammform, die der Kandidat mit dem
+    neuen Text teilt, steht als Zeichenfolge in seinem Text nach Unicode-Normalform und Kleinschreibung,
+    denn Wortzeichen bleiben beim Normalisieren (`similarity.normalisieren`) unverändert stehen. Fehlt
+    jede, sind Wortanteil und Paaranteil 0 — der Kandidat muss nicht zerlegt werden."""
+    roh = unicodedata.normalize("NFKC", f"{titel}\n{wortlaut}").casefold()
+    return any(s in roh for s in stammformen)
+
+
 def antragstext(antrag: Antrag, fassung_nummer: int | None = None) -> str:
     """Titel und aktueller Wortlaut — genau der Text, der eingebettet wird. Mit `fassung_nummer` der
     Wortlaut dieser Fassung (ein Auftrag der Warteschlange rechnet mit seiner Fassung)."""
@@ -98,20 +108,47 @@ def einbettung_speichern(antrag: Antrag, fassung_nummer: int, modell: str, vekto
     return zeile
 
 
-def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebnis) -> dict[int, float]:
-    """Stufe 2: Vektoren beschaffen und Kosinus je offenem Antrag. Leer, wenn der Steckplatz stumm ist."""
-    anbieter = anbieter_waehlen()
-    if anbieter is None:
-        ergebnis.bedeutung_grund = "kein Anbieter angeschlossen"
-        return {}
-    modell = getattr(anbieter, "einbettungsmodell", "")
-    fassungen = {a.pk: (_fassung(a).nummer if _fassung(a) else 1) for a in offene}
-    vorhanden = {
-        (e.antrag_id, e.fassung_nummer): e.vektor
-        for e in AntragsEinbettung.objects.filter(antrag__in=offene, modell=modell)
-    }
-    fehlende = [a for a in offene if (a.pk, fassungen[a.pk]) not in vorhanden]
-    fehlende = fehlende[: max(0, zahl("aehnlichkeit-einbettungen-je-aufruf", EINBETTUNGEN_JE_AUFRUF_STANDARD))]
+@dataclass(frozen=True)
+class _Kandidat:
+    """Ein offener Sachantrag, wie ihn die Bedeutungsstufe braucht — ohne Modellobjekt (GP-153)."""
+
+    pk: int
+    #: Nummer der jüngsten Fassung, 1 ohne Fassung (wie `_fassung`).
+    fassung_nummer: int
+    #: Titel und jüngster Wortlaut wie `antragstext` — nur für Anträge, denen ein Vektor fehlt.
+    text: str = ""
+
+
+def _zeilen_je_abruf() -> int:
+    """Zeilen je Datenbankabruf beim Durchgehen der offenen Anträge und der gespeicherten Vektoren
+    (GP-153, Register `aehnlichkeit-seite-zeilen`). Bestimmt nur, wie viel zugleich im Speicher liegt,
+    nicht das Ergebnis."""
+    return max(1, zahl("aehnlichkeit-seite-zeilen", 200))
+
+
+def _offene_zeilen():
+    """Alle offenen Anträge mit Titel und jüngstem Wortlaut, seitenweise gelesen (GP-153): Ältere
+    Fassungen und alle übrigen Felder bleiben in der Datenbank."""
+    juengste = AntragsFassung.objects.filter(antrag=OuterRef("pk")).order_by("-nummer")
+    return (
+        Antrag.objects.filter(phase__in=OFFENE_PHASEN)
+        .order_by("pk")
+        .annotate(
+            juengste_nummer=Subquery(juengste.values("nummer")[:1]),
+            juengster_wortlaut=Subquery(juengste.values("wortlaut")[:1]),
+        )
+        .values_list("pk", "titel", "art", "juengste_nummer", "juengster_wortlaut")
+        .iterator(chunk_size=_zeilen_je_abruf())
+    )
+
+
+def _bedeutung(
+    neuer_text: str, sachlich: dict[int, _Kandidat], fehlende: list[_Kandidat], modell: str, mitglied,
+    ergebnis: Ergebnis,
+) -> dict[int, float]:
+    """Stufe 2: Vektoren beschaffen und Kosinus je offenem Sachantrag. Leer, wenn der Steckplatz stumm ist.
+    Gespeicherte Vektoren werden seitenweise gelesen und sofort verglichen, nie alle zugleich gehalten
+    (GP-153)."""
     from mitglieder.botschutz import drossel_zuviel
 
     je_stunde = max(0, zahl("aehnlichkeit-bedeutung-je-stunde", BEDEUTUNG_JE_KONTO_UND_STUNDE))
@@ -122,7 +159,7 @@ def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebn
         return {}
     try:
         _lauf, einbettung = einbettung_ausfuehren(
-            [neuer_text, *(antragstext(a) for a in fehlende)],
+            [neuer_text, *(k.text for k in fehlende)],
             mitglied,
             zeitgrenze=max(1, zahl("aehnlichkeit-zeitgrenze-sekunden", ZEITGRENZE_ANFRAGE_SEKUNDEN)),
         )
@@ -134,33 +171,71 @@ def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebn
         return {}
     ergebnis.neuer_vektor = einbettung.vektoren[0]
     ergebnis.bedeutungsmodell = einbettung.modell
-    for a, vektor in zip(fehlende, einbettung.vektoren[1:], strict=True):
-        einbettung_speichern(a, fassungen[a.pk], einbettung.modell, vektor)
-        vorhanden[(a.pk, fassungen[a.pk])] = vektor
-    return {
-        a.pk: kosinus(ergebnis.neuer_vektor, vorhanden[(a.pk, fassungen[a.pk])])
-        for a in offene
-        if (a.pk, fassungen[a.pk]) in vorhanden
-    }
+    werte: dict[int, float] = {}
+    for k, vektor in zip(fehlende, einbettung.vektoren[1:], strict=True):
+        AntragsEinbettung.objects.get_or_create(
+            antrag_id=k.pk, fassung_nummer=k.fassung_nummer, modell=einbettung.modell, defaults={"vektor": vektor}
+        )
+        werte[k.pk] = kosinus(ergebnis.neuer_vektor, vektor)
+    gespeichert = (
+        AntragsEinbettung.objects.filter(modell=modell, antrag__phase__in=OFFENE_PHASEN)
+        .values_list("antrag_id", "fassung_nummer", "vektor")
+        .iterator(chunk_size=_zeilen_je_abruf())
+    )
+    for antrag_id, nummer, vektor in gespeichert:
+        k = sachlich.get(antrag_id)
+        if k is not None and k.fassung_nummer == nummer and antrag_id not in werte:
+            werte[antrag_id] = kosinus(ergebnis.neuer_vektor, vektor)
+    return werte
 
 
 def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool = True) -> Ergebnis:
-    """Beide Stufen; mit bedeutung=False ruft die lokale Vorschau keinen Anbieter auf."""
+    """Beide Stufen; mit bedeutung=False ruft die lokale Vorschau keinen Anbieter auf.
+
+    Gerechnet wird wie bisher über alle offenen Anträge, aber ohne sie alle zugleich zu halten
+    (GP-153): Je Antrag werden Titel und jüngster Wortlaut gelesen, verglichen und verworfen; die
+    Merkmale des neuen Texts entstehen einmal. Ein Antrag ohne gemeinsames Wort erhält ohne Zerlegung
+    den Wert 0, genau den Wert des vollen Vergleichs."""
     from ki.rechtsbezug import rechtsbezug_fuer
 
     ergebnis = Ergebnis()
-    offene = list(Antrag.objects.filter(phase__in=OFFENE_PHASEN).prefetch_related("fassungen").order_by("pk"))
-    if not offene:
+    neu = merkmale((titel, wortlaut))
+    stammformen = tuple(neu[0])
+    anbieter = anbieter_waehlen() if bedeutung else None
+    modell = getattr(anbieter, "einbettungsmodell", "") if anbieter is not None else ""
+    vorhanden = set(
+        AntragsEinbettung.objects.filter(modell=modell, antrag__phase__in=OFFENE_PHASEN).values_list(
+            "antrag_id", "fassung_nummer"
+        )
+    ) if anbieter is not None else set()
+    je_aufruf = max(0, zahl("aehnlichkeit-einbettungen-je-aufruf", EINBETTUNGEN_JE_AUFRUF_STANDARD))
+    wortwerte: dict[int, float] = {}
+    sachlich: dict[int, _Kandidat] = {}
+    fehlende: list[_Kandidat] = []
+    for pk, a_titel, art, nummer, a_wortlaut in _offene_zeilen():
+        a_wortlaut = a_wortlaut or ""
+        wortwerte[pk] = (
+            _wert(*neu, *merkmale((a_titel, a_wortlaut)))
+            if stammformen and _gemeinsames_wort(stammformen, a_titel, a_wortlaut)
+            else 0.0
+        )
+        # Über Personen rechnet keine Maschine (FB-F4, ADR-011): Titel und Wortlaut von Kandidaturen und
+        # Vertrauensfragen gehen nie an den Anbieter, und ihre Vektoren werden nicht gelesen. Der
+        # Wortvergleich oben rechnet ohne Modell und bleibt für alle offenen Anträge.
+        if anbieter is None or art in PERSONENARTEN:
+            continue
+        k = _Kandidat(pk, nummer or 1)
+        if (pk, k.fassung_nummer) not in vorhanden and len(fehlende) < je_aufruf:
+            k = _Kandidat(pk, k.fassung_nummer, f"{a_titel}\n{a_wortlaut}")
+            fehlende.append(k)
+        sachlich[pk] = k
+    if not wortwerte:
         return ergebnis
-    wortwerte = {
-        a.pk: aehnlichkeit((titel, wortlaut), (a.titel, _fassung(a).wortlaut if _fassung(a) else ""))
-        for a in offene
-    }
-    # Über Personen rechnet keine Maschine (FB-F4, ADR-011): Titel und Wortlaut von Kandidaturen und
-    # Vertrauensfragen gehen nie an den Anbieter, und ihre Vektoren werden nicht gelesen. Der
-    # Wortvergleich oben rechnet ohne Modell und bleibt für alle offenen Anträge.
-    sachlich = [a for a in offene if a.art not in PERSONENARTEN]
-    bedeutungswerte = _bedeutung(f"{titel}\n{wortlaut}", sachlich, mitglied, ergebnis) if bedeutung else {}
+    bedeutungswerte = {}
+    if bedeutung and anbieter is None:
+        ergebnis.bedeutung_grund = "kein Anbieter angeschlossen"
+    elif anbieter is not None:
+        bedeutungswerte = _bedeutung(f"{titel}\n{wortlaut}", sachlich, fehlende, modell, mitglied, ergebnis)
     zeilen = vereinigen(
         wortwerte,
         bedeutungswerte,
@@ -168,7 +243,8 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
         bedeutung_schwelle=zahl("aehnlichkeit-bedeutung-schwelle-prozent", 78) / 100,
         limit=zahl("aehnlichkeit-treffer", 3),
     )
-    nach_id = {a.pk: a for a in offene}
+    nach_id = Antrag.objects.filter(pk__in=[z[0] for z in zeilen]).prefetch_related("fassungen").in_bulk()
+    zeilen = [z for z in zeilen if z[0] in nach_id]
     jetzt = timezone.now()
     from verfahren.views import (
         _frist_fuer,
@@ -194,6 +270,7 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
                 "beteiligung": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
                 # GP-175: dieselbe Rechnung wie Kachel und Zeile (Wiener Kalendertage, 0 = endet heute)
                 "rest_tage": resttage(frist, jetzt),
+                "frist": frist,  # am letzten Tag nennt die Karte die Uhrzeit, wie Kachel und Zeile
                 "frist_abgelaufen": frist is not None and frist <= jetzt,
                 # E-43 Zeile 2: nach der Beratung beginnt die Abstimmung, ausgewertet wird dort nichts
                 "abstimmung_beginnt": abstimmung_beginnt(

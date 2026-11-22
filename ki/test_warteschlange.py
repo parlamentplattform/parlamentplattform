@@ -236,6 +236,58 @@ def test_budget_das_mitten_im_stapel_ausgeht_kostet_keinen_versuch(json_attrappe
     assert zweiter.versuche == 0 and zweiter.status == Auftragsstatus.GEPLANT and zweiter.naechster_versuch is None
 
 
+def test_scheitert_der_abschlusseintrag_steht_der_endzustand_trotzdem(attrappe, ordnung, monkeypatch, caplog):  # noqa: F811
+    """Nebenläufigkeits-Fund: Warf `AuditEintrag.anhaengen` im Abschluss, nahm die Transaktion auch den
+    Endzustand zurück — der Auftrag blieb „läuft“, wurde nach der Sperrfrist neu reserviert und das Modell
+    noch einmal gerufen; der Stapel brach ab. Jetzt steht „gescheitert“, der Stapel läuft weiter, der
+    fehlende Eintrag wird protokolliert und im nächsten Lauf einmal nachgeholt."""
+    from unittest import mock
+
+    from django.db import IntegrityError
+
+    from ki.anbieter import AntwortAbgeschnitten
+    from verfahren.models import AuditEintrag
+
+    aufrufe = []
+
+    def abgeschnitten(auftrag):
+        aufrufe.append(auftrag.pk)
+        if len(aufrufe) == 1:
+            raise AntwortAbgeschnitten("Längengrenze erreicht")
+        return None
+
+    monkeypatch.setitem(warteschlange.ARBEIT, Zweck.RECHTSBEZUG, abgeschnitten)
+    erster = einreihen(Zweck.RECHTSBEZUG, _antrag(ordnung, "a1", "Erster"), mitglied_anlegen("x1"))
+    zweiter = einreihen(Zweck.RECHTSBEZUG, _antrag(ordnung, "a2", "Zweiter"), mitglied_anlegen("x2"))
+    echt = AuditEintrag.anhaengen
+
+    def kopf_ueberholt(ereignis, *args, **kwargs):
+        if ereignis.get("typ") == "ki_auftrag_gescheitert":
+            raise IntegrityError("Kopf der Kette dreimal überholt")
+        return echt(ereignis, *args, **kwargs)
+
+    jetzt = timezone.now()
+    with mock.patch.object(AuditEintrag, "anhaengen", side_effect=kopf_ueberholt):
+        stand = abarbeiten(jetzt)
+    assert stand["gescheitert"] == 1 and stand["erledigt"] == 1  # der Stapel lief weiter
+    erster.refresh_from_db()
+    zweiter.refresh_from_db()
+    assert erster.status == Auftragsstatus.GESCHEITERT and zweiter.status == Auftragsstatus.ERLEDIGT
+    assert "Abschlusseintrag" in caplog.text
+    assert not AuditEintrag.objects.filter(ereignis__typ="ki_auftrag_gescheitert").exists()
+
+    # Nach der Sperrfrist: kein zweiter Modellaufruf, der Eintrag wird einmal nachgeholt.
+    spaeter = jetzt + timedelta(minutes=warteschlange.SPERRE_MINUTEN + 1)
+    assert auftrag_ausfuehren(erster.pk, spaeter) == "uebersprungen"
+    abarbeiten(spaeter)
+    abarbeiten(spaeter)
+    assert aufrufe == [erster.pk, zweiter.pk]
+    eintraege = [e.ereignis for e in AuditEintrag.objects.filter(ereignis__typ="ki_auftrag_gescheitert")]
+    assert len(eintraege) == 1 and eintraege[0]["auftrag"] == erster.pk
+    erster.refresh_from_db()
+    assert erster.status == Auftragsstatus.GESCHEITERT and erster.sperrcode == ""
+
+
 def test_programmfehler_im_auftrag_toetet_den_lauf_nicht(attrappe, ordnung, monkeypatch):  # noqa: F811
     monkeypatch.setitem(warteschlange.ARBEIT, Zweck.RECHTSBEZUG, lambda auftrag: 1 / 0)
     a = einreihen(Zweck.RECHTSBEZUG, _antrag(ordnung), mitglied_anlegen("x"))

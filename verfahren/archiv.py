@@ -16,14 +16,16 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime
 
 from django.db.models import Count
+from django.utils import timezone
 from django.utils.text import capfirst
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from plattform_core import Phase, vorschlagschat
-from verfahren.chat import leicht, mit_zaehlern
+from verfahren.chat import leicht, mit_zaehlern, passt_alles_text
 from verfahren.models import Antragsart, AuditEintrag, Kommentar
 from verfahren.templatetags.phasen import NAMEN as PHASEN_NAMEN
 
@@ -54,13 +56,24 @@ def phasenname(schluessel: str) -> str:
     return schluessel or _("ohne Phase")
 
 
+def _endname(antrag) -> str:
+    """Wie die Phase des Antrags im Archiv heißt. Ein Ergebnis, das anders heißt als seine Phase,
+    trägt sein Ergebniswort (GP-049): Der leere örtliche Kreis endet in der Phase „abgelehnt“,
+    beschlossen wurde aber nichts — er heißt „Kein Beschluss“."""
+    if antrag.ergebnis is not None and antrag.ergebnis != antrag.phase:
+        return capfirst(str(antrag.ergebnis_name))
+    return phasenname(antrag.phase)
+
+
 def _beitrag(k: Kommentar) -> dict:
     return {
         "id": k.pk,
         "verfasser": k.mitglied.anzeigename if k.mitglied_id else _("Die Plattform"),
         "system": k.system,
         "antwort_auf": k.antwort_auf_id,
-        "text": k.sichtbarer_text(),
+        # Der Systembeitrag in der Sprache des Exports, nicht als gespeicherter Rohtext (GP-079): Älterer
+        # Bestand trägt ihn in der Sprache des ersten Aufrufs.
+        "text": passt_alles_text() if k.system else k.sichtbarer_text(),
         "geschrieben_am": k.erstellt_am.isoformat(),
         "bearbeitet": bool(k.bearbeitet_am),
         "archiviert_am": k.archiviert_am.isoformat() if k.archiviert_am else None,
@@ -102,8 +115,26 @@ def _anzahl_je_phase(antrag) -> dict[str, int]:
     }
 
 
+def _pruefbegruendung(pruefung) -> str:
+    """Die Begründung eines Urteils der Gruppe 2 ohne Namen (GP-011).
+
+    Bis 0.112 wurde sie mit den Namen der Prüfenden gespeichert; ein solcher Text überlebte Widerruf
+    und Austritt. Gibt es zum Urteil einen Beschluss mit Ergebnis, kommt die Begründung deshalb aus
+    dessen Stimmen — Option und Text, ohne Namen, so wie neue Urteile sie speichern. Ohne solche
+    Stimmen (Prüfung ohne Ergebnis, Urteil ohne Beschluss) steht der gespeicherte Vermerk."""
+    stimmen = pruefung.stimmbegruendungen()
+    if stimmen:
+        return "\n\n".join(f"{s['option']} — {s['text']}" for s in stimmen)
+    return pruefung.begruendung
+
+
 def entwurf_bloecke(antrag) -> list[dict]:
-    """Der Weg durch die Werkstatt: Fassungen, Prüfungen und die Auswertung je Runde."""
+    """Der Weg durch die Werkstatt: Fassungen, Prüfungen und die Auswertung je Runde.
+
+    Der Status heißt, wie die Werkstatt ihn nennt (`status_anzeige`, GP-008): Ein Entwurf, den eine
+    Zurückweisung stillgelegt hat, „ruht“ — übergeben wurde nichts. Je Prüfung steht, wie lange die
+    Frist des Koordinationsrats über einen Austauschantrag gehemmt war (`frist_gehemmt_sekunden`,
+    0 im Regelfall), und bei einem Austauschantrag, wann sie damit endet (`austausch_frist`)."""
     entwurf = getattr(antrag, "entwurf", None)
     if entwurf is None:
         return []
@@ -121,16 +152,18 @@ def entwurf_bloecke(antrag) -> list[dict]:
         {
             "runde": p.runde,
             "ergebnis": p.get_ergebnis_display(),
-            "begruendung": p.begruendung,
+            "begruendung": _pruefbegruendung(p),
             "korat_entscheid": p.korat_entscheid,
             "erstellt_am": p.erstellt_am.isoformat(),
+            "frist_gehemmt_sekunden": int(p.frist_gehemmt.total_seconds()),
+            "austausch_frist": p.austausch_frist.isoformat() if p.ergebnis == p.Ergebnis.AUSTAUSCH else None,
         }
-        for p in entwurf.pruefungen.order_by("erstellt_am")
+        for p in entwurf.pruefungen.select_related("beschluss").order_by("erstellt_am")
     ]
     return [
         {
             "runde": entwurf.runde,
-            "status": entwurf.get_status_display(),
+            "status": str(entwurf.status_anzeige()),
             "vollzugsbezug": entwurf.vollzugsbezug,
             "fassungen": fassungen,
             "pruefungen": pruefungen,
@@ -170,8 +203,6 @@ def _beendendes_ereignis(antrag, runde: int, ereignisse: list[dict] | None = Non
 def _stichzeit(beendet: dict | None):
     """Das Fristende, zu dem eine abgeschlossene Runde gezählt wurde — `wirksam_ab` des Ereignisses,
     das sie beendet hat (seit 0.45 in beiden Ereignistypen). None ohne Ereignis oder ohne Feld."""
-    from datetime import datetime
-
     wann = (beendet or {}).get("wirksam_ab")
     try:
         return datetime.fromisoformat(wann) if wann else None
@@ -301,6 +332,8 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
                 "name": (
                     str(WARTEZEIT_NAME)
                     if bestaetigung and phase == Phase.UNTERSTUETZUNG.value
+                    else _endname(antrag)
+                    if phase == antrag.phase
                     else phasenname(phase)
                 ),
                 "laufend": phase == antrag.phase and phase not in ENDZUSTAENDE,
@@ -396,6 +429,104 @@ def audit_spur(antrag, grenze: int | None = None) -> list[dict]:
     return [eintrag_oeffentlich(eintrag) for eintrag in eintraege]
 
 
+def nachweis_felder(antrag) -> dict:
+    """Was der Stimmen-Export zusätzlich nennt, damit verify/nachrechnen.py ihn mit der Audit-Kette
+    vergleichen kann — neue Felder werden nur angefügt.
+
+    `stichtag` (GP-028): der Kalendertag, an dem die Zahl der Stimmberechtigten festgestellt wurde
+    (§ 4 Abs 4 lit a); None bei Altbestand ohne gespeicherten Stichtag. Nenner und Stichtag stehen seit
+    dieser Fassung auch im Ereignis `phasenwechsel` des Abstimmungsbeginns.
+
+    `stimmliste_sha256` (GP-138): die Prüfsumme der Stimmliste dieses Exports, wie
+    `plattform_core.tally.stimmliste_pruefsumme` sie bildet. Dieselbe Zahl steht seit dieser Fassung im
+    Ereignis `phasenwechsel`, mit dem das Ergebnis festgestellt wurde.
+
+    `fassungen` (GP-067): Nummer und Wortlaut jeder Fassung. Das Ereignis der Einbringung trägt seit
+    dieser Fassung die Prüfsummen des ersten Wortlauts und der eingefrorenen Regeln (Block `policy`),
+    das Ereignis des Abstimmungsbeginns die der Fassung, über die abgestimmt wurde.
+
+    `ergebnis` (GP-049): das Ergebniswort — `angenommen`, `abgelehnt` oder `kein_beschluss` (der
+    festgehaltene örtliche Kreis hatte keinen Stimmberechtigten). verify/nachrechnen.py errechnet es
+    unabhängig aus Stimmen und Nenner."""
+    stichtag = antrag.stimmberechtigung_stichtag
+    return {
+        "ergebnis": antrag.ergebnis,
+        "stichtag": stichtag.isoformat() if stichtag else None,
+        "stimmliste_sha256": antrag.stimmliste_pruefsumme(),
+        "fassungen": [
+            {"nummer": nummer, "wortlaut": wortlaut}
+            for nummer, wortlaut in antrag.fassungen.order_by("nummer").values_list("nummer", "wortlaut")
+        ],
+    }
+
+
+#: Der Stand der Nachrechnung einer Beanstandung, wie der Markdown-Export ihn nennt (GP-085).
+NACHRECHNUNG_NAMEN = {
+    "keine": gettext_lazy("keine Nachrechnung"),
+    "angefordert": gettext_lazy("Nachrechnung angefordert"),
+    "erledigt": gettext_lazy("Nachrechnung erledigt"),
+    "gescheitert": gettext_lazy("Nachrechnung gescheitert"),
+}
+
+
+def beanstandungen(antrag) -> list[dict]:
+    """Alle öffentlichen Beanstandungen der Einschätzungen dieses Antrags (§ 6 Abs 11 lit b, GP-085),
+    in der Reihenfolge ihres Eingangs — auch die, zu denen niemand eine Nachrechnung angefordert hat.
+
+    Je Beanstandung: Text, Zeitpunkt, der beanstandete Lauf (`lauf`, null bei alten Vermerken ohne
+    Laufbezug) und der Stand der Nachrechnung (`nachrechnung`): `keine`, `angefordert` (der Auftrag
+    wartet oder läuft), `erledigt` oder `gescheitert`; `nachrechnung_auftrag` verweist auf den Auftrag,
+    dessen Läufe unter `rechtsbezug.korrekturen` stehen. Ein alter Erledigungsvermerk ohne Auftrag
+    gilt als `erledigt` und steht mit Tag und Wortlaut dabei. Ohne Namen: Wer beanstandet hat, zeigt
+    die Antragsseite mit dem dort geltenden Anzeigenamen."""
+    from ki.models import Auftragsstatus, KIAuftrag, Zweck
+
+    eintraege = list(antrag.beanstandungen.order_by("erstellt_am", "pk"))
+    if not eintraege:
+        return []
+    auftraege = {
+        a.beanstandung_id: a
+        for a in KIAuftrag.objects.filter(antrag=antrag, zweck=Zweck.KORREKTUR, beanstandung__in=eintraege)
+    }
+    staende = {Auftragsstatus.ERLEDIGT: "erledigt", Auftragsstatus.GESCHEITERT: "gescheitert"}
+    ergebnis = []
+    for b in eintraege:
+        auftrag = auftraege.get(b.pk)
+        if auftrag is not None:
+            stand = staende.get(auftrag.status, "angefordert")
+        else:
+            stand = "erledigt" if b.erledigt_am else "keine"
+        ergebnis.append(
+            {
+                "id": b.pk,
+                "text": b.text,
+                "erstellt_am": b.erstellt_am.isoformat(),
+                "lauf": b.lauf_id,
+                "nachrechnung": stand,
+                "nachrechnung_auftrag": auftrag.pk if auftrag is not None else None,
+                "erledigt_am": b.erledigt_am.isoformat() if b.erledigt_am else None,
+                "erledigt_vermerk": b.erledigt_vermerk,
+            }
+        )
+    return ergebnis
+
+
+def _ortszeit(iso: str, nur_tag: bool = False) -> str:
+    """Ein Zeitstempel des Archivs (ISO, UTC) für den Markdown-Export: Ortszeit, „2026-10-20 01:30“ —
+    derselbe Kalendertag wie auf der Antragsseite (GP-126). Mit `nur_tag` nur der Tag.
+
+    Das Markdown schnitt die Zeitstempel bisher ab und nannte so UTC, ohne es zu sagen. Ein
+    Zeitstempel ohne Versatz ist schon Ortszeit (die auf den Tag gekürzten Stimm-Ereignisse einer
+    laufenden Abstimmung) und bleibt, wie er ist; was sich nicht lesen lässt, ebenso."""
+    try:
+        wann = datetime.fromisoformat(str(iso))
+    except ValueError:
+        return str(iso)[: 10 if nur_tag else 16]
+    if timezone.is_aware(wann):
+        wann = timezone.localtime(wann)
+    return f"{wann:%Y-%m-%d}" if nur_tag else f"{wann:%Y-%m-%d %H:%M}"
+
+
 def audit_anzahl(antrag) -> int:
     """Wie viele Audit-Ereignisse dieser Antrag hat — gezählt in der Datenbank."""
     return AuditEintrag.objects.filter(ereignis__antrag=antrag.pk).count()
@@ -405,12 +536,17 @@ def archiv(antrag) -> dict:
     """Das ganze Archiv eines Antrags als schlichte Abbildung — Grundlage für Anzeige und Export."""
     from ki.nachlese import antrag_export
     from verfahren.einbringwahl import einstufungen
+    from verfahren.models import wortlaut_pruefsumme
+
     fassungen = [
         {
             "nummer": f.nummer,
             "wortlaut": f.wortlaut,
             "begruendung": f.begruendung,
             "erstellt_am": f.erstellt_am.isoformat(),
+            # Zum Vergleich mit der Audit-Spur (GP-067): Einbringung und Abstimmungsbeginn nennen
+            # dieselbe Zahl, wenn der Wortlaut seither unverändert ist.
+            "wortlaut_sha256": wortlaut_pruefsumme(f.wortlaut),
         }
         for f in antrag.fassungen.order_by("nummer")
     ]
@@ -421,13 +557,17 @@ def archiv(antrag) -> dict:
             "art": antrag.get_art_display(),
             "ebene": antrag.get_ebene_display(),
             "phase": antrag.phase,
-            "phase_name": phasenname(antrag.phase),
+            "phase_name": _endname(antrag),
+            # Das Ergebniswort eines entschiedenen Antrags (GP-049), sonst null; `phase` bleibt die Phase.
+            "ergebnis": antrag.ergebnis,
+            "ergebnis_name": str(antrag.ergebnis_name) or None,
             "eingebracht_am": antrag.eingebracht_am.isoformat(),
             "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
         },
         "fassungen": fassungen,
         "eigenstaendigkeit": einstufungen(antrag),
         "rechtsbezug": antrag_export(antrag),
+        "beanstandungen": beanstandungen(antrag),
         "zeitleiste": zeitleiste(antrag, alles=True),
         "entwurf": entwurf_bloecke(antrag),
         "audit": audit_spur(antrag),
@@ -491,7 +631,8 @@ def als_markdown(antrag) -> str:
     # Der Bestätigungsantrag (§ 7 Abs 10 lit f Z 3) kennt weder Unterstützung noch Anlässe noch die Zahlen
     # nach lit c — lit b, c und g gelten für ihn nicht; der Export sagt das statt „0 Unterstützungen · Schwelle: 0“.
     bestaetigung = _ist_bestaetigung(antrag)
-    eingebracht = a["eingebracht_am"][:10]
+    # Tage und Uhrzeiten in Ortszeit, wie auf der Antragsseite (GP-126) — der Kopf sagt es dazu.
+    eingebracht = _ortszeit(a["eingebracht_am"], nur_tag=True)
     if antrag.art == Antragsart.MANDATSFRAGE:
         kopf = f"{_('Eröffnet')}: {eingebracht} · {_('ohne Unterstützungs- und Beratungsphase (§ 7 Abs 9)')}"
     elif bestaetigung:
@@ -503,6 +644,7 @@ def als_markdown(antrag) -> str:
         "",
         f"Antrag {a['id']} · {a['art']} · {a['ebene']} · {_('Phase')}: {a['phase_name']}",
         kopf,
+        _("Zeitangaben in Ortszeit (%(zone)s)") % {"zone": timezone.get_current_timezone_name()},
         "",
     ]
     vf = d.get("vertrauensfrage")
@@ -532,9 +674,9 @@ def als_markdown(antrag) -> str:
         if vf["stellungnahmen"]:
             zeilen += [f"## {_('Stellungnahme des Mandatsträgers')}", ""]
             for st in vf["stellungnahmen"]:
-                zeilen += [f"- ({st['erstellt_am'][:16].replace('T', ' ')})", f"  {st['text']}".replace("\n", "\n  "), ""]
+                zeilen += [f"- ({_ortszeit(st['erstellt_am'])})", f"  {st['text']}".replace("\n", "\n  "), ""]
     for f in d["fassungen"]:
-        zeilen += [f"## {_('Fassung')} {f['nummer']} ({f['erstellt_am'][:10]})", "", f["wortlaut"], ""]
+        zeilen += [f"## {_('Fassung')} {f['nummer']} ({_ortszeit(f['erstellt_am'], nur_tag=True)})", "", f["wortlaut"], ""]
         if f["begruendung"]:
             zeilen += [f"*{f['begruendung']}*", ""]
     for block in d["zeitleiste"]:
@@ -556,7 +698,7 @@ def als_markdown(antrag) -> str:
                 "",
             ]
         for b in block["beitraege"]:
-            kopf = f"- **{b['verfasser']}** ({b['geschrieben_am'][:16].replace('T', ' ')})"
+            kopf = f"- **{b['verfasser']}** ({_ortszeit(b['geschrieben_am'])})"
             if b["ist_kritik"]:
                 kopf += f" · {_('Kritik')}" + (f" {_('Absatz')} {b['bezug_absatz']}" if b["bezug_absatz"] else "")
             if b["antwort_auf"]:
@@ -569,7 +711,19 @@ def als_markdown(antrag) -> str:
         for f in e["fassungen"]:
             zeilen += [f"### {_('Entwurfsfassung')} {f['nummer']} · {f['verfasst_von']}", "", f["wortlaut"], ""]
         for p in e["pruefungen"]:
-            zeilen += [f"- {_('Prüfung')} ({p['ergebnis']}): {p['begruendung']}", ""]
+            zeilen.append(f"- {_('Prüfung')} ({p['ergebnis']}): {p['begruendung']}")
+            if p["frist_gehemmt_sekunden"] and p["austausch_frist"]:
+                # GP-008: Die Frist ruhte während einer aufgehobenen Zurückweisung — in Ortszeit genannt.
+                frist = timezone.localtime(datetime.fromisoformat(p["austausch_frist"]))
+                zeilen.append(
+                    "  "
+                    + _(
+                        "Frist des Koordinationsrats über den Austauschantrag: %(frist)s "
+                        "(gehemmt, solange der Antrag zurückgewiesen war)"
+                    )
+                    % {"frist": f"{frist:%d.%m.%Y %H:%M}"}
+                )
+            zeilen.append("")
     if d["rechtsbezug"]["laeufe"]:
         zeilen += [f"## {_('Einschätzungen und Textstände')}", ""]
         for lauf in d["rechtsbezug"]["laeufe"]:
@@ -584,8 +738,18 @@ def als_markdown(antrag) -> str:
                 lauf["eingabe"], "", lauf["antwort"] if lauf["erfolgreich"] else lauf["fehler"], "",
             ]
         zeilen += [str(_("KI-Vorschlag — ohne RIS-Prüfung, keine Rechtsberatung, keine Wirkung auf das Verfahren.")), ""]
+    if d["beanstandungen"]:
+        zeilen += [f"## {_('Beanstandungen')}", ""]
+        for b in d["beanstandungen"]:
+            kopf = f"- **{_('Beanstandung')} #{b['id']}** ({_ortszeit(b['erstellt_am'])})"
+            if b["lauf"]:
+                kopf += f" · {_('Beanstandeter Lauf')} #{b['lauf']}"
+            zeilen += [f"{kopf} · {NACHRECHNUNG_NAMEN[b['nachrechnung']]}", f"  {b['text']}".replace("\n", "\n  ")]
+            if b["erledigt_vermerk"]:
+                zeilen.append(f"  {_('Antwort der Werkstatt:')} {b['erledigt_vermerk']}".replace("\n", "\n  "))
+            zeilen.append("")
     if d["audit"]:
         zeilen += [f"## {_('Audit-Spur')}", ""]
-        zeilen += [f"- {e['zeit'][:16].replace('T', ' ')} · {e['typ']} · `{e['hash'] or '•'}`" for e in d["audit"]]
+        zeilen += [f"- {_ortszeit(e['zeit'], nur_tag=bool(e.get('nur_tag')))} · {e['typ']} · `{e['hash'] or '•'}`" for e in d["audit"]]
         zeilen.append("")
     return "\n".join(zeilen)

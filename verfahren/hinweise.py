@@ -156,7 +156,14 @@ def kachel_sperre(code: str | None) -> dict | None:
     if not code or code not in HINWEISE:
         return None
     link, link_text = _link(code)
-    return {"code": code, "kurz": HINWEISE[code].get("kurz") or _hinweistext(code), "link": link, "link_text": link_text}
+    return {
+        "code": code,
+        "kurz": HINWEISE[code].get("kurz") or _hinweistext(code),
+        # Die Antragsseite nennt denselben Grund als Satz (GP-070)
+        "text": _hinweistext(code),
+        "link": link,
+        "link_text": link_text,
+    }
 
 
 def kachel_feld(request) -> str | None:
@@ -243,3 +250,54 @@ def handlungslage(nutzer) -> Handlungslage:
     sperre = mitwirkungssperre(nutzer)
     stimme = sperre or ("adresswechsel" if nutzer.adresswechsel_offen else None)
     return Handlungslage(angemeldet=True, mitwirkung=sperre, stimmabgabe=stimme)
+
+
+def unerreichbare_schwellen(mitglied, ordnung, art: str = "sache") -> list[dict]:
+    """Z-5 (E-05): Die örtlichen Ebenen, in denen ein jetzt eingebrachter Antrag seine Unterstützungsschwelle
+    gar nicht erreichen kann — weil sie mehr Unterstützungen verlangt, als es im Kreis Unterstützungsberechtigte
+    gibt (die einbringende Person zählt mit, sie darf den eigenen Antrag unterstützen). Nur ein Hinweis vor dem
+    Absenden, keine Sperre und keine neue Zahl: Gerechnet wird wie `antrag_einbringen` (Kreis des Hauptwohnsitzes,
+    Schwelle aus der aktiven Ordnung) mit dem heutigen Stand. Unterstützungsberechtigt ist im Kreis, wer
+    angemeldet mitwirken darf (`mitwirkungssperre`): aktiv, nicht ungeprüft, kein Testkonto.
+
+    Ohne Iteration über große Kreise: Ist die Schwelle schon in ihrer Obergrenze (Anteil aller Konten des
+    Kreises) erreichbar, wird nicht weiter gerechnet."""
+    from django.utils import timezone
+
+    from plattform_core import Gegenstand
+    from plattform_core.policy import unterstuetzungsschwelle
+    from plattform_core.teilnehmerkreis import GebietsFehler
+    from verfahren.models import Antragsart, uebergangsregel_der_instanz
+    from verfahren.teilnahme import aktive_berechtigung, gebietsname, hauptgebiet, konten_fuer
+
+    if ordnung is None or mitglied is None or not mitglied.is_authenticated:
+        return []
+    policy = ordnung.als_policy()
+    if policy.beratung_entfaellt:
+        return []
+    gegenstand = Gegenstand.PERSONENWAHL if art == Antragsart.MANDAT else Gegenstand.SACHFRAGE
+    stichtag = timezone.localdate()
+    ergebnis = []
+    for ebene in ("gemeinde", "bezirk", "land"):
+        try:
+            gebiet = hauptgebiet(mitglied, ebene)
+        except GebietsFehler:
+            continue
+        konten = konten_fuer(gebiet)
+        unterstuetzende = (
+            konten.filter(is_active=True, status=Mitgliedsstatus.AKTIV)
+            .exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
+            .count()
+        )
+        if policy.unterstuetzung_anteil > 0:
+            obergrenze = unterstuetzungsschwelle(policy.unterstuetzung_schwelle, policy.unterstuetzung_anteil, konten.count())
+            if unterstuetzende >= obergrenze:
+                continue
+            uebergang = uebergangsregel_der_instanz()
+            stimmberechtigte = sum(aktive_berechtigung(m, gegenstand, stichtag, uebergang) for m in konten)
+            schwelle = unterstuetzungsschwelle(policy.unterstuetzung_schwelle, policy.unterstuetzung_anteil, stimmberechtigte)
+        else:
+            schwelle = policy.unterstuetzung_schwelle
+        if schwelle > unterstuetzende:
+            ergebnis.append({"ebene": ebene, "gebiet": gebietsname(gebiet), "schwelle": schwelle})
+    return ergebnis

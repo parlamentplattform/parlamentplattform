@@ -685,3 +685,74 @@ def test_gemeindelinks_im_bereich_erst_ab_dem_antritt(client):
     Mandat.objects.filter(pk=mandat.pk).update(angetreten=timezone.localdate())
     html = client.get(reverse("mandatare:mein_mandat", args=[mandat.pk])).content.decode()
     assert f'href="{reverse("mandatare:sprechstunden", args=[mandat.pk])}"' in html
+
+
+# ── GP-100: Die Anmeldung führt auf die aufgerufene Seite zurück ───────────────────────────
+
+
+def test_gast_landet_nach_der_anmeldung_wieder_im_bereich(client):
+    """Wer als Gast den Bereich des Mandatars öffnet, bekommt die Seite als Ziel der Anmeldung mit und
+    landet nach dem Anmeldelink dort — auch wenn der Link auf einem anderen Gerät geöffnet wird."""
+    import re
+
+    from django.core import mail
+    from django.test import Client
+
+    from mitglieder.test_views import botschutz, link_aus_mail
+
+    m = mitglied_anlegen('ziel')
+    mandat = mandat_anlegen(m)
+    for pfad in (MEIN, reverse('mandatare:mein_mandat', args=[mandat.pk])):
+        umleitung = client.get(pfad)
+        assert umleitung.status_code == 302
+        assert umleitung['Location'] == reverse('mitglieder:login') + '?next=' + pfad.replace('/', '%2F')
+    html = client.get(umleitung['Location']).content.decode()
+    weiter = re.search(r'name="ziel" value="([^"]*)"', html).group(1)
+    assert weiter == pfad
+    mail.outbox.clear()
+    client.post(umleitung['Location'], {'email': m.email, 'ziel': weiter, **botschutz(client, url=umleitung['Location'])})
+    assert len(mail.outbox) == 1
+    anderes_geraet = Client()
+    antwort = anderes_geraet.post(link_aus_mail(mail.outbox[0]))
+    assert antwort['Location'] == pfad
+    assert anderes_geraet.get(pfad).status_code == 200
+
+
+def test_schreibender_aufruf_eines_gastes_traegt_kein_ziel(client):
+    """Ein POST ist kein Ziel einer Anmeldung: Die Umleitung bleibt die bloße Anmeldeseite."""
+    antwort = client.post(AKTION, {'aktion': 'report', 'mandat': 1})
+    assert antwort.status_code == 302 and antwort['Location'] == reverse('mitglieder:login')
+
+
+# ── GP-104: In der Nachfrist führt die eigene Mandatsseite in den Bereich ──────────────────
+
+
+def _karte_vertrauen(client, mandat) -> str:
+    html = client.get(reverse('mandatare:detail', args=[mandat.pk])).content.decode()
+    return html.split('<h2 id="vertrauen">')[1].split('Alle Vertrauensfragen')[0]
+
+
+def test_mandatsseite_verlinkt_in_der_nachfrist_den_eigenen_bereich(client):
+    """Nach dem Mandatsende läuft die Nachfrist für Rechenschaft und Berichte. Die öffentliche Seite des
+    Mandats zeigt der Person selbst den Weg nach /mandatare/mein/ — niemandem sonst, und nach der
+    Nachfrist nicht mehr."""
+    from mandatare.models import NACHFRIST_TAGE
+
+    heute = timezone.localdate()
+    m = mitglied_anlegen('frueher')
+    # ein Tag Abstand zur Grenze: Der Test hält auch, wenn zwischen dieser Zeile und dem Aufruf Mitternacht liegt
+    mandat = mandat_anlegen(m, angetreten=heute - timedelta(days=400), beendet=heute - timedelta(days=NACHFRIST_TAGE - 1))
+    ziel = f'href="{MEIN}"'
+    assert ziel not in _karte_vertrauen(client, mandat)  # Gast
+    client.force_login(mitglied_anlegen('fremd'))
+    assert ziel not in _karte_vertrauen(client, mandat)  # fremde Person
+    client.force_login(m)
+    assert ziel in _karte_vertrauen(client, mandat)  # die Nachfrist läuft noch
+    assert client.get(MEIN).status_code == 200  # der Link führt nicht ins Leere
+    Mandat.objects.filter(pk=mandat.pk).update(beendet=heute - timedelta(days=NACHFRIST_TAGE + 1))
+    assert ziel not in _karte_vertrauen(client, mandat)  # Nachfrist vorbei: kein Bereich, kein Link
+
+
+def test_mandatsseite_verlinkt_den_bereich_auch_beim_offenen_mandat(client):
+    m, mandat = mandatar(client, 'offen')
+    assert f'href="{MEIN}"' in _karte_vertrauen(client, mandat)

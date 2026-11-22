@@ -38,7 +38,9 @@ def _(text: str) -> str:
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
 #: Fassung 31 (18.11.2026): Die Reihung „Meistgelesene Anträge“ der Übersicht ist verzeichnet.
-VERSION = 31
+#: Fassung 32 (21.11.2026): Reihung und Umfang der Listen im Parlament (`parlamentlisten.py`) sind
+#: verzeichnet; beide Auszählregeln nennen die Gegenprobe vor der Feststellung.
+VERSION = 32
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -283,7 +285,13 @@ REGELN: tuple[Regel, ...] = (
             _("Zählt die Ja-, Nein- und Enthaltungsstimmen einer Sachabstimmung und stellt fest, ob der "
             "Antrag angenommen ist: Zuerst muss die Mindestbeteiligung erreicht sein, dann "
             "entscheidet die Mehrheit. Gerechnet wird ausschließlich mit ganzen Zahlen, damit kein "
-            "Rundungsfehler über einen Beschluss entscheiden kann.")
+            "Rundungsfehler über einen Beschluss entscheiden kann. Vor der Feststellung prüft "
+            "plattform_core.tally.gegenprobe die Stimmliste gegen das Stimmregister des Antrags, gegen die "
+            "festgestellte Zahl der Stimmberechtigten und gegen die Stimm-Ereignisse der Audit-Kette. "
+            "Angehalten wird nur, was kein Weg der Stimmabgabe erzeugt: ein Stimmzettel ohne Registerzeile "
+            "oder eine abweichende Zahl der Stimm-Ereignisse — dann wird kein Ergebnis festgestellt, und die "
+            "Audit-Kette nennt den Befund. Mehr Stimmen als festgestellte Stimmberechtigte werden mit dem "
+            "Ergebnis ausgewiesen und halten nicht an.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 4 (mit § 3 Abs 1 lit b — eine Stimme je Mensch)",
@@ -313,7 +321,14 @@ REGELN: tuple[Regel, ...] = (
             "die Bewerbung mit den meisten Zustimmungen gewinnt, und die Reihenfolge der "
             "Zustimmungszahlen ergibt die Reihung des Wahlvorschlags. Bei Stimmengleichheit steht die "
             "früher eingereichte Bewerbung vorn. Das gilt auch an der Spitze: Haben zwei Bewerbungen "
-            "gleich viele Zustimmungen, ist die früher eingereichte gewählt.")
+            "gleich viele Zustimmungen, ist die früher eingereichte gewählt. Vor der Feststellung prüft "
+            "plattform_core.tally.gegenprobe die geltenden Zustimmungen gegen das Stimmregister des Antrags, "
+            "die Zahl der zustimmenden Menschen gegen die festgestellte Zahl der Stimmberechtigten und die "
+            "Zahl der Zustimmungen gegen die Stimm-Ereignisse der Audit-Kette (gegebene abzüglich "
+            "zurückgenommener Zustimmungen). Angehalten wird nur, was kein Weg der Stimmabgabe erzeugt: eine "
+            "Zustimmung ohne Registerzeile oder eine abweichende Zahl der Stimm-Ereignisse — dann wird kein "
+            "Ergebnis festgestellt, und die Audit-Kette nennt den Befund. Mehr zustimmende Menschen als "
+            "festgestellte Stimmberechtigte werden mit dem Ergebnis ausgewiesen und halten nicht an.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 7 Abs 1 (Satzungsentwurf 2.5), mit § 5 Abs 4 für die Mindestbeteiligung",
@@ -1076,5 +1091,14 @@ REGELN: tuple[Regel, ...] = (
             "aufsteigend geordnet ergibt sich daraus die Besetzung. Mit jedem "
             "Prüfsummenwerkzeug in wenigen Minuten nachzurechnen.")
         ),
+    ),
+    Regel(
+        modul="parlamentlisten.py",
+        titel=_("Reihung und Umfang der Listen im Parlament"),
+        zweck=_("Legt fest, in welcher Reihenfolge und wie viele Anträge die Listen im Parlament zeigen: die Gruppen des WeicherFilters ohne gestellte Regler, „Wichtige Abstimmungen“, „Meine Region“, die Anträge eines Lebensbereichs und die Titelsuche. Keine Liste reiht nach Beliebtheit; keine schneidet still ab, jede gekürzte Liste nennt ihre Gesamtzahl."),
+        wirkung=Wirkung.REIHT, satzung="§ 5 Abs 10 · § 2 Abs 6", fassung=1, seit="2026-11-21",
+        grund=_("Erste verzeichnete Fassung. „Wichtige Abstimmungen“ reihte nach dem Phasenbeginn statt nach dem Fristende und schnitt ohne Gesamtzahl ab; „Meine Region“ und die Suche hatten keine offengelegte Regel; bei tausenden Verfahren wuchs das Parlament ohne Grenze (Gründerentscheidung D-B1a vom 29.9.2026: Obergrenze je Gruppe mit weiteren Seiten)."),
+        nachrechenbar=_("Neutrale Ordnung: zuerst die Phase (Abstimmung, Beratung, Unterstützung), dann das Fristende aufsteigend, bei Gleichstand die kleinere Antragsnummer. So reihen die Gruppen des WeicherFilters ohne Regler (steht der Schalter „Favoriten zuerst“, stehen Anträge aus abonnierten Lebensbereichen innerhalb der Gruppe vorn), „Meine Region“ je Zeile, die Anträge eines Lebensbereichs samt Unterbereichen und die laufenden Treffer der Titelsuche. Jede Gruppe des WeicherFilters zeigt höchstens so viele Anträge, wie das Parameterregister als Höchstzahl je Gruppe vorsieht (Startwert 60; 0 zeigt alle), die übrigen stehen seitenweise in derselben Größe unter „Alle zeigen“. „Abgeschlossen“ zeigt die zuletzt entschiedenen zuerst (Beginn der letzten Phase absteigend, dann Antragsnummer absteigend), in der Übersicht so viele, wie der Registerwert „kacheln-abgeschlossen“ sagt. „Wichtige Abstimmungen“: die vom Integritätsrat hervorgehobenen laufenden Anträge nach Fristende aufsteigend, so viele, wie der Registerwert „kacheln-hervorgehoben“ sagt; der Feldkopf nennt die Gesamtzahl. „Gemerkt“: die eigenen gemerkten Anträge, laufende in neutraler Ordnung, danach die übrigen, zuletzt entschiedene zuerst. Die Anträge eines Lebensbereichs stehen seitenweise in derselben Größe. Die Suche zeigt Lebensbereiche nach ihrer Tiefe im Baum, dann nach Name, und Anträge mit dem Suchwort im Titel, laufende in neutraler Ordnung, danach die übrigen, zuletzt entschiedene zuerst; beide Listen höchstens so viele, wie das Parameterregister für Suchtreffer vorsieht."),
+        registerschluessel="parlament-gruppe-hoechstzahl · kacheln-abgeschlossen · kacheln-hervorgehoben · suche-treffer-hoechstzahl",
     ),
 )

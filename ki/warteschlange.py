@@ -10,7 +10,9 @@ Takt eine Minute) ruft `abarbeiten`:
 - **Atomare Reservierung** wie beim Postauftrag: ein UPDATE mit Sperrcode, damit zwei Worker nie
   denselben Auftrag zugleich rechnen; eine verlorene Reservierung läuft nach SPERRE_MINUTEN ab.
 - **Rückzug bei Fehlern**: 2, 4, 8, 16, 32 Minuten; nach dem sechsten Fehlschlag (HOECHSTVERSUCHE)
-  gilt der Auftrag als gescheitert (Stempel, nicht gelöscht).
+  gilt der Auftrag als gescheitert (Stempel, nicht gelöscht). Eine an der Längengrenze
+  abgeschnittene Antwort (GP-143) beendet den Auftrag sofort als gescheitert: Dieselbe Grenze
+  bräche wieder ab; Wortlaut und Verbrauch stehen im Lauf-Archiv.
 
 Das Ergebnis bleibt im `KILauf` (Archiv); der Auftrag verweist darauf. Nichts hier entscheidet,
 reiht oder blockiert ein Verfahren — die Werkstatt schlägt vor (Grundregel 5, § 2 Abs 6)."""
@@ -25,7 +27,7 @@ from django.db import transaction
 from django.db.models import F, Q
 from django.utils import timezone
 
-from ki.anbieter import SteckplatzStumm, anbieter_waehlen
+from ki.anbieter import AntwortAbgeschnitten, SteckplatzStumm, anbieter_waehlen
 from ki.betriebszugang import SteckplatzWartet
 from ki.models import Auftragsstatus, KIAuftrag, KILauf, Zweck, einbettung_ausfuehren, lauf_ausfuehren
 
@@ -33,6 +35,8 @@ log = logging.getLogger(__name__)
 
 SPERRE_MINUTEN = 15
 HOECHSTVERSUCHE = 6
+#: So oft versucht der Abschluss, Endzustand und Eintrag gemeinsam zu schreiben — Fehlergrenze, keine Stellgröße.
+ABSCHLUSS_VERSUCHE = 3
 TAGESLAEUFE_STANDARD = 20
 #: Zwecke, die die Warteschlange kennt — jeder mit seiner Arbeit.
 ZWECKE = (Zweck.RECHTSBEZUG, Zweck.AEHNLICHKEIT, Zweck.KORREKTUR, Zweck.RECHTSFOLGEN)
@@ -306,6 +310,16 @@ def auftrag_ausfuehren(pk: int, jetzt=None) -> str:
         stand.update(status=Auftragsstatus.GEPLANT, versuche=F("versuche") - 1,
             fehler=f"{type(fehler).__name__}: {fehler}"[:300], naechster_versuch=None)
         ausgang = "verschoben"
+    except AntwortAbgeschnitten as fehler:
+        # GP-143: Der Anbieter hat geantwortet, aber an der Längengrenze abgebrochen. Ein neuer Versuch
+        # mit derselben Grenze bräche wieder ab und kostete erneut; der Auftrag endet ohne Ergebnis.
+        letzter = KILauf.objects.filter(
+            antrag=auftrag.antrag, zweck=auftrag.zweck,
+            kontext__auftrag=auftrag.pk, kontext__versuch=auftrag.versuche,
+        ).order_by("-erstellt_am", "-pk").first()
+        stand.update(status=Auftragsstatus.GESCHEITERT, naechster_versuch=None, lauf=letzter,
+            fehler=f"{type(fehler).__name__}: {fehler}"[:300])
+        ausgang = "gescheitert"
     except Exception as fehler:  # der Faden darf nie sterben; der Grund steht am Auftrag
         if not isinstance(fehler, SteckplatzStumm):  # ein stummer Steckplatz ist kein Programmfehler
             log.exception("KI-Auftrag %s gescheitert", pk)
@@ -324,8 +338,59 @@ def auftrag_ausfuehren(pk: int, jetzt=None) -> str:
             )
             ausgang = "verschoben"
     finally:
-        KIAuftrag.objects.filter(pk=pk, sperrcode=token).update(**stand)
+        _abschliessen(pk, token, stand, ausgang == "gescheitert", auftrag)
     return ausgang
+
+
+def _gescheitert_eintragen(auftrag) -> None:
+    from verfahren.models import AuditEintrag
+
+    # Nur Nummern: kein Fehlertext des Anbieters, keine Person (der steht am Auftrag).
+    AuditEintrag.anhaengen(
+        {"typ": "ki_auftrag_gescheitert", "auftrag": auftrag.pk, "zweck": auftrag.zweck, "antrag": auftrag.antrag_id}
+    )
+
+
+def _abschliessen(pk: int, token: str, stand: dict, gescheitert: bool, auftrag) -> None:
+    """Den Endzustand festschreiben — „gescheitert“ gemeinsam mit seinem Eintrag in der Kette (GP-045).
+
+    Scheitert nur der Eintrag (Kopf der Kette überholt, Datenbankfehler) auch nach `ABSCHLUSS_VERSUCHE`,
+    steht der Endzustand trotzdem: Sonst bliebe der Auftrag „läuft“, würde nach der Sperrfrist neu
+    reserviert und das Modell noch einmal gerufen (Kosten), und der Stapel bräche ab. Der Auftrag behält
+    dann seinen Sperrcode als Merkmal „Eintrag fehlt“ — ein gescheiterter Auftrag trägt sonst nie einen —,
+    und `eintraege_nachholen` schreibt den Eintrag im nächsten Lauf genau einmal nach."""
+    for versuch in range(1, ABSCHLUSS_VERSUCHE + 1):
+        try:
+            with transaction.atomic():
+                geschrieben = KIAuftrag.objects.filter(pk=pk, sperrcode=token).update(**stand)
+                if geschrieben and gescheitert:
+                    _gescheitert_eintragen(auftrag)
+            return
+        except Exception:
+            log.warning("Abschlusseintrag für KI-Auftrag %s: Versuch %s gescheitert", pk, versuch, exc_info=True)
+    if not gescheitert:
+        # Ohne Eintrag gibt es nur den Endzustand selbst; scheitert er weiter, ist die Datenbank das Problem.
+        KIAuftrag.objects.filter(pk=pk, sperrcode=token).update(**stand)
+        return
+    if KIAuftrag.objects.filter(pk=pk, sperrcode=token).update(**{**stand, "sperrcode": token}):
+        log.error("Abschlusseintrag für KI-Auftrag %s fehlt — der nächste Lauf holt ihn nach", pk)
+
+
+def eintraege_nachholen() -> int:
+    """Fehlende Einträge „ki_auftrag_gescheitert“ nachholen (siehe `_abschliessen`): Gescheiterte Aufträge
+    mit stehengebliebenem Sperrcode. Das bedingte Leeren des Codes lässt nur einen Worker eintragen.
+    Rückgabe: Zahl der nachgeholten Einträge."""
+    nachgeholt = 0
+    offen = KIAuftrag.objects.filter(status=Auftragsstatus.GESCHEITERT).exclude(sperrcode="").order_by("pk")
+    for auftrag in offen:
+        try:
+            with transaction.atomic():
+                if KIAuftrag.objects.filter(pk=auftrag.pk, sperrcode=auftrag.sperrcode).update(sperrcode=""):
+                    _gescheitert_eintragen(auftrag)
+                    nachgeholt += 1
+        except Exception:
+            log.exception("Abschlusseintrag für KI-Auftrag %s weiter nicht nachgeholt", auftrag.pk)
+    return nachgeholt
 
 
 def abarbeiten(jetzt=None) -> dict:
@@ -333,6 +398,7 @@ def abarbeiten(jetzt=None) -> dict:
     Hintergrundlauf. Ohne Anbieter wird nichts reserviert: Die Aufträge warten, bis einer angeschlossen ist."""
     jetzt = jetzt or timezone.now()
     ergebnis = {"erledigt": 0, "verschoben": 0, "gescheitert": 0, "uebersprungen": 0}
+    eintraege_nachholen()
     if anbieter_waehlen() is None:
         return {**ergebnis, "anbieter": False, "offen": offene_anzahl()}
     if KILauf.monatsverbrauch(jetzt) >= KILauf.monatsbudget():

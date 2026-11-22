@@ -265,7 +265,7 @@ def test_ohne_gruppe_2_geht_der_vorschlag_nach_der_prueffrist_weiter(client, ord
     entwurf.refresh_from_db()
     assert entwurf.status == EntwurfsStatus.UNTERSTUETZER and entwurf.review_frist is not None
     vermerk = Pruefung.objects.get(entwurf=entwurf)
-    assert vermerk.ergebnis == Pruefung.Ergebnis.VALIDIERT and vermerk.beschluss is None
+    assert vermerk.ergebnis == Pruefung.Ergebnis.UNGEPRUEFT and vermerk.beschluss is None  # nicht „validiert“ (GP-032)
     assert "keine Rolle besetzt" in vermerk.begruendung and "Untätigkeit hemmt nie" in vermerk.begruendung
     assert any(
         e.ereignis["typ"] == "pruefung_frist_verstrichen" and e.ereignis["grund"] == "keine_gruppe_2"

@@ -2,7 +2,7 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
-## [0.115.0] — 2026-11-21 · Zweite Behebungsrunde der Gesamtprüfung
+## [0.115.0] — 2026-11-22 · Zweite Behebungsrunde der Gesamtprüfung
 
 Diese Fassung ist die zweite Behebungsrunde nach der Gesamtprüfung gegen das eigene Sollbild (FB-Q1). Sie behebt die übrigen belegten Fehler, die ohne neue Regelentscheidung behebbar waren, und macht Nenner, Stichtag, Wortlaut und Stimmliste in der Audit-Kette nachprüfbar. Sie führt keine neue Regel, Zahl, Rolle oder Zuständigkeit ein und schickt keine neue Post an Mitglieder; was eine Entscheidung des Gründers braucht, bleibt offen. Verhalten ändert sich an drei Stellen, weil der Satzungsentwurf es so sagt oder weil zwei Stellen dasselbe unterschiedlich rechneten: Die Anfechtungsfrist einer Vertrauensfrage und die Endgültigkeit einer verlorenen zählen ab dem Lauf, der das Ergebnis tatsächlich festgestellt und veröffentlicht hat, nicht ab dem planmäßigen Abstimmungsende (§ 7 Abs 10 lit f und h); das macht nur nach einem Stillstand des Fristenlaufs einen Unterschied. Die Zählung der Stimmberechtigten und die Prüfung des Stimmrechts im Einzelfall verwenden dieselbe Regel und denselben Stand am Stichtag (§ 4 Abs 4 lit a). Vor der Feststellung eines Ergebnisses läuft eine Gegenprobe der Stimmliste.
 
@@ -100,7 +100,7 @@ Diese Fassung ist die zweite Behebungsrunde nach der Gesamtprüfung gegen das ei
 - Schreibende Handlungen der Mitgliederverwaltung, der Meldungen und der Bewerbungen stehen mit ihrem Audit-Eintrag in einer Transaktion.
 - Nummern in Adressen, Abfrageteilen wie `?seite=` und den Bezügen eines Chat-Beitrags werden nur als ASCII-Ziffern mit höchstens 18 Stellen angenommen; anderes ergibt 404 oder eine Meldung statt eines Serverfehlers.
 - Ein Nullzeichen in einem Suchtext, in der Archivwahl der Antragsseite oder in einem Anstoß führt nicht mehr zu einem Serverfehler.
-- Die Datenschutzerklärung nennt, was diese Fassung neu speichert: den Verlauf der Statuswechsel, den Adressschlüssel des Mitgliedsausweises, die Zeitpunkte der selbst erklärten Einwilligung zur Fachliste, den Lesestand je Antrag oder Sitzung und die am Anmeldelink gemerkte Adresse. Tests binden jeden dieser Sätze an den Code.
+- Die Datenschutzerklärung nennt, was diese Fassung neu speichert: den Verlauf der Statuswechsel, den Adressschlüssel des Mitgliedsausweises, die Zeitpunkte der selbst erklärten Einwilligung zur Fachliste, den Lesestand je Antrag oder Sitzung und die am Anmeldelink gemerkte Adresse (Freigabe des Gründers vom 22.11.2026, Stand der Erklärung 22.11.2026). Tests binden jeden dieser Sätze an den Code.
 - Das öffentliche Audit-Log schwärzt bei einer berichtigten Mandatsangabe den alten Wert.
 - Scheitert der Audit-Eintrag am Ende eines KI-Auftrags, steht der Endzustand trotzdem fest; der Eintrag wird nachgeholt, und das Modell wird kein zweites Mal aufgerufen.
 - Mandatsende, Austritt und Livemeldung sperren Mandat, Sitzung und Audit-Kette in derselben Reihenfolge.

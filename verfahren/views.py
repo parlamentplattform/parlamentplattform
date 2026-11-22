@@ -1981,14 +1981,14 @@ def _register_zeilen():
 
 
 #: Stand der Datenschutzerklärung = Tag der letzten Freigabe ihres Wortlauts durch den Gründer.
-DATENSCHUTZ_STAND = "20.11.2026"
+DATENSCHUTZ_STAND = "22.11.2026"
 
 
 def datenschutz(request):
     """Die Datenschutzerklärung — eine Erklärseite wie /mitgliedschaft/, öffentlich und ohne Anmeldung.
 
     Der Text ist vom Gründer freigegeben (Bestandsaufnahme 28.9.2026, C3; Freigabe 29.9.2026;
-    Berichtigung GP-024, GP-161, GP-092 freigegeben 20.11.2026, E-27) und sagt nur, was der Code tut: Die Absätze zu KI-Anbieter und Kontoinformationsdienst
+    Berichtigung GP-024, GP-161, GP-092 freigegeben 20.11.2026, E-27; sechs Zusätze zu 0.115.0 freigegeben 22.11.2026) und sagt nur, was der Code tut: Die Absätze zu KI-Anbieter und Kontoinformationsdienst
     erscheinen nur, wenn der jeweilige Dienst in dieser Instanz tatsächlich angeschlossen ist."""
     from ki.models import steckplatz_stand
     from mitglieder.bank import eingerichtet as bank_eingerichtet

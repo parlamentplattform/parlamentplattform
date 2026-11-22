@@ -30,7 +30,7 @@ def test_datenschutzseite_ist_fuer_gaeste_erreichbar_und_freigegeben(client):
     — kein Entwurfshinweis mehr; der Stand ist das Freigabedatum."""
     from verfahren.views import DATENSCHUTZ_STAND
 
-    assert DATENSCHUTZ_STAND == "20.11.2026"
+    assert DATENSCHUTZ_STAND == "22.11.2026"  # Zusätze zu 0.115.0, freigegeben am 22.11.2026
     antwort = client.get(reverse("verfahren:datenschutz"))
     assert antwort.status_code == 200
     inhalt = antwort.content.decode()

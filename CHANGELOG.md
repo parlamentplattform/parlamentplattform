@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.116.0] — 2026-11-23 · Feld „Meine Region“ rollt, statt Kacheln zu beschneiden
+
+- Im Feld „Meine Region“ ist ein Band mindestens so hoch wie seine Kacheln. Reicht die Höhe des Feldes nicht für alle drei Bänder, rollt das Feld; bisher wurden die Kacheln unten abgeschnitten (Freigabe des Gründers vom 23.11.2026, E-43 Zeile 1).
+- Kopf, Titel, Phase und Ort, Frist und Knopf stehen ganz in der Kachel; der Gebietsname einer Kachel aus fremdem Gebiet bleibt sichtbar.
+- Bildschirmtest bei 1440 × 900 für Gast und Mitglied, mit und ohne JavaScript.
+
 ## [0.115.0] — 2026-11-22 · Zweite Behebungsrunde der Gesamtprüfung
 
 Diese Fassung ist die zweite Behebungsrunde nach der Gesamtprüfung gegen das eigene Sollbild (FB-Q1). Sie behebt die übrigen belegten Fehler, die ohne neue Regelentscheidung behebbar waren, und macht Nenner, Stichtag, Wortlaut und Stimmliste in der Audit-Kette nachprüfbar. Sie führt keine neue Regel, Zahl, Rolle oder Zuständigkeit ein und schickt keine neue Post an Mitglieder; was eine Entscheidung des Gründers braucht, bleibt offen. Verhalten ändert sich an drei Stellen, weil der Satzungsentwurf es so sagt oder weil zwei Stellen dasselbe unterschiedlich rechneten: Die Anfechtungsfrist einer Vertrauensfrage und die Endgültigkeit einer verlorenen zählen ab dem Lauf, der das Ergebnis tatsächlich festgestellt und veröffentlicht hat, nicht ab dem planmäßigen Abstimmungsende (§ 7 Abs 10 lit f und h); das macht nur nach einem Stillstand des Fristenlaufs einen Unterschied. Die Zählung der Stimmberechtigten und die Prüfung des Stimmrechts im Einzelfall verwenden dieselbe Regel und denselben Stand am Stichtag (§ 4 Abs 4 lit a). Vor der Feststellung eines Ergebnisses läuft eine Gegenprobe der Stimmliste.

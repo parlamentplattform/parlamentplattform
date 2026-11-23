@@ -348,17 +348,16 @@ html.js .zu-ohne-js{display:none}
 .feld-korpus{container-type:inline-size}
 .kacheln{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(186px,calc(50% - 5px));gap:10px;height:100%;align-content:start}
 @container (min-width:700px){.kacheln{grid-template-columns:repeat(3,minmax(0,1fr))}}
-/* Meine Region (FB-E1): drei Bänder Gemeinde · Bezirk · Land als 3×3-Raster; jede Spur wischt waagrecht (Scroll-Snap). */
-.baender{display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:8px;height:100%;min-height:300px}
+/* Meine Region (FB-E1): drei Bänder Gemeinde · Bezirk · Land als 3×3-Raster; jede Spur wischt waagrecht (Scroll-Snap).
+   E-43 Z 1 (Variante c): Ein Band ist mindestens so hoch wie seine Kacheln — reicht das Feld nicht, rollt es,
+   statt die Kachel zu beschneiden. */
+.baender{display:grid;grid-template-rows:repeat(3,minmax(min-content,1fr));gap:8px;height:100%;min-height:300px}
 .rband{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;min-height:0;position:relative}
-.rband .rkopf{margin:0;min-height:0;writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--matt);border-right:3px solid var(--deep);padding:4px 0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rband .rkopf{margin:0;min-height:0;contain:size;writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--matt);border-right:3px solid var(--deep);padding:4px 0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rband.r2 .rkopf{border-color:var(--gold)}.rband.r3 .rkopf{border-color:var(--ink)}
 .rband .spur{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 20px)/3);gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:thin;min-height:0;height:100%}
 .rband .spur>.kachel{scroll-snap-align:start;min-height:0;padding:6px 10px;gap:3px}
 .rband .spur .k-titel{font-size:14px;-webkit-line-clamp:1;flex:none}
-/* GP-171: Ist das Band niedriger als die Kachel, gibt die Zeile mit Phase und Ort nach — nicht der Titel,
-   der Weg der Kachel (sonst ein Tab-Halt ohne Höhe) */
-.rband .spur .k-meta{min-height:0;overflow:hidden}
 .rband .spur .balken,.rband .spur .grund,.rband .spur>.kachel>.rest,.rband .spur .badge--hell{display:none}
 .rband .spur .rest{font-size:11.5px}
 .rband .spur .k-fuss{margin-top:auto}
